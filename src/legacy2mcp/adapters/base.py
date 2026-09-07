@@ -23,7 +23,7 @@ class ToolDefinition:
     input_schema: dict[str, Any]
     output_schema: dict[str, Any] = field(default_factory=dict)
     # Free-form provenance info surfaced in `legacy2mcp inspect` and
-    # useful for audit logs (e.g. {"wsdl_operation": "GetClaimStatus"}).
+    # useful for audit logs (e.g. {"wsdl_operation": "GetRecordStatus"}).
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

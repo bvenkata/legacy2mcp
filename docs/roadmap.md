@@ -29,8 +29,8 @@
   configurable option.
 - **HTTP/SSE transport**, for MCP clients that talk HTTP instead of
   spawning a stdio subprocess.
-- Fine-grained authorization: map an identity's role/claims to an
-  allowed tool-name pattern (`select_*`, `get_*`, etc.).
+- Fine-grained authorization: map an identity's role or attributes to
+  an allowed tool-name pattern (`select_*`, `get_*`, etc.).
 - OAuth2 auth for SOAP endpoints (basic auth only in v0.1).
 
 ## v0.3+ (ideas, unscheduled)

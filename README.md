@@ -23,16 +23,16 @@ WSDL. No arbitrary calls the WSDL itself doesn't define.
 
 ## Why this exists
 
-Enterprises run 10–20 year old SOAP services that aren't going away — claims
-platforms, policy administration, core banking, supply chain, billing. Everyone
-now wants to point an AI agent at these systems.
+Organizations run 10–20 year old SOAP services that aren't going away — systems
+of record, middleware, back-office and line-of-business platforms. More and more
+teams now want to point an AI agent at these systems.
 
 Today that means, per WSDL:
 
 - hand-writing a bespoke adapter,
 - guessing at input validation,
 - hand-copying tool schemas that immediately start drifting from the service,
-- and hoping nobody points an LLM at `DeletePolicy`.
+- and hoping nobody points an LLM at `DeleteRecord`.
 
 `legacy2mcp` generates the adapter **from the WSDL itself**, so the tool schema
 can never drift from what the service actually accepts, and ships a
@@ -89,44 +89,44 @@ docker compose run --rm legacy2mcp legacy2mcp inspect \
 ```yaml
 # config.yaml
 server:
-  name: my-claims-mcp
+  name: my-legacy-mcp
 
 adapters:
-  - id: claims
+  - id: legacy
     type: soap
     config:
-      wsdl_url: "https://claims.example.com/ClaimsService?wsdl"
+      wsdl_url: "https://service.example.com/LegacyService?wsdl"
       auth:
         type: basic
         username: "svc-account"
-        password_env: "CLAIMS_SERVICE_PASSWORD"
+        password_env: "SERVICE_PASSWORD"
       # Safe by default: Create*/Update*/Delete*/Cancel*/Submit*/... are
       # excluded unless you opt in explicitly.
       allow_write_operations: false
       # Recommended for production: enumerate exactly what the agent may call.
-      include_operations: ["GetClaimStatus", "GetClaimDetails", "SearchClaimsByPolicy"]
+      include_operations: ["GetRecord", "GetRecordDetails", "SearchRecords"]
 
 security:
   audit:
     enabled: true
-    path: "./claims-mcp-audit.log"
+    path: "./legacy-mcp-audit.log"
 ```
 
 ```bash
-export CLAIMS_SERVICE_PASSWORD=...
+export SERVICE_PASSWORD=...
 legacy2mcp inspect --config config.yaml   # review the generated tools
 legacy2mcp run     --config config.yaml   # start the MCP server (stdio)
 ```
 
 A full production-shaped template lives at
-[`examples/soap/config.claims.template.yaml`](examples/soap/config.claims.template.yaml).
+[`examples/soap/config.template.yaml`](examples/soap/config.template.yaml).
 
 ### Use it from Claude Desktop (or any MCP client)
 
 ```json
 {
   "mcpServers": {
-    "claims": {
+    "legacy": {
       "command": "legacy2mcp",
       "args": ["run", "--config", "/absolute/path/to/config.yaml"]
     }
@@ -136,10 +136,9 @@ A full production-shaped template lives at
 
 ## Use cases
 
-- **Insurance** — let a claims-triage or underwriting agent read claim status,
-  policy details, and coverage from a legacy claims / policy-admin SOAP platform,
-  read-only, with every lookup audit-logged.
-- **Core banking / billing** — expose account and transaction *reads* to an agent
+- **Systems of record** — let an agent read status and detail records from a
+  legacy back-office platform, read-only, with every lookup audit-logged.
+- **Financial services** — expose account and transaction *reads* to an agent
   without exposing transfers or adjustments.
 - **Supply chain / ERP** — surface order status, inventory, and shipment tracking
   from an old SOAP middleware layer.
@@ -157,15 +156,15 @@ schema, and exits non-zero if anything fails. Run it as a pipeline gate:
 
 ```yaml
 # .github/workflows/contract-check.yml
-- name: Check the claims WSDL still generates valid MCP tools
+- name: Check the WSDL still generates valid MCP tools
   env:
-    CLAIMS_SERVICE_PASSWORD: ${{ secrets.CLAIMS_SERVICE_PASSWORD }}
+    SERVICE_PASSWORD: ${{ secrets.SERVICE_PASSWORD }}
   run: |
     pip install legacy2mcp
-    legacy2mcp inspect --config config/claims.yaml > tools.json
+    legacy2mcp inspect --config config/legacy.yaml > tools.json
     # optionally: diff tools.json against a committed snapshot to catch
     # a backend team changing an operation's contract out from under you
-    git diff --exit-code --no-index tools/claims.snapshot.json tools.json
+    git diff --exit-code --no-index tools/legacy.snapshot.json tools.json
 ```
 
 ### As a sidecar / long-running MCP server

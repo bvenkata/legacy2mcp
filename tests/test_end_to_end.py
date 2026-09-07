@@ -147,9 +147,9 @@ def test_write_like_operation_naming_is_gated_by_default():
     # actually enforces the safe-by-default posture.
     from legacy2mcp.adapters.soap_adapter import _looks_like_write
 
-    assert _looks_like_write("CreateClaim")
-    assert _looks_like_write("DeletePolicy")
+    assert _looks_like_write("CreateOrder")
+    assert _looks_like_write("DeleteRecord")
     assert _looks_like_write("UpdateStatus")
-    assert not _looks_like_write("GetClaimStatus")
+    assert not _looks_like_write("GetRecordStatus")
     assert not _looks_like_write("Add")
-    assert not _looks_like_write("ListPolicies")
+    assert not _looks_like_write("ListRecords")

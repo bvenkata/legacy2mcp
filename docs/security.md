@@ -38,7 +38,7 @@ this at.
   that's on the [roadmap](roadmap.md) (v0.2) but not implemented --
   don't expose a v0.1 server to untrusted callers.
 - **The write-operation filter is a name heuristic, not semantic
-  analysis.** A WSDL operation named `ProcessClaim` that actually
+  analysis.** A WSDL operation named `ProcessRecord` that actually
   deletes data would not be caught by the `_looks_like_write()` check.
   Review `include_operations` / `exclude_operations` explicitly for
   any adapter pointed at a system where a wrong call has real

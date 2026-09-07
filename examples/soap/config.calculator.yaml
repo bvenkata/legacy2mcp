@@ -11,7 +11,7 @@ adapters:
       auth:
         type: none
       # Demo service has no write-like operations, so this is left at
-      # its safe default (false). See config.claims.template.yaml for a
+      # its safe default (false). See config.template.yaml for a
       # production-shaped config with auth and an operation allowlist.
       allow_write_operations: false
 

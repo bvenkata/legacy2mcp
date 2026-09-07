@@ -1,53 +1,53 @@
 # ---------------------------------------------------------------------------
-# Real-world template: exposing a legacy insurance claims SOAP platform
-# to an AI agent as an MCP server.
+# Production-shaped template: exposing a legacy SOAP service to an AI
+# agent as an MCP server.
 #
 # Copy this file, point `wsdl_url` at your own service, adjust the
 # operation allow/deny lists, then:
 #
-#     export CLAIMS_SERVICE_PASSWORD=...
-#     legacy2mcp inspect --config config.claims.yaml   # dry-run: list the tools
-#     legacy2mcp run     --config config.claims.yaml   # start the MCP server
+#     export SERVICE_PASSWORD=...
+#     legacy2mcp inspect --config config.yaml   # dry-run: list the tools
+#     legacy2mcp run     --config config.yaml   # start the MCP server
 # ---------------------------------------------------------------------------
 
 server:
-  name: claims-mcp
+  name: legacy-mcp
   transport: stdio
 
 adapters:
-  - id: claims
+  - id: legacy
     type: soap
     enabled: true
     config:
-      wsdl_url: "https://claims.example.com/ClaimsService?wsdl"
+      wsdl_url: "https://service.example.com/LegacyService?wsdl"
 
       auth:
         type: basic
         username: "svc-mcp-readonly"
         # Never put the password in this file. It is read from this
         # environment variable at startup.
-        password_env: "CLAIMS_SERVICE_PASSWORD"
+        password_env: "SERVICE_PASSWORD"
 
       # Safe by default: operations whose names look like writes
       # (Create*, Update*, Delete*, Cancel*, Submit*, Pay*, ...) are
       # NOT exposed unless you flip this to true. Leave it false unless
-      # the agent genuinely needs to mutate the claims system.
+      # the agent genuinely needs to mutate the backend system.
       allow_write_operations: false
 
       # Explicit allowlist wins over the heuristic. If set, ONLY these
       # operations are exposed. Recommended for production: enumerate
       # exactly what the agent may call.
       include_operations:
-        - "GetClaimStatus"
-        - "GetClaimDetails"
-        - "SearchClaimsByPolicy"
-        - "ListClaimDocuments"
+        - "GetRecord"
+        - "GetRecordDetails"
+        - "SearchRecords"
+        - "ListDocuments"
 
       # Denylist, applied on top of everything else. Belt and braces
       # for operations you never want reachable.
       exclude_operations:
         - "InternalDebugPing"
-        - "PurgeClaimArchive"
+        - "PurgeArchive"
 
       timeout_seconds: 20
 
@@ -57,4 +57,4 @@ security:
     # One JSON line per tool call (who / what / when / args / outcome).
     # Point this at a path with restricted permissions -- arguments may
     # contain business data.
-    path: "/var/log/legacy2mcp/claims-mcp-audit.log"
+    path: "/var/log/legacy2mcp/audit.log"
