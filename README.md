@@ -17,7 +17,9 @@ call — with **every call schema-validated before it reaches your SOAP endpoint
 No hand-written adapter code. No hand-maintained tool schemas that drift from the
 WSDL. No arbitrary calls the WSDL itself doesn't define.
 
-![legacy2mcp inspect turning a Calculator WSDL into four typed MCP tools](docs/demo.svg)
+![legacy2mcp turning a Calculator WSDL into four typed, schema-validated MCP tools](demo/legacy2mcp.gif)
+
+<sub>Regenerate this clip with `vhs demo/demo.tape` — see [`demo/`](demo/).</sub>
 
 ---
 
