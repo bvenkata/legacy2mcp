@@ -5,11 +5,26 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "legacy2mcp"
 version = "0.1.0"
-description = "Turn legacy SOAP/WSDL systems into safe, production-ready MCP servers."
+description = "Turn legacy SOAP/WSDL systems into safe, typed, audit-logged MCP servers for AI agents."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Balaji Venkatasubramaniyar" }]
+keywords = [
+    "mcp", "model-context-protocol", "soap", "wsdl", "ai-agents", "llm",
+    "legacy-modernization", "enterprise-integration", "zeep", "claude",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: System :: Systems Administration",
+]
 dependencies = [
     "mcp==1.29.1",
     "zeep>=4.3,<5",
@@ -25,6 +40,12 @@ dev = [
     "flask>=3.0",
     "lxml>=5.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/bvenkata/legacy2mcp"
+Repository = "https://github.com/bvenkata/legacy2mcp"
+Issues = "https://github.com/bvenkata/legacy2mcp/issues"
+"MCP Registry" = "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp"
 
 [project.scripts]
 legacy2mcp = "legacy2mcp.cli:main"

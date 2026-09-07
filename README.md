@@ -1,11 +1,14 @@
 # legacy2mcp
 
+<!-- mcp-name: io.github.bvenkata/legacy2mcp -->
+
 **Turn a legacy SOAP/WSDL system into a safe, typed [MCP](https://modelcontextprotocol.io/) server in minutes — so an AI agent can call it without a hand-written adapter.**
 
 [![CI](https://github.com/bvenkata/legacy2mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/bvenkata/legacy2mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/legacy2mcp.svg)](https://pypi.org/project/legacy2mcp/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
-[![MCP](https://img.shields.io/badge/protocol-MCP-6f42c1.svg)](https://modelcontextprotocol.io/)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-legacy2mcp-6f42c1.svg)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 Point `legacy2mcp` at a WSDL URL. It introspects every operation, generates a real
@@ -63,6 +66,16 @@ adapter.
 
 See [docs/security.md](docs/security.md) for the full, honest security model —
 what's covered today and what isn't yet.
+
+## Install
+
+```bash
+pip install legacy2mcp          # or: uv tool install legacy2mcp / pipx install legacy2mcp
+```
+
+Also on the [MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp)
+as `io.github.bvenkata/legacy2mcp`, so MCP-aware clients that read the registry
+can discover it directly.
 
 ## Quick start
 

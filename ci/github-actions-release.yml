@@ -1,0 +1,55 @@
+name: Release
+
+# Tag a release to publish:
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# Publishes the PyPI package (via PyPI Trusted Publishing - no token) and then
+# the server entry on the MCP Registry (via GitHub OIDC - no token). Both the
+# tag version and server.json's version must match the pyproject version.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write        # PyPI Trusted Publishing
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  mcp-registry:
+    needs: pypi
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write        # mcp-publisher login github-oidc
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for the new version to appear on PyPI
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          for i in $(seq 1 30); do
+            if curl -sf "https://pypi.org/pypi/legacy2mcp/${VERSION}/json" >/dev/null; then
+              echo "legacy2mcp ${VERSION} is live on PyPI"; exit 0
+            fi
+            echo "waiting for legacy2mcp ${VERSION} on PyPI..."; sleep 10
+          done
+          echo "timed out waiting for PyPI"; exit 1
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Publish to the MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
