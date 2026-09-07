@@ -227,10 +227,9 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-The GitHub Actions workflow is checked in at
-[`ci/github-actions-ci.yml`](ci/github-actions-ci.yml) — see
-[`ci/README.md`](ci/README.md) for the one command that moves it into
-`.github/workflows/` and lights up the CI badge above.
+CI runs the suite on Python 3.10–3.12 ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+Releases to PyPI and the MCP Registry are tag-triggered — see
+[docs/releasing.md](docs/releasing.md).
 
 ## Contributing
 
