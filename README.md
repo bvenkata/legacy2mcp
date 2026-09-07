@@ -213,6 +213,11 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
+The GitHub Actions workflow is checked in at
+[`ci/github-actions-ci.yml`](ci/github-actions-ci.yml) — see
+[`ci/README.md`](ci/README.md) for the one command that moves it into
+`.github/workflows/` and lights up the CI badge above.
+
 ## Contributing
 
 Adapters for new legacy systems are the highest-value contribution — implement
