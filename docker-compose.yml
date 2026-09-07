@@ -1,0 +1,32 @@
+services:
+  # A tiny SOAP service (4 operations: Add/Subtract/Multiply/Divide,
+  # shaped like the well-known public dneonline Calculator WSDL) so
+  # you can try legacy2mcp against a real WSDL with zero setup.
+  demo-soap-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.demo-soap
+    ports:
+      - "8123:8123"
+
+  # legacy2mcp itself. It speaks MCP over stdio, which is meant to be
+  # spawned by an MCP client (Claude Desktop, an agent framework, etc.)
+  # -- not run as a detached background service. Use:
+  #
+  #   docker compose run --rm legacy2mcp legacy2mcp inspect \
+  #     --config examples/soap/config.calculator.docker.yaml
+  #
+  # to prove tool discovery works without needing a real MCP client,
+  # or point an actual MCP client at:
+  #
+  #   docker compose run --rm -T legacy2mcp legacy2mcp run \
+  #     --config examples/soap/config.calculator.docker.yaml
+  legacy2mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - demo-soap-service
+    stdin_open: true
+    tty: false
+    profiles: ["tools"]

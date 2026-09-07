@@ -1,0 +1,21 @@
+server:
+  name: legacy2mcp-calculator-demo
+  transport: stdio
+
+adapters:
+  - id: calculator
+    type: soap
+    enabled: true
+    config:
+      wsdl_url: "http://127.0.0.1:8123/calculator?wsdl"
+      auth:
+        type: none
+      # Demo service has no write-like operations, so this is left at
+      # its safe default (false). See config.claims.template.yaml for a
+      # production-shaped config with auth and an operation allowlist.
+      allow_write_operations: false
+
+security:
+  audit:
+    enabled: true
+    path: "./legacy2mcp-audit.log"

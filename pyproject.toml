@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "legacy2mcp"
+version = "0.1.0"
+description = "Turn legacy SOAP/WSDL systems into safe, production-ready MCP servers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Balaji Venkatasubramaniyar" }]
+dependencies = [
+    "mcp==1.29.1",
+    "zeep>=4.3,<5",
+    "jsonschema>=4.21,<5",
+    "pydantic>=2.6,<3",
+    "PyYAML>=6.0,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "flask>=3.0",
+    "lxml>=5.0",
+]
+
+[project.scripts]
+legacy2mcp = "legacy2mcp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

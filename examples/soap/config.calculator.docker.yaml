@@ -1,0 +1,21 @@
+# Same as config.calculator.yaml, but for use inside docker-compose,
+# where the demo SOAP service is reachable by its service name
+# ("demo-soap-service") rather than 127.0.0.1.
+server:
+  name: legacy2mcp-calculator-demo
+  transport: stdio
+
+adapters:
+  - id: calculator
+    type: soap
+    enabled: true
+    config:
+      wsdl_url: "http://demo-soap-service:8123/calculator?wsdl"
+      auth:
+        type: none
+      allow_write_operations: false
+
+security:
+  audit:
+    enabled: true
+    path: "/app/legacy2mcp-audit.log"

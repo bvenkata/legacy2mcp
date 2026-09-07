@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir flask lxml
+
+COPY tests/mock_soap_service.py ./tests/mock_soap_service.py
+RUN touch ./tests/__init__.py
+
+EXPOSE 8123
+CMD ["python3", "-c", "from tests.mock_soap_service import create_app; create_app('http://demo-soap-service:8123/calculator').run(host='0.0.0.0', port=8123)"]
