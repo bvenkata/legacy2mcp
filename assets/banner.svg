@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="240" viewBox="0 0 1040 240" role="img" aria-label="legacy2mcp — legacy SOAP/WSDL turned into safe, typed MCP tools">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#131c33"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a371f7"/>
+      <stop offset="1" stop-color="#6f9bf7"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect x="1" y="1" width="1038" height="238" rx="20" fill="url(#bg)" stroke="#2a3350" stroke-width="1.5"/>
+
+  <g fill="#ffffff" opacity="0.045">
+    <circle cx="946" cy="150" r="2"/><circle cx="975" cy="150" r="2"/><circle cx="1004" cy="150" r="2"/>
+    <circle cx="946" cy="179" r="2"/><circle cx="975" cy="179" r="2"/><circle cx="1004" cy="179" r="2"/>
+    <circle cx="946" cy="208" r="2"/><circle cx="975" cy="208" r="2"/><circle cx="1004" cy="208" r="2"/>
+  </g>
+
+  <!-- glyph: SOAP box  ->  MCP hex -->
+  <g transform="translate(48,84)" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+    <rect x="0" y="6" width="68" height="68" rx="12" fill="none" stroke="#4b5675" stroke-width="3"/>
+    <text x="34" y="46" text-anchor="middle" fill="#8b93a7" font-size="15" font-weight="700" letter-spacing="1">SOAP</text>
+    <path d="M86 40 H134" stroke="url(#accent)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M125 30 L138 40 L125 50" fill="none" stroke="url(#accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <g filter="url(#glow)">
+      <path d="M186 6 l30 17 v36 l-30 17 -30 -17 v-36 z" fill="none" stroke="url(#accent)" stroke-width="3.5"/>
+    </g>
+    <text x="186" y="46" text-anchor="middle" fill="#c9b8f5" font-size="13" font-weight="700" letter-spacing="1">MCP</text>
+  </g>
+
+  <!-- wordmark -->
+  <g font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+    <text x="300" y="111" fill="#eef1f8" font-size="52" font-weight="800" letter-spacing="-1">legacy<tspan fill="#a371f7">2</tspan>mcp</text>
+    <text x="302" y="146" fill="#9aa4bd" font-size="18.5" font-weight="500">Legacy SOAP/WSDL &#8594; safe, typed MCP tools</text>
+    <text x="302" y="178" fill="#5b657f" font-size="12.5" font-weight="600" letter-spacing="0.4">SCHEMA-VALIDATED &#183; READ-ONLY BY DEFAULT &#183; AUDIT-LOGGED</text>
+  </g>
+</svg>
