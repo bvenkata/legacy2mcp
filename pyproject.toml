@@ -46,7 +46,7 @@ dev = [
 # no DB driver dependency; the adapter imports these lazily per dialect.
 db-postgres = ["psycopg[binary]>=3.1,<4"]
 db-mssql = ["pyodbc>=5.0,<6"]
-db-oracle = ["oracledb>=2.0,<3"]
+db-oracle = ["oracledb>=2.0,<27"]
 # `legacy2mcp init`'s AI-assisted analysis is a plain HTTP call via
 # `requests`, already a core dependency -- there's nothing extra to
 # install. This extra is intentionally empty: it exists so the install
