@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: System :: Systems Administration",
 ]
 dependencies = [
-    "mcp==1.29.1",
+    "mcp==2.3.0",
     "zeep>=4.3,<5",
     "jsonschema>=4.21,<5",
     "pydantic>=2.6,<3",
