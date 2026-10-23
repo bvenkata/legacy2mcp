@@ -65,3 +65,6 @@ legacy2mcp = "legacy2mcp.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+legacy2mcp = ["py.typed"]
