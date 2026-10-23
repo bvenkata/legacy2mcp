@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import getpass
+import importlib.metadata
 import json
 import logging
 import os
@@ -482,6 +483,15 @@ def _maybe_launch_chat(config: dict, out_path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="legacy2mcp")
+    # Read the version from the installed distribution metadata rather than
+    # a hand-maintained string, so it can't drift from pyproject.toml.
+    parser.add_argument(
+        "--version",
+        "-V",
+        action="version",
+        version=f"legacy2mcp {importlib.metadata.version('legacy2mcp')}",
+        help="Show the installed legacy2mcp version and exit.",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser("run", help="Run the MCP server defined by a config file.")

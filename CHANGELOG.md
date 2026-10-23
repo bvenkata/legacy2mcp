@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`legacy2mcp --version` / `-V`**: prints the installed package version and
+  exits without needing a subcommand. The version comes from the installed
+  distribution metadata, so it can't drift from `pyproject.toml`.
+
 ## [0.5.1] - 2026-10-23
 
 ### Added

@@ -501,6 +501,9 @@ skills that way instead.
 ## Common commands
 
 ```bash
+# Print the installed legacy2mcp version
+legacy2mcp --version
+
 # Generate a config from a live REST API (tries OpenAPI/Swagger discovery)
 legacy2mcp init --rest-url "https://api.example.com" --out config.yaml
 
