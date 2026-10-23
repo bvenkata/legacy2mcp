@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 from legacy2mcp import client_snippet, webui
@@ -482,6 +483,7 @@ def _maybe_launch_chat(config: dict, out_path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="legacy2mcp")
+    parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {version('legacy2mcp')}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser("run", help="Run the MCP server defined by a config file.")
