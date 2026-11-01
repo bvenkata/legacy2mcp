@@ -125,10 +125,7 @@ segments become a path param) with no cross-sample agreement -- two
 genuinely different endpoints that happen to template to the same path
 get merged into one operation; review the result. `--webpage-url` also
 can't see a form that client-side JavaScript builds or modifies after
-load -- only what's in the page's static HTML. Oracle stored-procedure
-introspection covers standalone procedures/functions only, not ones
-nested inside a package (see
-`adapters/db_dialects.py::OracleDialect.introspect_stored_procedures`).
+load -- only what's in the page's static HTML.
 
 ## What v0.1 actually does
 

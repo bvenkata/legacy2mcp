@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Oracle `discover --stored-procs` finds procedures and functions inside
+  a package**: they show up as `PACKAGE.ROUTINE` (with `#<overload>` when
+  the package overloads the name), so the contract's `db_object` says which
+  package each one lives in. A standalone procedure no longer picks up the
+  arguments of a packaged routine that has the same name.
 - **A bad `--config` no longer dumps a traceback**: `run`, `inspect` and
   `demo --config` now print one `error: ...` line and exit 1 when the
   config file is missing, isn't valid YAML, or fails schema validation.

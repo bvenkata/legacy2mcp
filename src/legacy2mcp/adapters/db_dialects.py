@@ -249,21 +249,43 @@ class OracleDialect(DbDialect):
         ]
 
     def introspect_stored_procedures(self, conn: Any, db_schema: str | None) -> list[ProcedureInfo]:
-        # Standalone procedures/functions only (ALL_PROCEDURES.PROCEDURE_NAME
-        # IS NULL) -- packaged procedures (PROCEDURE_NAME NOT NULL) share
-        # OBJECT_NAME with their package, which needs a different join to
-        # attribute arguments correctly. Left as a documented gap rather
-        # than risk silently mis-attributing a packaged procedure's args.
+        # Standalone procedures/functions (ALL_PROCEDURES.PROCEDURE_NAME IS
+        # NULL) plus the ones nested inside a package. A packaged routine's
+        # ALL_PROCEDURES row has OBJECT_NAME = the package, while its
+        # ALL_ARGUMENTS rows have PACKAGE_NAME = the package and OBJECT_NAME =
+        # the routine, so they're joined on PACKAGE_NAME + SUBPROGRAM_ID
+        # (which also keeps overloads apart). Standalone arguments are those
+        # with no PACKAGE_NAME -- otherwise a packaged routine sharing a
+        # standalone one's name would leak its arguments into it. The package
+        # row itself has no OBJECT_TYPE of PROCEDURE/FUNCTION, so a function
+        # is recognised by its return value: the unnamed argument at
+        # POSITION 0. Packaged names are "PACKAGE.ROUTINE", with "#<overload>"
+        # appended when the package overloads that name.
         owner = (db_schema or "").upper()
         if not owner:
             raise ValueError("Oracle stored-procedure introspection needs an owner/schema -- pass --db-dialect's schema.")
         sql = (
-            "SELECT p.object_name, p.object_type, a.argument_name, a.data_type, a.in_out "
+            "SELECT routine_name, routine_type, argument_name, data_type, in_out FROM ("
+            "SELECT p.object_name AS routine_name, p.object_type AS routine_type, "
+            "  a.argument_name, a.data_type, a.in_out, a.position "
             "FROM all_procedures p "
             "LEFT JOIN all_arguments a ON a.owner = p.owner AND a.object_name = p.object_name "
+            "  AND a.package_name IS NULL "
             "WHERE p.owner = :owner AND p.procedure_name IS NULL "
             "  AND p.object_type IN ('PROCEDURE', 'FUNCTION') "
-            "ORDER BY p.object_name, a.position"
+            "UNION ALL "
+            "SELECT p.object_name || '.' || p.procedure_name "
+            "  || CASE WHEN p.overload IS NOT NULL THEN '#' || p.overload ELSE '' END, "
+            "  CASE WHEN EXISTS (SELECT 1 FROM all_arguments r WHERE r.owner = p.owner "
+            "    AND r.package_name = p.object_name AND r.subprogram_id = p.subprogram_id "
+            "    AND r.position = 0 AND r.argument_name IS NULL) "
+            "  THEN 'FUNCTION' ELSE 'PROCEDURE' END, "
+            "  a.argument_name, a.data_type, a.in_out, a.position "
+            "FROM all_procedures p "
+            "LEFT JOIN all_arguments a ON a.owner = p.owner AND a.package_name = p.object_name "
+            "  AND a.subprogram_id = p.subprogram_id "
+            "WHERE p.owner = :owner AND p.object_type = 'PACKAGE' AND p.procedure_name IS NOT NULL"
+            ") ORDER BY routine_name, position"
         )
         cur = conn.cursor()
         cur.execute(sql, {"owner": owner})
