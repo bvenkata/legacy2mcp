@@ -66,15 +66,16 @@ There's no live schema to introspect a plain REST API from the way there is
 a WSDL or a DB catalog, so either write `rest/config.template.yaml` by hand,
 or let `legacy2mcp init` generate a starting point. It asks what to point at
 -- a WSDL URL, a REST API URL (tries OpenAPI/Swagger discovery against it),
-or a GitHub repo/local path (scans Flask/FastAPI route decorators) -- either
+a website with no API docs (`--webpage-url` crawls it), or a GitHub
+repo/local path (scans Flask/FastAPI route decorators) -- either
 interactively or via a flag:
 
 ```bash
 legacy2mcp init --rest-url https://api.example.com --out config.yaml
-# or: --wsdl-url ... / --github-url ... --scan-only (skip AI assist)
+# or: --wsdl-url ... / --webpage-url ... / --github-url ... --scan-only (skip AI assist)
 # review config.yaml -- especially base_url, auth, and any TODOs it left
 legacy2mcp inspect --config config.yaml
 ```
 
-See [the root README](../README.md#point-it-at-your-own-rest-api) for the
+See [the root README](../README.md#generate-a-config-automatically) for the
 full `legacy2mcp init` flags.

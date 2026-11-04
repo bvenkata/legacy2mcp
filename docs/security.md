@@ -1,8 +1,8 @@
 # Security model
 
-This document says plainly what protections exist today and what
-doesn't, so you can make an informed decision about where to point
-this at.
+This document says plainly which protections exist today and which
+do not, so you can make an informed decision about where to point
+this.
 
 ## DB adapter (v0.2)
 
@@ -158,8 +158,8 @@ load -- only what's in the page's static HTML.
 - **No authentication or authorization on the MCP server itself.**
   Anything that can spawn/connect to the server can call any exposed
   tool. If you need per-caller identity and role-based tool access,
-  that's on the [roadmap](roadmap.md) (v0.2) but not implemented --
-  don't expose a v0.1 server to untrusted callers.
+  that's still [planned](roadmap.md) and not implemented --
+  don't expose the server to untrusted callers.
 - **The write-operation filter is a name heuristic, not semantic
   analysis.** A WSDL operation named `ProcessRecord` that actually
   deletes data would not be caught by the `_looks_like_write()` check.
