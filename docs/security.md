@@ -148,8 +148,8 @@ load -- only what's in the page's static HTML.
    answer "who called what, with what arguments, and did it succeed"
    during an incident review.
 4. **Credentials never live in the config file.** Basic auth passwords
-   are read from an environment variable named in `password_env`, not
-   written into YAML.
+   are read from an environment variable named in `password_env`, and OAuth2
+   credentials are read from `auth.json` (or `client_secret_env`), never written into YAML.
 5. **SOAP faults don't leak raw stack traces to the caller.** They're
    caught and re-raised as a plain error message.
 
@@ -183,3 +183,4 @@ load -- only what's in the page's static HTML.
 Please open a GitHub issue marked `security`, or contact the
 maintainer directly if the issue is sensitive enough that a public
 issue isn't appropriate.
+

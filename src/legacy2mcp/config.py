@@ -16,7 +16,9 @@ only -- no arbitrary SQL from the LLM, ever). "queue" is accepted here
 
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any, Literal
 
 import yaml
@@ -62,7 +64,55 @@ class BearerAuthConfig(BaseModel):
         return value
 
 
-AuthConfig = BasicAuthConfig | BearerAuthConfig | NoAuthConfig
+class OAuth2AuthConfig(BaseModel):
+    type: Literal["oauth2"] = "oauth2"
+    file: str | None = None
+    token_url: str | None = None
+    client_id: str | None = None
+    client_secret_env: str | None = None
+    scope: str | None = None
+
+    def resolve_credentials(self) -> tuple[str, str, str, str | None]:
+        if self.file:
+            path = Path(self.file)
+            if not path.is_file():
+                raise ValueError(f"Auth file not found: '{self.file}'")
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                raise ValueError(f"Failed to read auth file '{self.file}': {exc}") from exc
+
+            token_url = data.get("token_url") or data.get("url") or self.token_url
+            client_id = data.get("client_id") or self.client_id
+            client_secret = data.get("client_secret") or data.get("password")
+            scope = data.get("scope") or self.scope
+
+            if not token_url:
+                raise ValueError(f"Auth file '{self.file}' is missing 'url' or 'token_url'.")
+            if not client_id:
+                raise ValueError(f"Auth file '{self.file}' is missing 'client_id'.")
+            if not client_secret:
+                raise ValueError(f"Auth file '{self.file}' is missing 'password' or 'client_secret'.")
+            return str(token_url), str(client_id), str(client_secret), scope
+
+        if not self.token_url:
+            raise ValueError("OAuth2 auth requires 'token_url' or 'file'.")
+        if not self.client_id:
+            raise ValueError("OAuth2 auth requires 'client_id' or 'file'.")
+        if not self.client_secret_env:
+            raise ValueError("OAuth2 auth requires 'client_secret_env' or 'file'.")
+
+        secret = os.environ.get(self.client_secret_env)
+        if not secret:
+            raise ValueError(
+                f"Environment variable '{self.client_secret_env}' is not set "
+                f"(required for oauth2 auth)."
+            )
+        return self.token_url, self.client_id, secret, self.scope
+
+
+AuthConfig = BasicAuthConfig | BearerAuthConfig | OAuth2AuthConfig | NoAuthConfig
 
 
 class SoapAdapterSettings(BaseModel):
