@@ -17,7 +17,7 @@ vhs demo/demo.tape
 
 Outputs:
 
-- `demo/legacy2mcp.gif` — drop into the README
+- `demo/legacy2mcp.gif` — linked from `examples/README.md`
 - `demo/legacy2mcp.mp4` — for a PR description, social, or a docs site
 
 Tweak pacing/size/theme at the top of [`demo.tape`](demo.tape)
@@ -39,8 +39,9 @@ asciinema rec demo/legacy2mcp.cast -c './demo/demo.sh'
 asciinema upload demo/legacy2mcp.cast     # or embed the .cast with asciinema-player
 ```
 
-## In the README
+## In the docs
 
-The root README embeds `demo/legacy2mcp.gif` near the top. Re-running
-`vhs demo/demo.tape` overwrites it in place, so refreshing the clip is just
-regenerate + commit.
+[`examples/README.md`](../examples/README.md) links to `legacy2mcp.gif`.
+Re-running `vhs demo/demo.tape` overwrites it in place, so refreshing the
+clip is regenerate and commit. The root README's Development section
+points at the same command.

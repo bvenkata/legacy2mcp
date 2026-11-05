@@ -3,7 +3,7 @@
 legacy2mcp is a stdio MCP server: the client launches it, so there is nothing to host. Every
 snippet below runs the same command:
 
-```
+```bash
 uvx legacy2mcp run --config /absolute/path/to/config.yaml
 ```
 
