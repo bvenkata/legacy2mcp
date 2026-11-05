@@ -25,6 +25,8 @@ Safety defaults:
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from typing import Any
 
 import zeep
@@ -33,11 +35,68 @@ from zeep.helpers import serialize_object
 from zeep.transports import Transport
 
 from legacy2mcp.adapters.base import AdapterError, BaseAdapter, ToolDefinition
-from legacy2mcp.config import BasicAuthConfig, SoapAdapterSettings
+from legacy2mcp.config import BasicAuthConfig, OAuth2AuthConfig, SoapAdapterSettings
 from legacy2mcp.discovery.heuristics import looks_like_write as _looks_like_write
 from legacy2mcp.schema.xsd_to_jsonschema import operation_input_schema, operation_output_schema
 
 logger = logging.getLogger("legacy2mcp.soap")
+
+
+class OAuth2BearerAuth:
+    """Fetches and automatically refreshes OAuth2 bearer tokens via client_credentials."""
+
+    def __init__(self, auth_config: OAuth2AuthConfig):
+        self.auth_config = auth_config
+        self._lock = threading.Lock()
+        self._access_token: str | None = None
+        self._expires_at: float = 0.0
+
+    def _fetch_token(self) -> str:
+        import requests
+
+        token_url, client_id, client_secret, scope = self.auth_config.resolve_credentials()
+        payload = {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+        if scope:
+            payload["scope"] = scope
+
+        try:
+            response = requests.post(token_url, data=payload, timeout=15)
+        except Exception as exc:
+            raise AdapterError(f"OAuth2 token request failed: {exc}") from exc
+
+        if response.status_code != 200:
+            raise AdapterError(
+                f"OAuth2 token request failed with status {response.status_code}: {response.text}"
+            )
+        try:
+            data = response.json()
+        except Exception as exc:
+            raise AdapterError(f"OAuth2 token response was not valid JSON: {exc}") from exc
+
+        token = data.get("access_token")
+        if not token:
+            raise AdapterError("OAuth2 token response missing 'access_token'.")
+
+        expires_in = data.get("expires_in", 3600)
+        buffer = min(60.0, float(expires_in) / 2.0)
+        self._expires_at = time.time() + float(expires_in) - buffer
+        self._access_token = str(token)
+        return self._access_token
+
+    def get_token(self) -> str:
+        with self._lock:
+            if self._access_token is None or time.time() >= self._expires_at:
+                return self._fetch_token()
+            return self._access_token
+
+    def __call__(self, r: Any) -> Any:
+        token = self.get_token()
+        r.headers["Authorization"] = f"Bearer {token}"
+        return r
 
 
 class SoapAdapter(BaseAdapter):
@@ -63,6 +122,11 @@ class SoapAdapter(BaseAdapter):
             session.auth = HTTPBasicAuth(
                 self.settings.auth.username, self.settings.auth.resolve_password()
             )
+        elif isinstance(self.settings.auth, OAuth2AuthConfig):
+            import requests
+
+            session = requests.Session()
+            session.auth = OAuth2BearerAuth(self.settings.auth)
 
         transport = Transport(session=session, timeout=self.settings.timeout_seconds)
         self._client = zeep.Client(self.settings.wsdl_url, transport=transport)
