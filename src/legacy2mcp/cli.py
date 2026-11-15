@@ -321,6 +321,53 @@ def _resolve_llm(args: argparse.Namespace, interactive: bool) -> OpenAiLlmClient
     return OpenAiLlmClient(api_key=api_key, base_url=llm_base_url, model=args.llm_model)
 
 
+def _warn_if_git_unignored(auth_path: Path) -> None:
+    cur = auth_path.parent
+    repo_root = None
+    while True:
+        if (cur / ".git").exists():
+            repo_root = cur
+            break
+        if cur.parent == cur:
+            break
+        cur = cur.parent
+
+    if repo_root is None:
+        return
+
+    import subprocess
+
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(repo_root), "check-ignore", "-q", str(auth_path)],
+            capture_output=True,
+        )
+        if res.returncode == 0:
+            return
+    except Exception:
+        pass
+
+    gitignore = repo_root / ".gitignore"
+    if gitignore.is_file():
+        try:
+            name = auth_path.name
+            rel = str(auth_path.relative_to(repo_root)).replace("\\", "/")
+            for line in gitignore.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line in (name, rel, f"/{rel}", f"{name}/"):
+                    return
+        except Exception:
+            pass
+
+    print(
+        f"warning: '{auth_path.name}' sits inside a git repo ({repo_root}) but is not in .gitignore. "
+        f"Add it to .gitignore to avoid committing secrets.",
+        file=sys.stderr,
+    )
+
+
 def _cmd_init(args: argparse.Namespace) -> None:
     """Point legacy2mcp at a WSDL URL, a REST API URL, a website, or a
     GitHub repo / local path, and write a starter config.yaml. The
@@ -356,12 +403,59 @@ def _cmd_init(args: argparse.Namespace) -> None:
 
     kind, value = _resolve_source(args, interactive)
 
+    auth_file_path = None
+    if getattr(args, "auth", None):
+        if kind != "wsdl":
+            print(
+                "error: --auth is only allowed with --wsdl-url for now.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        raw_auth = Path(args.auth)
+        if not raw_auth.is_file():
+            print(f"error: auth file not found: '{args.auth}'", file=sys.stderr)
+            sys.exit(1)
+
+        abs_auth = raw_auth.resolve()
+        try:
+            with open(abs_auth, "r", encoding="utf-8") as f:
+                auth_data = json.load(f)
+        except Exception as exc:
+            print(f"error: failed to read auth file '{args.auth}': {exc}", file=sys.stderr)
+            sys.exit(1)
+
+        url = auth_data.get("url") or auth_data.get("token_url")
+        client_id = auth_data.get("client_id")
+        password = auth_data.get("password") or auth_data.get("client_secret")
+        if not url or not client_id or not password:
+            missing = []
+            if not url:
+                missing.append("'url' / 'token_url'")
+            if not client_id:
+                missing.append("'client_id'")
+            if not password:
+                missing.append("'password' / 'client_secret'")
+            print(
+                f"error: auth file '{args.auth}' is missing required fields: {', '.join(missing)}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        _warn_if_git_unignored(abs_auth)
+        auth_file_path = str(abs_auth)
+
     cloned_path = None
     try:
         if kind == "wsdl":
             config, todos = classify.build_config(
                 ScanResult(soap=SoapFinding(wsdl_url=value, file="user-provided WSDL URL"))
             )
+            if auth_file_path is not None:
+                config["adapters"][0]["config"]["auth"] = {
+                    "type": "oauth2",
+                    "file": auth_file_path,
+                }
             source_label = value
 
         elif kind == "rest":
@@ -708,6 +802,13 @@ def main() -> None:
     init_parser.add_argument("--llm-model", default=DEFAULT_MODEL)
     init_parser.add_argument(
         "--scan-only", action="store_true", help="Static analysis only -- skip LLM assist, no API key needed."
+    )
+    init_parser.add_argument(
+        "--auth",
+        help=(
+            "Path to an auth.json file containing OAuth2 credentials (url, client_id, password) "
+            "to configure for a --wsdl-url source."
+        ),
     )
     init_parser.add_argument("--out", default="./config.yaml", help="Where to write the generated config.")
     init_parser.add_argument(

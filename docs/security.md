@@ -153,6 +153,7 @@ nested inside a package (see
 4. **Credentials never live in the config file.** Basic auth passwords
    are read from an environment variable named in `password_env`, and OAuth2
    credentials are read from `auth.json` (or `client_secret_env`), never written into YAML.
+   Since `auth.json` contains plaintext secrets, always add it to `.gitignore`.
 5. **SOAP faults don't leak raw stack traces to the caller.** They're
    caught and re-raised as a plain error message.
 
@@ -186,4 +187,3 @@ nested inside a package (see
 Please open a GitHub issue marked `security`, or contact the
 maintainer directly if the issue is sensitive enough that a public
 issue isn't appropriate.
-

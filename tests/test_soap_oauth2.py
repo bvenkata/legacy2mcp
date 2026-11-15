@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import threading
 import time
@@ -7,10 +8,37 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask, Response, jsonify, request
+from pydantic import ValidationError
 
 from legacy2mcp.adapters.base import AdapterError
 from legacy2mcp.adapters.soap_adapter import OAuth2BearerAuth, SoapAdapter
-from legacy2mcp.config import OAuth2AuthConfig, SoapAdapterSettings
+from legacy2mcp.cli import _cmd_init
+from legacy2mcp.config import ConfigError, OAuth2AuthConfig, RestAdapterSettings, SoapAdapterSettings, load_config
+
+
+def _args(**kwargs):
+    defaults = {
+        "wsdl_url": None,
+        "rest_url": None,
+        "webpage_url": None,
+        "github_url": None,
+        "local_path": None,
+        "from_contract": None,
+        "auth": None,
+        "out": "./config.yaml",
+        "html_out": None,
+        "no_html_report": True,
+        "no_chat": True,
+        "scan_only": True,
+        "max_pages": 25,
+        "max_depth": 2,
+        "github_token_env": None,
+        "llm_api_key_env": None,
+        "llm_base_url": "https://api.openai.com/v1",
+        "llm_model": "gpt-4o",
+    }
+    defaults.update(kwargs)
+    return argparse.Namespace(**defaults)
 
 
 def test_oauth2_config_from_file_with_url_and_password(tmp_path):
@@ -100,7 +128,8 @@ def test_oauth2_config_env_var_missing(monkeypatch):
         config.resolve_credentials()
 
 
-def test_oauth2_bearer_auth_token_caching_and_refresh():
+def test_oauth2_bearer_auth_token_caching_and_refresh(monkeypatch):
+    monkeypatch.setenv("SOAP_SECRET", "secret-val")
     auth_config = OAuth2AuthConfig(
         token_url="https://auth.example.com/token",
         client_id="client-1",
@@ -124,61 +153,223 @@ def test_oauth2_bearer_auth_token_caching_and_refresh():
         }
         return resp
 
-    with patch("os.environ.get", return_value="secret-val"):
-        with patch("requests.post", side_effect=mock_post):
-            auth = OAuth2BearerAuth(auth_config)
+    with patch("requests.post", side_effect=mock_post):
+        auth = OAuth2BearerAuth(auth_config)
 
-            # First fetch
-            token1 = auth.get_token()
-            assert token1 == "token-1"
-            assert call_count == 1
+        # First fetch
+        token1 = auth.get_token()
+        assert token1 == "token-1"
+        assert call_count == 1
 
-            # Second call should use cache
-            token2 = auth.get_token()
-            assert token2 == "token-1"
-            assert call_count == 1
+        # Second call should use cache
+        token2 = auth.get_token()
+        assert token2 == "token-1"
+        assert call_count == 1
 
-            # Simulate expiration
-            auth._expires_at = time.time() - 10
-            token3 = auth.get_token()
-            assert token3 == "token-2"
-            assert call_count == 2
+        # Simulate expiration
+        auth._expires_at = time.time() - 10
+        token3 = auth.get_token()
+        assert token3 == "token-2"
+        assert call_count == 2
 
-            # Test __call__ header injection
-            prepared_req = MagicMock()
-            prepared_req.headers = {}
-            auth(prepared_req)
-            assert prepared_req.headers["Authorization"] == "Bearer token-2"
+        # Test __call__ header injection
+        prepared_req = MagicMock()
+        prepared_req.headers = {}
+        auth(prepared_req)
+        assert prepared_req.headers["Authorization"] == "Bearer token-2"
 
 
-def test_oauth2_bearer_auth_error_handling():
+def test_oauth2_bearer_auth_error_handling(monkeypatch):
+    monkeypatch.setenv("SOAP_SECRET", "secret-val")
     auth_config = OAuth2AuthConfig(
         token_url="https://auth.example.com/token",
         client_id="client-1",
         client_secret_env="SOAP_SECRET",
     )
 
-    with patch("os.environ.get", return_value="secret-val"):
-        # HTTP Error
-        err_resp = MagicMock()
-        err_resp.status_code = 401
-        err_resp.text = "Unauthorized"
-        with patch("requests.post", return_value=err_resp):
-            auth = OAuth2BearerAuth(auth_config)
-            with pytest.raises(AdapterError, match="status 401"):
-                auth.get_token()
+    # HTTP Error
+    err_resp = MagicMock()
+    err_resp.status_code = 401
+    err_resp.text = "Unauthorized"
+    with patch("requests.post", return_value=err_resp):
+        auth = OAuth2BearerAuth(auth_config)
+        with pytest.raises(AdapterError, match="status 401: Unauthorized"):
+            auth.get_token()
 
-        # Missing access_token
-        ok_resp = MagicMock()
-        ok_resp.status_code = 200
-        ok_resp.json.return_value = {"error": "no token"}
-        with patch("requests.post", return_value=ok_resp):
-            auth = OAuth2BearerAuth(auth_config)
-            with pytest.raises(AdapterError, match="missing 'access_token'"):
-                auth.get_token()
+    # Missing access_token
+    ok_resp = MagicMock()
+    ok_resp.status_code = 200
+    ok_resp.json.return_value = {"error": "no token"}
+    with patch("requests.post", return_value=ok_resp):
+        auth = OAuth2BearerAuth(auth_config)
+        with pytest.raises(AdapterError, match="missing 'access_token'"):
+            auth.get_token()
 
 
-# End-to-end integration test with live mock SOAP service and mock OAuth endpoint
+def test_oauth2_bearer_auth_expires_in_resilience(monkeypatch):
+    monkeypatch.setenv("SOAP_SECRET", "secret-val")
+    auth_config = OAuth2AuthConfig(
+        token_url="https://auth.example.com/token",
+        client_id="client-1",
+        client_secret_env="SOAP_SECRET",
+    )
+
+    # String expires_in
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = {"access_token": "tok1", "expires_in": "1800"}
+    with patch("requests.post", return_value=resp):
+        auth = OAuth2BearerAuth(auth_config)
+        token = auth.get_token()
+        assert token == "tok1"
+        assert auth._expires_at > time.time() + 1700
+
+    # Null expires_in
+    auth._access_token = None
+    resp.json.return_value = {"access_token": "tok2", "expires_in": None}
+    with patch("requests.post", return_value=resp):
+        token = auth.get_token()
+        assert token == "tok2"
+        assert auth._expires_at > time.time() + 3500  # Default 3600 - 60
+
+    # Non-numeric string expires_in
+    auth._access_token = None
+    resp.json.return_value = {"access_token": "tok3", "expires_in": "not-a-number"}
+    with patch("requests.post", return_value=resp):
+        token = auth.get_token()
+        assert token == "tok3"
+        assert auth._expires_at > time.time() + 3500
+
+
+def test_oauth2_bearer_auth_error_message_truncation(monkeypatch):
+    monkeypatch.setenv("SOAP_SECRET", "secret-val")
+    auth_config = OAuth2AuthConfig(
+        token_url="https://auth.example.com/token",
+        client_id="client-1",
+        client_secret_env="SOAP_SECRET",
+    )
+
+    err_resp = MagicMock()
+    err_resp.status_code = 500
+    err_resp.text = "X" * 1000
+    with patch("requests.post", return_value=err_resp):
+        auth = OAuth2BearerAuth(auth_config)
+        with pytest.raises(AdapterError) as exc_info:
+            auth.get_token()
+        err_msg = str(exc_info.value)
+        assert len(err_msg) < 300
+        assert "X" * 200 in err_msg
+        assert "X" * 201 not in err_msg
+
+
+def test_rest_adapter_rejects_oauth2_config():
+    # Item 1: REST config should reject oauth2
+    with pytest.raises(ValidationError):
+        RestAdapterSettings.model_validate(
+            {
+                "base_url": "https://api.example.com",
+                "auth": {"type": "oauth2", "token_url": "https://auth.example.com"},
+            }
+        )
+
+
+def test_load_config_resolves_relative_auth_file_path(tmp_path):
+    # Item 2: relative file path resolved against config.yaml directory
+    cfg_dir = tmp_path / "sub"
+    cfg_dir.mkdir()
+    auth_file = cfg_dir / "my_auth.json"
+    auth_file.write_text(
+        json.dumps({"url": "https://t.com", "client_id": "c", "password": "p"}),
+        encoding="utf-8",
+    )
+
+    config_yaml = cfg_dir / "config.yaml"
+    config_yaml.write_text(
+        f"""
+server:
+  name: test
+adapters:
+  - id: my_soap
+    type: soap
+    config:
+      wsdl_url: "https://example.com/wsdl"
+      auth:
+        type: oauth2
+        file: "my_auth.json"
+""",
+        encoding="utf-8",
+    )
+
+    loaded = load_config(str(config_yaml))
+    soap_cfg = loaded.adapters[0].soap_settings()
+    assert soap_cfg.auth.file == str(auth_file.resolve())
+
+
+def test_init_with_auth_flag_wsdl(tmp_path, monkeypatch):
+    # Item 3: init --wsdl-url with --auth writes absolute path to generated config
+    out_path = tmp_path / "config.yaml"
+    auth_file = tmp_path / "auth.json"
+    auth_file.write_text(
+        json.dumps({"url": "https://auth.example.com/token", "client_id": "c", "password": "p"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    _cmd_init(
+        _args(
+            wsdl_url="https://svc.example.com/Legacy?wsdl",
+            auth=str(auth_file),
+            out=str(out_path),
+        )
+    )
+
+    loaded = load_config(str(out_path))
+    soap_cfg = loaded.adapters[0].soap_settings()
+    assert soap_cfg.auth.type == "oauth2"
+    assert soap_cfg.auth.file == str(auth_file.resolve())
+
+
+def test_init_with_auth_flag_rest_rejected(tmp_path, monkeypatch, capsys):
+    # Item 3: --auth with --rest-url errors out
+    auth_file = tmp_path / "auth.json"
+    auth_file.write_text(json.dumps({"url": "u", "client_id": "c", "password": "p"}), encoding="utf-8")
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    with pytest.raises(SystemExit):
+        _cmd_init(_args(rest_url="https://api.example.com", auth=str(auth_file), out=str(tmp_path / "config.yaml")))
+    captured = capsys.readouterr()
+    assert "error: --auth is only allowed with --wsdl-url" in captured.err
+
+
+def test_init_with_auth_flag_invalid_file(tmp_path, monkeypatch, capsys):
+    # Item 3: --auth with missing keys errors out
+    bad_auth = tmp_path / "bad_auth.json"
+    bad_auth.write_text(json.dumps({"client_id": "c"}), encoding="utf-8")
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    with pytest.raises(SystemExit):
+        _cmd_init(_args(wsdl_url="https://svc.example.com/wsdl", auth=str(bad_auth), out=str(tmp_path / "config.yaml")))
+    captured = capsys.readouterr()
+    assert "missing required fields" in captured.err
+
+
+def test_init_with_auth_flag_git_warning(tmp_path, monkeypatch, capsys):
+    # Item 3: auth.json in git repo without .gitignore prints warning
+    repo_dir = tmp_path / "my_repo"
+    repo_dir.mkdir()
+    (repo_dir / ".git").mkdir()
+    auth_file = repo_dir / "auth.json"
+    auth_file.write_text(json.dumps({"url": "u", "client_id": "c", "password": "p"}), encoding="utf-8")
+    out_config = repo_dir / "config.yaml"
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+    _cmd_init(_args(wsdl_url="https://svc.example.com/wsdl", auth=str(auth_file), out=str(out_config)))
+    captured = capsys.readouterr()
+    assert "sits inside a git repo" in captured.err
+    assert "not in .gitignore" in captured.err
+
+
+# Live mock SOAP service and mock OAuth server
 PORT = 8210
 OAUTH_PORT = 8211
 ENDPOINT = f"http://127.0.0.1:{PORT}/calculator"
@@ -242,20 +433,23 @@ NS = "http://legacy2mcp.example/calculator"
 
 @pytest.fixture(scope="module")
 def mock_oauth_and_soap_servers():
-    # 1. OAuth server
+    oauth_token_counter = 0
+    soap_revoke_once = True
+
     oauth_app = Flask("oauth_server")
 
     @oauth_app.route("/oauth/token", methods=["POST"])
     def token():
+        nonlocal oauth_token_counter
         if (
             request.form.get("grant_type") == "client_credentials"
             and request.form.get("client_id") == "test-client"
             and request.form.get("client_secret") == "secret123"
         ):
-            return jsonify({"access_token": "mock-bearer-token-999", "expires_in": 3600})
+            oauth_token_counter += 1
+            return jsonify({"access_token": f"mock-token-{oauth_token_counter}", "expires_in": 3600})
         return jsonify({"error": "invalid_client"}), 401
 
-    # 2. SOAP server
     soap_app = Flask("soap_server")
 
     @soap_app.route("/calculator", methods=["GET"])
@@ -264,8 +458,9 @@ def mock_oauth_and_soap_servers():
 
     @soap_app.route("/calculator", methods=["POST"])
     def soap_call():
-        auth_header = request.headers.get("Authorization")
-        if auth_header != "Bearer mock-bearer-token-999":
+        auth_header = request.headers.get("Authorization", "")
+        # Expecting Bearer mock-token-N
+        if not auth_header.startswith("Bearer mock-token-"):
             return Response("Unauthorized", status=401)
 
         from lxml import etree
@@ -324,4 +519,49 @@ async def test_soap_adapter_with_oauth2_end_to_end(mock_oauth_and_soap_servers, 
     assert tools[0].name == "calc_Add"
 
     result = await adapter.invoke("calc_Add", {"intA": 25, "intB": 17})
-    assert result['AddResult'] == 42
+    assert result["AddResult"] == 42
+
+
+@pytest.mark.asyncio
+async def test_soap_adapter_oauth2_401_token_revocation_retry(tmp_path):
+    # Tests that when an active token is revoked (401), the adapter
+    # drops the cached token and retries once with a newly fetched token.
+    auth_file = tmp_path / "auth.json"
+    auth_file.write_text(
+        json.dumps({"url": "https://auth.example.com/token", "client_id": "c", "password": "p"}),
+        encoding="utf-8",
+    )
+
+    settings = SoapAdapterSettings(
+        wsdl_url="https://example.com/wsdl",
+        auth=OAuth2AuthConfig(file=str(auth_file)),
+    )
+
+    adapter = SoapAdapter("test", settings)
+    adapter._tool_index["test_op"] = ("svc", "port", "op", None)
+
+    from zeep.exceptions import TransportError
+
+    fake_client = MagicMock()
+    adapter._client = fake_client
+
+    fake_auth = MagicMock()
+    adapter._oauth_auth = fake_auth
+
+    attempt_count = 0
+
+    def fake_operation(**kwargs):
+        nonlocal attempt_count
+        attempt_count += 1
+        if attempt_count == 1:
+            # First attempt: token was revoked on server, returns 401
+            raise TransportError("Unauthorized", status_code=401)
+        # Second attempt after refresh: success
+        return {"success": True}
+
+    setattr(fake_client.service, "op", fake_operation)
+
+    result = await adapter.invoke("test_op", {})
+    assert result == {"success": True}
+    assert attempt_count == 2
+    fake_auth.invalidate_token.assert_called_once()

@@ -112,12 +112,14 @@ class OAuth2AuthConfig(BaseModel):
         return self.token_url, self.client_id, secret, self.scope
 
 
-AuthConfig = BasicAuthConfig | BearerAuthConfig | OAuth2AuthConfig | NoAuthConfig
+SoapAuthConfig = BasicAuthConfig | BearerAuthConfig | OAuth2AuthConfig | NoAuthConfig
+RestAuthConfig = BasicAuthConfig | BearerAuthConfig | NoAuthConfig
+AuthConfig = SoapAuthConfig
 
 
 class SoapAdapterSettings(BaseModel):
     wsdl_url: str
-    auth: AuthConfig = Field(default_factory=NoAuthConfig)
+    auth: SoapAuthConfig = Field(default_factory=NoAuthConfig)
     include_operations: list[str] | None = None
     exclude_operations: list[str] = Field(default_factory=list)
     # Safety default: SOAP operations that look like writes (Create/Update/
@@ -227,7 +229,7 @@ class RestEndpointSettings(BaseModel):
 
 class RestAdapterSettings(BaseModel):
     base_url: str
-    auth: AuthConfig = Field(default_factory=NoAuthConfig)
+    auth: RestAuthConfig = Field(default_factory=NoAuthConfig)
     allow_write_operations: bool = False
     timeout_seconds: float = 15.0
     endpoints: list[RestEndpointSettings] = Field(default_factory=list)
@@ -307,7 +309,16 @@ def load_config(path: str) -> Legacy2McpConfig:
         raise ConfigError(f"config file '{path}' is not valid YAML{where}: {problem}") from exc
 
     try:
-        return Legacy2McpConfig.model_validate(raw)
+        cfg = Legacy2McpConfig.model_validate(raw)
+        config_dir = Path(path).resolve().parent
+        for adapter in cfg.adapters:
+            if adapter.type == 'soap' and isinstance(adapter.config, dict):
+                auth_cfg = adapter.config.get('auth')
+                if isinstance(auth_cfg, dict) and auth_cfg.get('type') == 'oauth2':
+                    f_val = auth_cfg.get('file')
+                    if f_val and not Path(f_val).is_absolute():
+                        auth_cfg['file'] = str((config_dir / f_val).resolve())
+        return cfg
     except ValidationError as exc:
         problems = "; ".join(
             f"{'.'.join(str(part) for part in err['loc']) or '(top level)'}: {err['msg']}"
