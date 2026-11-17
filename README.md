@@ -766,7 +766,7 @@ Call the same generated, validated tools from your own code via any MCP client l
 | Key | Default | Meaning |
 |---|---|---|
 | `adapters[].config.wsdl_url` | — | WSDL location (`http(s)://…?wsdl` or a file path) |
-| `adapters[].config.auth` | `{type: none}` | `none` or `{type: basic, username, password_env}` |
+| `adapters[].config.auth` | `{type: none}` | `none`, `{type: basic, username, password_env}`, or `{type: oauth2, file: "auth.json"}` |
 | `adapters[].config.allow_write_operations` | `false` | expose write-like operations |
 | `adapters[].config.include_operations` | all | allowlist of operation names |
 | `adapters[].config.exclude_operations` | `[]` | denylist of operation names |

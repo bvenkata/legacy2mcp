@@ -16,7 +16,9 @@ only -- no arbitrary SQL from the LLM, ever). "queue" is accepted here
 
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 from typing import Any, Literal
 
 import yaml
@@ -62,12 +64,62 @@ class BearerAuthConfig(BaseModel):
         return value
 
 
-AuthConfig = BasicAuthConfig | BearerAuthConfig | NoAuthConfig
+class OAuth2AuthConfig(BaseModel):
+    type: Literal["oauth2"] = "oauth2"
+    file: str | None = None
+    token_url: str | None = None
+    client_id: str | None = None
+    client_secret_env: str | None = None
+    scope: str | None = None
+
+    def resolve_credentials(self) -> tuple[str, str, str, str | None]:
+        if self.file:
+            path = Path(self.file)
+            if not path.is_file():
+                raise ValueError(f"Auth file not found: '{self.file}'")
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as exc:
+                raise ValueError(f"Failed to read auth file '{self.file}': {exc}") from exc
+
+            token_url = data.get("token_url") or data.get("url") or self.token_url
+            client_id = data.get("client_id") or self.client_id
+            client_secret = data.get("client_secret") or data.get("password")
+            scope = data.get("scope") or self.scope
+
+            if not token_url:
+                raise ValueError(f"Auth file '{self.file}' is missing 'url' or 'token_url'.")
+            if not client_id:
+                raise ValueError(f"Auth file '{self.file}' is missing 'client_id'.")
+            if not client_secret:
+                raise ValueError(f"Auth file '{self.file}' is missing 'password' or 'client_secret'.")
+            return str(token_url), str(client_id), str(client_secret), scope
+
+        if not self.token_url:
+            raise ValueError("OAuth2 auth requires 'token_url' or 'file'.")
+        if not self.client_id:
+            raise ValueError("OAuth2 auth requires 'client_id' or 'file'.")
+        if not self.client_secret_env:
+            raise ValueError("OAuth2 auth requires 'client_secret_env' or 'file'.")
+
+        secret = os.environ.get(self.client_secret_env)
+        if not secret:
+            raise ValueError(
+                f"Environment variable '{self.client_secret_env}' is not set "
+                f"(required for oauth2 auth)."
+            )
+        return self.token_url, self.client_id, secret, self.scope
+
+
+SoapAuthConfig = BasicAuthConfig | BearerAuthConfig | OAuth2AuthConfig | NoAuthConfig
+RestAuthConfig = BasicAuthConfig | BearerAuthConfig | NoAuthConfig
+AuthConfig = SoapAuthConfig
 
 
 class SoapAdapterSettings(BaseModel):
     wsdl_url: str
-    auth: AuthConfig = Field(default_factory=NoAuthConfig)
+    auth: SoapAuthConfig = Field(default_factory=NoAuthConfig)
     include_operations: list[str] | None = None
     exclude_operations: list[str] = Field(default_factory=list)
     # Safety default: SOAP operations that look like writes (Create/Update/
@@ -177,7 +229,7 @@ class RestEndpointSettings(BaseModel):
 
 class RestAdapterSettings(BaseModel):
     base_url: str
-    auth: AuthConfig = Field(default_factory=NoAuthConfig)
+    auth: RestAuthConfig = Field(default_factory=NoAuthConfig)
     allow_write_operations: bool = False
     timeout_seconds: float = 15.0
     endpoints: list[RestEndpointSettings] = Field(default_factory=list)
@@ -257,7 +309,16 @@ def load_config(path: str) -> Legacy2McpConfig:
         raise ConfigError(f"config file '{path}' is not valid YAML{where}: {problem}") from exc
 
     try:
-        return Legacy2McpConfig.model_validate(raw)
+        cfg = Legacy2McpConfig.model_validate(raw)
+        config_dir = Path(path).resolve().parent
+        for adapter in cfg.adapters:
+            if adapter.type == 'soap' and isinstance(adapter.config, dict):
+                auth_cfg = adapter.config.get('auth')
+                if isinstance(auth_cfg, dict) and auth_cfg.get('type') == 'oauth2':
+                    f_val = auth_cfg.get('file')
+                    if f_val and not Path(f_val).is_absolute():
+                        auth_cfg['file'] = str((config_dir / f_val).resolve())
+        return cfg
     except ValidationError as exc:
         problems = "; ".join(
             f"{'.'.join(str(part) for part in err['loc']) or '(top level)'}: {err['msg']}"

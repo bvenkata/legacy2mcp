@@ -25,6 +25,8 @@ Safety defaults:
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from typing import Any
 
 import zeep
@@ -33,11 +35,79 @@ from zeep.helpers import serialize_object
 from zeep.transports import Transport
 
 from legacy2mcp.adapters.base import AdapterError, BaseAdapter, ToolDefinition
-from legacy2mcp.config import BasicAuthConfig, SoapAdapterSettings
+from legacy2mcp.config import BasicAuthConfig, OAuth2AuthConfig, SoapAdapterSettings
 from legacy2mcp.discovery.heuristics import looks_like_write as _looks_like_write
 from legacy2mcp.schema.xsd_to_jsonschema import operation_input_schema, operation_output_schema
 
 logger = logging.getLogger("legacy2mcp.soap")
+
+
+class OAuth2BearerAuth:
+    """Fetches and automatically refreshes OAuth2 bearer tokens via client_credentials."""
+
+    def __init__(self, auth_config: OAuth2AuthConfig):
+        self.auth_config = auth_config
+        self._lock = threading.Lock()
+        self._access_token: str | None = None
+        self._expires_at: float = 0.0
+
+    def invalidate_token(self) -> None:
+        with self._lock:
+            self._access_token = None
+            self._expires_at = 0.0
+
+    def _fetch_token(self) -> str:
+        import requests
+
+        token_url, client_id, client_secret, scope = self.auth_config.resolve_credentials()
+        payload = {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+        if scope:
+            payload["scope"] = scope
+
+        try:
+            response = requests.post(token_url, data=payload, timeout=15)
+        except Exception as exc:
+            raise AdapterError(f"OAuth2 token request failed: {exc}") from exc
+
+        if response.status_code != 200:
+            body_preview = response.text[:200].strip() if response.text else ""
+            msg = f"OAuth2 token request failed with status {response.status_code}"
+            if body_preview:
+                msg += f": {body_preview}"
+            raise AdapterError(msg)
+        try:
+            data = response.json()
+        except Exception as exc:
+            raise AdapterError(f"OAuth2 token response was not valid JSON: {exc}") from exc
+
+        token = data.get("access_token")
+        if not token:
+            raise AdapterError("OAuth2 token response missing 'access_token'.")
+
+        raw_expires = data.get("expires_in")
+        try:
+            expires_in = float(raw_expires) if raw_expires is not None else 3600.0
+        except (ValueError, TypeError):
+            expires_in = 3600.0
+        buffer = min(60.0, expires_in / 2.0)
+        self._expires_at = time.time() + expires_in - buffer
+        self._access_token = str(token)
+        return self._access_token
+
+    def get_token(self) -> str:
+        with self._lock:
+            if self._access_token is None or time.time() >= self._expires_at:
+                return self._fetch_token()
+            return self._access_token
+
+    def __call__(self, r: Any) -> Any:
+        token = self.get_token()
+        r.headers["Authorization"] = f"Bearer {token}"
+        return r
 
 
 class SoapAdapter(BaseAdapter):
@@ -47,6 +117,7 @@ class SoapAdapter(BaseAdapter):
         super().__init__(adapter_id, settings.model_dump())
         self.settings = settings
         self._client: zeep.Client | None = None
+        self._oauth_auth: OAuth2BearerAuth | None = None
         # tool name -> (service_name, port_name, operation_name, single_output_field)
         self._tool_index: dict[str, tuple[str, str, str, str | None]] = {}
 
@@ -63,6 +134,12 @@ class SoapAdapter(BaseAdapter):
             session.auth = HTTPBasicAuth(
                 self.settings.auth.username, self.settings.auth.resolve_password()
             )
+        elif isinstance(self.settings.auth, OAuth2AuthConfig):
+            import requests
+
+            session = requests.Session()
+            self._oauth_auth = OAuth2BearerAuth(self.settings.auth)
+            session.auth = self._oauth_auth
 
         transport = Transport(session=session, timeout=self.settings.timeout_seconds)
         self._client = zeep.Client(self.settings.wsdl_url, transport=transport)
@@ -169,15 +246,28 @@ class SoapAdapter(BaseAdapter):
         _, _, op_name, single_output_field = self._tool_index[tool_name]
         client = self._get_client()
 
-        try:
-            operation_callable = getattr(client.service, op_name)
-            result = operation_callable(**arguments)
-        except Fault as exc:
-            raise AdapterError(f"SOAP fault from operation '{op_name}': {exc.message}") from exc
-        except TransportError as exc:
-            raise AdapterError(f"Transport error calling '{op_name}': {exc}") from exc
-        except TypeError as exc:
-            raise AdapterError(f"Invalid arguments for operation '{op_name}': {exc}") from exc
+        for attempt in (1, 2):
+            try:
+                operation_callable = getattr(client.service, op_name)
+                result = operation_callable(**arguments)
+                break
+            except TransportError as exc:
+                if (
+                    getattr(exc, "status_code", None) == 401
+                    and self._oauth_auth is not None
+                    and attempt == 1
+                ):
+                    logger.warning(
+                        "Received 401 calling '%s'; invalidating cached OAuth2 token and retrying once.",
+                        op_name,
+                    )
+                    self._oauth_auth.invalidate_token()
+                    continue
+                raise AdapterError(f"Transport error calling '{op_name}': {exc}") from exc
+            except Fault as exc:
+                raise AdapterError(f"SOAP fault from operation '{op_name}': {exc.message}") from exc
+            except TypeError as exc:
+                raise AdapterError(f"Invalid arguments for operation '{op_name}': {exc}") from exc
 
         serialized = serialize_object(result, target_cls=dict)
         if not isinstance(serialized, dict) and single_output_field:
@@ -189,3 +279,4 @@ class SoapAdapter(BaseAdapter):
 
     def close(self) -> None:
         self._client = None
+        self._oauth_auth = None
