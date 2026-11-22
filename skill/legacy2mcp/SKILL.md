@@ -18,7 +18,7 @@ description: >-
 # legacy2mcp
 
 `legacy2mcp` (`pip install legacy2mcp`, Apache-2.0, source at
-https://github.com/bvenkata/legacy2mcp) turns a legacy or internal system into
+https://github.com/OWASP/legacy2mcp) turns a legacy or internal system into
 an MCP server by *introspecting* it rather than hand-describing it: it reads
 the real WSDL, the real OpenAPI spec, the real database schema, or the real
 route decorators in source code, and generates a config file plus a runnable

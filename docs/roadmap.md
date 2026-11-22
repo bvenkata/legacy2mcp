@@ -188,8 +188,8 @@
 
 Contributions on any of the above are welcome -- see
 [CONTRIBUTING.md](../CONTRIBUTING.md), browse issues labeled
-[`good first issue`](https://github.com/bvenkata/legacy2mcp/labels/good%20first%20issue)
-or [`help wanted`](https://github.com/bvenkata/legacy2mcp/labels/help%20wanted),
+[`good first issue`](https://github.com/OWASP/legacy2mcp/labels/good%20first%20issue)
+or [`help wanted`](https://github.com/OWASP/legacy2mcp/labels/help%20wanted),
 or open an issue describing the adapter you want to add. The
 `BaseAdapter` interface in `src/legacy2mcp/adapters/base.py` is the
 extension point: implement `discover_tools()` and `invoke()`, and the

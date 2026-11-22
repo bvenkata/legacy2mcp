@@ -4,7 +4,7 @@
   "title": "legacy2mcp",
   "description": "Turn a legacy SOAP/WSDL, database, or REST API into a safe, typed, audit-logged MCP server",
   "repository": {
-    "url": "https://github.com/bvenkata/legacy2mcp",
+    "url": "https://github.com/OWASP/legacy2mcp",
     "source": "github"
   },
   "version": "0.5.1",

@@ -7,7 +7,8 @@
 <img src="assets/banner.svg" alt="legacy2mcp — legacy SOAP/WSDL, database, REST API, or website turned into safe, typed MCP tools" width="820">
 
 <p>
-  <a href="https://github.com/bvenkata/legacy2mcp/actions/workflows/ci.yml"><img src="https://github.com/bvenkata/legacy2mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://owasp.org/projects/legacy2mcp"><img src="https://img.shields.io/badge/OWASP-Incubator%20Project-48A646?logo=owasp" alt="OWASP Incubator Project"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml"><img src="https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/v/legacy2mcp?color=3775A9&logo=pypi&logoColor=white" alt="PyPI"></a>
   <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/pyversions/legacy2mcp?color=3776AB&logo=python&logoColor=white" alt="Python versions"></a>
   <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp"><img src="https://img.shields.io/badge/MCP_Registry-io.github.bvenkata%2Flegacy2mcp-6f42c1" alt="MCP Registry"></a>
@@ -16,10 +17,10 @@
 </p>
 
 <p>
-  <a href="https://github.com/bvenkata/legacy2mcp/stargazers"><img src="https://img.shields.io/github/stars/bvenkata/legacy2mcp?color=blue&label=Stars" alt="Stars"></a>
-  <a href="https://github.com/bvenkata/legacy2mcp/network/members"><img src="https://img.shields.io/github/forks/bvenkata/legacy2mcp?color=blue&label=Forks" alt="Forks"></a>
-  <a href="https://github.com/bvenkata/legacy2mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/bvenkata/legacy2mcp?color=blue&label=Contributors" alt="Contributors"></a>
-  <a href="https://github.com/bvenkata/legacy2mcp/commits/main/"><img src="https://img.shields.io/github/last-commit/bvenkata/legacy2mcp?color=blue&label=Last%20commit" alt="Last commit"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/stargazers"><img src="https://img.shields.io/github/stars/OWASP/legacy2mcp?color=blue&label=Stars" alt="Stars"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/network/members"><img src="https://img.shields.io/github/forks/OWASP/legacy2mcp?color=blue&label=Forks" alt="Forks"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/OWASP/legacy2mcp?color=blue&label=Contributors" alt="Contributors"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/commits/main/"><img src="https://img.shields.io/github/last-commit/OWASP/legacy2mcp?color=blue&label=Last%20commit" alt="Last commit"></a>
   <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/dm/legacy2mcp?color=blue&label=PyPI%20downloads" alt="PyPI downloads"></a>
 </p>
 
@@ -32,6 +33,8 @@
 </p>
 
 ## Convert anything to MCP in 60 seconds. Read-only by default, with every call audit-logged.
+
+**An [OWASP Incubator Project](https://owasp.org/projects/legacy2mcp)**
 
 </div>
 
@@ -551,7 +554,7 @@ legacy2mcp install-skill
 [![Verified: VS Code](https://img.shields.io/badge/Verified-VS%20Code-007ACC)](#client-vs-code)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-D97706)](#client-claude-code)
 [![Tested with MCP Inspector](https://img.shields.io/badge/Tested%20with-MCP%20Inspector-22C55E)](#client-mcp-inspector)
-[![MCP compatibility](https://github.com/bvenkata/legacy2mcp/actions/workflows/mcp-compatibility.yml/badge.svg)](https://github.com/bvenkata/legacy2mcp/actions/workflows/mcp-compatibility.yml)
+[![MCP compatibility](https://github.com/OWASP/legacy2mcp/actions/workflows/mcp-compatibility.yml/badge.svg)](https://github.com/OWASP/legacy2mcp/actions/workflows/mcp-compatibility.yml)
 
 "Verified" here means a specific, narrow thing: the exact command + config
 shape shown below was actually spawned and completed a real MCP
@@ -858,8 +861,10 @@ CI runs the suite on Python 3.10–3.12 ([`ci.yml`](.github/workflows/ci.yml)). 
 
 Adapters for new legacy systems are the highest-value contribution — implement `BaseAdapter` and the core handles the rest. See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, how adapters are structured, and PR expectations. This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Issues and PRs welcome.
 
+To report a vulnerability in legacy2mcp itself, see [SECURITY.md](SECURITY.md). Questions and discussion: [OWASP Slack](https://owasp.org/slack/invite) (`#project-legacy2mcp`).
+
 ## License
 
 [Apache 2.0](LICENSE)
 
-<div align="center"><sub>legacy2mcp · <a href="https://github.com/bvenkata/legacy2mcp">github.com/bvenkata/legacy2mcp</a></sub></div>
+<div align="center"><sub>legacy2mcp · an <a href="https://owasp.org/projects/legacy2mcp">OWASP Foundation</a> project · <a href="https://github.com/OWASP/legacy2mcp">github.com/OWASP/legacy2mcp</a></sub></div>

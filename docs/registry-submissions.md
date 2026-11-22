@@ -47,7 +47,7 @@ uvx legacy2mcp run --config config.yaml
 Match the live README's exact format (emoji legend, link style, alphabetical order). Draft:
 
 ```markdown
-- [bvenkata/legacy2mcp](https://github.com/bvenkata/legacy2mcp) - Turn a legacy SOAP/WSDL service, database, or REST API into a safe, typed, audit-logged MCP server. Schema-validated inputs, read-only by default.
+- [OWASP/legacy2mcp](https://github.com/OWASP/legacy2mcp) - Turn a legacy SOAP/WSDL service, database, or REST API into a safe, typed, audit-logged MCP server. Schema-validated inputs, read-only by default.
 ```
 
 Likely categories: a developer-tools or "other tools and integrations" section, or a databases
