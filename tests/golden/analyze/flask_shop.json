@@ -1,0 +1,676 @@
+{
+  "schema_version": "1",
+  "project": "flask_shop",
+  "summary": {
+    "files": 8,
+    "lines": 120,
+    "languages": {
+      "python": {
+        "files": 8,
+        "lines": 120
+      }
+    },
+    "frameworks": [
+      "celery",
+      "click",
+      "flask"
+    ],
+    "entry_points": 7,
+    "functions": 12,
+    "side_effects": {
+      "db": 10,
+      "email": 1,
+      "file": 1,
+      "http_out": 1,
+      "payment": 2,
+      "queue": 1
+    }
+  },
+  "scan": {
+    "included_files": 8,
+    "excluded": {
+      "gitignore": 1,
+      "legacy2mcpignore": 1,
+      "tests": 1
+    },
+    "ignore_files": [
+      ".gitignore",
+      ".legacy2mcpignore"
+    ],
+    "exclude_patterns": []
+  },
+  "modules": [
+    {
+      "path": "shop/__init__.py",
+      "language": "python",
+      "name": "shop",
+      "lines": 11,
+      "imports": {
+        "Flask": "flask.Flask",
+        "db": "shop.models.db",
+        "orders_bp": "shop.orders.bp"
+      },
+      "functions": [
+        {
+          "qualname": "create_app",
+          "line": 7,
+          "end_line": 11,
+          "params": [],
+          "decorators": [],
+          "calls": [
+            "app.register_blueprint",
+            "flask.Flask",
+            "shop.models.db.init_app"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "shop/cli.py",
+      "language": "python",
+      "name": "shop.cli",
+      "lines": 16,
+      "imports": {
+        "Order": "shop.models.Order",
+        "click": "click"
+      },
+      "functions": [
+        {
+          "qualname": "cli",
+          "line": 7,
+          "end_line": 8,
+          "params": [],
+          "decorators": [
+            "click.group"
+          ],
+          "calls": [],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "export_orders",
+          "line": 12,
+          "end_line": 16,
+          "params": [],
+          "decorators": [
+            "cli.command"
+          ],
+          "calls": [
+            "fh.write",
+            "open",
+            "shop.models.Order.query.all"
+          ],
+          "side_effects": [
+            {
+              "kind": "file",
+              "op": "write",
+              "call": "open",
+              "line": 14,
+              "detail": "orders.csv"
+            },
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "shop.models.Order.query.all",
+              "line": 15,
+              "detail": "Order"
+            }
+          ],
+          "docstring": "Write all orders to a CSV file.",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "shop/models.py",
+      "language": "python",
+      "name": "shop.models",
+      "lines": 12,
+      "imports": {
+        "SQLAlchemy": "flask_sqlalchemy.SQLAlchemy"
+      },
+      "functions": [],
+      "classes": [
+        {
+          "name": "Order",
+          "line": 6,
+          "bases": [
+            "db.Model"
+          ],
+          "methods": [],
+          "docstring": "A customer order."
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "shop/orders.py",
+      "language": "python",
+      "name": "shop.orders",
+      "lines": 51,
+      "imports": {
+        "Blueprint": "flask.Blueprint",
+        "Order": "shop.models.Order",
+        "charge_card": "shop.services.payments.charge_card",
+        "db": "shop.models.db",
+        "request": "flask.request",
+        "send_receipt": "shop.services.notify.send_receipt",
+        "sync_inventory": "shop.tasks.sync_inventory"
+      },
+      "functions": [
+        {
+          "qualname": "list_orders",
+          "line": 12,
+          "end_line": 15,
+          "params": [
+            {
+              "name": "status",
+              "type": null,
+              "required": false,
+              "location": "query"
+            }
+          ],
+          "decorators": [
+            "bp.get"
+          ],
+          "calls": [
+            "flask.request.args.get",
+            "shop.models.Order.query.filter_by",
+            "shop.models.Order.query.filter_by().all"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "shop.models.Order.query.filter_by().all",
+              "line": 15,
+              "detail": "Order"
+            }
+          ],
+          "docstring": "List recent orders.",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "get_order",
+          "line": 19,
+          "end_line": 21,
+          "params": [
+            {
+              "name": "order_id",
+              "type": "int",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "bp.get"
+          ],
+          "calls": [
+            "shop.models.Order.query.get_or_404"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "shop.models.Order.query.get_or_404",
+              "line": 21,
+              "detail": "Order"
+            }
+          ],
+          "docstring": "Fetch one order by id.",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "create_order",
+          "line": 25,
+          "end_line": 32,
+          "params": [],
+          "decorators": [
+            "bp.route"
+          ],
+          "calls": [
+            "flask.request.get_json",
+            "shop.models.Order",
+            "shop.models.db.session.add",
+            "shop.models.db.session.commit",
+            "shop.tasks.sync_inventory.delay"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "shop.models.db.session.add",
+              "line": 29,
+              "detail": ""
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "shop.models.db.session.commit",
+              "line": 30,
+              "detail": ""
+            },
+            {
+              "kind": "queue",
+              "op": "write",
+              "call": "shop.tasks.sync_inventory.delay",
+              "line": 31,
+              "detail": "sync_inventory"
+            }
+          ],
+          "docstring": "Create a pending order.",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "checkout",
+          "line": 36,
+          "end_line": 43,
+          "params": [
+            {
+              "name": "order_id",
+              "type": "int",
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "card_token",
+              "type": "str",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "bp.post"
+          ],
+          "calls": [
+            "shop.models.Order.query.get_or_404",
+            "shop.models.db.session.commit",
+            "shop.services.notify.send_receipt",
+            "shop.services.payments.charge_card"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "shop.models.Order.query.get_or_404",
+              "line": 38,
+              "detail": "Order"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "shop.models.db.session.commit",
+              "line": 41,
+              "detail": ""
+            }
+          ],
+          "docstring": "Charge the customer's card and mark the order paid.",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "delete_order",
+          "line": 47,
+          "end_line": 51,
+          "params": [
+            {
+              "name": "order_id",
+              "type": "int",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "bp.delete"
+          ],
+          "calls": [
+            "shop.models.Order.query.get_or_404",
+            "shop.models.db.session.commit",
+            "shop.models.db.session.delete"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "shop.models.Order.query.get_or_404",
+              "line": 48,
+              "detail": "Order"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "shop.models.db.session.delete",
+              "line": 49,
+              "detail": ""
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "shop.models.db.session.commit",
+              "line": 50,
+              "detail": ""
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "shop/services/__init__.py",
+      "language": "python",
+      "name": "shop.services",
+      "lines": 0,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "shop/services/notify.py",
+      "language": "python",
+      "name": "shop.services.notify",
+      "lines": 10,
+      "imports": {
+        "EmailMessage": "email.message.EmailMessage",
+        "smtplib": "smtplib"
+      },
+      "functions": [
+        {
+          "qualname": "send_receipt",
+          "line": 5,
+          "end_line": 10,
+          "params": [
+            {
+              "name": "order",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "email.message.EmailMessage",
+            "msg.set_content",
+            "smtp.send_message",
+            "smtplib.SMTP"
+          ],
+          "side_effects": [
+            {
+              "kind": "email",
+              "op": "write",
+              "call": "smtplib.SMTP",
+              "line": 9,
+              "detail": ""
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "shop/services/payments.py",
+      "language": "python",
+      "name": "shop.services.payments",
+      "lines": 10,
+      "imports": {
+        "stripe": "stripe"
+      },
+      "functions": [
+        {
+          "qualname": "charge_card",
+          "line": 4,
+          "end_line": 6,
+          "params": [
+            {
+              "name": "order",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "card_token",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "int",
+            "stripe.Charge.create"
+          ],
+          "side_effects": [
+            {
+              "kind": "payment",
+              "op": "write",
+              "call": "stripe.Charge.create",
+              "line": 6,
+              "detail": "stripe"
+            }
+          ],
+          "docstring": "Charge the order total to a tokenized card.",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "refund",
+          "line": 9,
+          "end_line": 10,
+          "params": [
+            {
+              "name": "charge_id",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "stripe.Refund.create"
+          ],
+          "side_effects": [
+            {
+              "kind": "payment",
+              "op": "write",
+              "call": "stripe.Refund.create",
+              "line": 10,
+              "detail": "stripe"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "shop/tasks.py",
+      "language": "python",
+      "name": "shop.tasks",
+      "lines": 10,
+      "imports": {
+        "Celery": "celery.Celery",
+        "requests": "requests"
+      },
+      "functions": [
+        {
+          "qualname": "sync_inventory",
+          "line": 8,
+          "end_line": 10,
+          "params": [
+            {
+              "name": "order_id",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "celery.task"
+          ],
+          "calls": [
+            "requests.post"
+          ],
+          "side_effects": [
+            {
+              "kind": "http_out",
+              "op": "write",
+              "call": "requests.post",
+              "line": 10,
+              "detail": "https://warehouse.internal/api/reservations"
+            }
+          ],
+          "docstring": "Push the order's items to the warehouse system.",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    }
+  ],
+  "entry_points": [
+    {
+      "kind": "cli_command",
+      "framework": "click",
+      "handler": "shop/cli.py::export_orders",
+      "file": "shop/cli.py",
+      "line": 12,
+      "name": "cli export-orders",
+      "method": null,
+      "path": null,
+      "params": []
+    },
+    {
+      "kind": "http_route",
+      "framework": "flask",
+      "handler": "shop/orders.py::list_orders",
+      "file": "shop/orders.py",
+      "line": 12,
+      "name": "GET /api/orders/",
+      "method": "GET",
+      "path": "/api/orders/",
+      "params": [
+        {
+          "name": "status",
+          "type": null,
+          "required": false,
+          "location": "query"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "flask",
+      "handler": "shop/orders.py::create_order",
+      "file": "shop/orders.py",
+      "line": 25,
+      "name": "POST /api/orders/",
+      "method": "POST",
+      "path": "/api/orders/",
+      "params": []
+    },
+    {
+      "kind": "http_route",
+      "framework": "flask",
+      "handler": "shop/orders.py::delete_order",
+      "file": "shop/orders.py",
+      "line": 47,
+      "name": "DELETE /api/orders/{order_id}",
+      "method": "DELETE",
+      "path": "/api/orders/{order_id}",
+      "params": [
+        {
+          "name": "order_id",
+          "type": "int",
+          "required": true,
+          "location": "path"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "flask",
+      "handler": "shop/orders.py::get_order",
+      "file": "shop/orders.py",
+      "line": 19,
+      "name": "GET /api/orders/{order_id}",
+      "method": "GET",
+      "path": "/api/orders/{order_id}",
+      "params": [
+        {
+          "name": "order_id",
+          "type": "int",
+          "required": true,
+          "location": "path"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "flask",
+      "handler": "shop/orders.py::checkout",
+      "file": "shop/orders.py",
+      "line": 36,
+      "name": "POST /api/orders/{order_id}/checkout",
+      "method": "POST",
+      "path": "/api/orders/{order_id}/checkout",
+      "params": [
+        {
+          "name": "order_id",
+          "type": "int",
+          "required": true,
+          "location": "path"
+        },
+        {
+          "name": "card_token",
+          "type": "str",
+          "required": true,
+          "location": "query"
+        }
+      ]
+    },
+    {
+      "kind": "message_handler",
+      "framework": "celery",
+      "handler": "shop/tasks.py::sync_inventory",
+      "file": "shop/tasks.py",
+      "line": 8,
+      "name": "task sync_inventory",
+      "method": null,
+      "path": null,
+      "params": [
+        {
+          "name": "order_id",
+          "type": null,
+          "required": true,
+          "location": null
+        }
+      ]
+    }
+  ]
+}

@@ -92,6 +92,7 @@ demos (a local SOAP service, Docker, a WSDL served by raw URL) are listed in
 - [Point it at your own REST API](#point-it-at-your-own-rest-api)
 - [Generate a config automatically](#generate-a-config-automatically)
 - [Discover a legacy interface before generating a server](#discover-a-legacy-interface-before-generating-a-server)
+- [Analyze a whole codebase (preview)](#analyze-a-whole-codebase-preview)
 - [Teach your AI coding agent about legacy2mcp](#teach-your-ai-coding-agent-about-legacy2mcp)
 - [Common commands](#common-commands)
 - [Client support](#client-support)
@@ -470,6 +471,33 @@ A few things worth knowing:
   contract is embedded in the page (in a `<script type="application/json">`
   tag), not just summarized for reading.
 
+## Analyze a whole codebase (preview)
+
+`legacy2mcp analyze` builds a map of an entire local codebase rather than one
+interface: languages, frameworks, entry points (HTTP routes, CLI commands,
+scheduled jobs, message handlers), every function's calls, and the side
+effects at each call site (database reads/writes, outbound HTTP, email,
+payments, queues, file writes, auth changes). It runs entirely on your
+machine. Nothing in the scanned repo is imported or executed, and nothing is
+sent anywhere.
+
+```bash
+pip install "legacy2mcp[analyze]"
+legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
+```
+
+This writes `legacy2mcp-analysis/analysis.json`. Currently supported:
+Python with Flask, FastAPI and Django routes, click/typer commands, Celery
+tasks, APScheduler jobs and Django management commands. The scan respects
+`.gitignore`, a `.legacy2mcpignore` file (same syntax) and `--exclude PATTERN`,
+and skips tests and migrations unless you pass `--include-tests`.
+
+Coming next: JavaScript/TypeScript (Express, Next.js API routes), call graphs,
+business-flow detection with risk labels, an interactive HTML report, optional
+bring-your-own-key AI enrichment, and `legacy2mcp generate`, which turns the
+flows you approve into an MCP server config. See
+[docs/v2-gap-analysis.md](docs/v2-gap-analysis.md) for the plan.
+
 ## Teach your AI coding agent about legacy2mcp
 
 The sections above are about the MCP servers `legacy2mcp` *produces*. This
@@ -529,6 +557,9 @@ legacy2mcp discover --postman-file my-collection.json --out contract.yaml
 # Try a config or contract in a chat page right now, no separate init step
 legacy2mcp demo --from-contract contract.yaml
 legacy2mcp demo --config config.yaml
+
+# Map a whole local codebase (entry points, calls, side effects) -- offline
+legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
 
 # Review the tools a config generates -- no server started
 legacy2mcp inspect --config config.yaml
@@ -837,6 +868,7 @@ Call the same generated, validated tools from your own code via any MCP client l
 | **v0.3.x** | `legacy2mcp discover` (Postman / OpenAPI file / HAR / stored-procs / queue / `--webpage-url`) → reviewable `contract.yaml`; `--webpage-url` crawls a whole site, not just one page; `describe_capabilities` meta-tool | ✅ shipped |
 | **v0.4.x** | `legacy2mcp demo` -- try a contract/config in a chat page with no separate `init` step; `discover --out contract.html` | ✅ shipped |
 | **v0.5.x** | `discover`/`init`/`demo` all auto-open the test chat and print a ready-to-paste MCP client connection snippet; `init --webpage-url` goes straight to a config | ✅ shipped |
+| **v0.6 (in progress)** | `legacy2mcp analyze` -- local whole-codebase analysis (Python first, then JS/TS) → flows, risk labels, interactive report, `generate` | 🚧 in progress |
 | planned | HTTP/SSE transport, role→tool authorization, OAuth2 for SOAP | planned |
 | ideas | Queue adapter (Kafka/RabbitMQ/SQS), workflow composition with approval gates, OpenTelemetry export | ideas |
 

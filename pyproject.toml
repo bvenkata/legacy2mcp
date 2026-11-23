@@ -41,7 +41,11 @@ dev = [
     "pytest-asyncio>=0.23",
     "flask>=3.0",
     "lxml>=5.0",
+    "pathspec>=0.12,<2",
 ]
+# `legacy2mcp analyze` (whole-codebase analysis). Kept out of the core install
+# so the SOAP/DB/REST server path stays as light as it is today.
+analyze = ["pathspec>=0.12,<2"]
 # DB adapter drivers -- install only the one(s) you need. Core install has
 # no DB driver dependency; the adapter imports these lazily per dialect.
 db-postgres = ["psycopg[binary]>=3.1,<4"]

@@ -167,6 +167,25 @@
   the review. `discover --webpage-url` is still there for anyone who
   wants to review the contract before anything gets built.
 
+## v0.6 -- `legacy2mcp analyze` (in progress)
+
+Whole-codebase understanding, local first and bring-your-own-key, tracked
+milestone by milestone in [v2-gap-analysis.md](v2-gap-analysis.md):
+
+- M1 -- discovery (gitignore/.legacy2mcpignore aware), Python analyzer
+  (Flask, FastAPI, Django, click/typer, Celery, APScheduler), versioned
+  `analysis.json`, `legacy2mcp analyze --no-ai`. ✅ on `feat/v2-analyze`
+- M2 -- JavaScript/TypeScript analyzer (Express, Next.js API routes) via
+  tree-sitter, call graph and data-access graph.
+- M3 -- flow detection from entry points, rule-based risk classification.
+- M4 -- interactive single-file HTML report (`legacy2mcp report`).
+- M5 -- AI provider interface (Anthropic, OpenAI), secret redaction,
+  token budget, enrichment.
+- M6 -- orchestration blueprint, multimodal suggestions, roadmap.
+- M7 -- `legacy2mcp generate`: approved flows → a `type: rest` config
+  that inherits validation, audit logging and writes-off-by-default.
+- M8 -- docs, sample report, packaging and launch.
+
 ## Unscheduled ideas
 
 - **Queue adapter** (`type: queue`): publish/subscribe tools for

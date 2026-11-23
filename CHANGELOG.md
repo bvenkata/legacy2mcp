@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`legacy2mcp analyze <path>` (preview, milestone 1 of the v2 plan)**: a
+  local, static, whole-codebase scan written to `analysis.json`. It records
+  languages, frameworks, entry points (Flask/FastAPI/Django routes,
+  click/typer and Django management commands, Celery tasks,
+  APScheduler/`schedule` jobs, pika consumers), and every function's calls
+  and side effects (db, http_out, email, payment, queue, file, auth). The
+  scan respects nested `.gitignore` files, `.legacy2mcpignore` and
+  `--exclude`, and skips tests/migrations unless `--include-tests` is
+  passed. It needs the new `legacy2mcp[analyze]` extra (`pathspec`). No
+  existing command changes.
+
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed
   distribution metadata, so it can't drift from `pyproject.toml`.

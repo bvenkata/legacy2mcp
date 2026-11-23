@@ -1,0 +1,537 @@
+{
+  "schema_version": "1",
+  "project": "fastapi_billing",
+  "summary": {
+    "files": 8,
+    "lines": 93,
+    "languages": {
+      "python": {
+        "files": 8,
+        "lines": 93
+      }
+    },
+    "frameworks": [
+      "apscheduler",
+      "fastapi"
+    ],
+    "entry_points": 6,
+    "functions": 8,
+    "side_effects": {
+      "db": 5,
+      "email": 3,
+      "http_out": 1,
+      "payment": 1
+    }
+  },
+  "scan": {
+    "included_files": 8,
+    "excluded": {},
+    "ignore_files": [],
+    "exclude_patterns": []
+  },
+  "modules": [
+    {
+      "path": "app/__init__.py",
+      "language": "python",
+      "name": "app",
+      "lines": 0,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "app/db.py",
+      "language": "python",
+      "name": "app.db",
+      "lines": 13,
+      "imports": {
+        "create_engine": "sqlalchemy.create_engine",
+        "sessionmaker": "sqlalchemy.orm.sessionmaker"
+      },
+      "functions": [
+        {
+          "qualname": "get_session",
+          "line": 8,
+          "end_line": 13,
+          "params": [],
+          "decorators": [],
+          "calls": [
+            "SessionLocal",
+            "session.close"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "app/jobs.py",
+      "language": "python",
+      "name": "app.jobs",
+      "lines": 10,
+      "imports": {
+        "SessionLocal": "app.db.SessionLocal",
+        "send_email": "app.mailer.send_email"
+      },
+      "functions": [
+        {
+          "qualname": "send_overdue_reminders",
+          "line": 5,
+          "end_line": 10,
+          "params": [],
+          "decorators": [],
+          "calls": [
+            "app.db.SessionLocal",
+            "app.mailer.send_email",
+            "session.execute",
+            "session.execute().all"
+          ],
+          "side_effects": [
+            {
+              "kind": "email",
+              "op": "write",
+              "call": "app.mailer.send_email",
+              "line": 10,
+              "detail": ""
+            }
+          ],
+          "docstring": "Email every customer with an overdue invoice.",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "app/mailer.py",
+      "language": "python",
+      "name": "app.mailer",
+      "lines": 6,
+      "imports": {
+        "smtplib": "smtplib"
+      },
+      "functions": [
+        {
+          "qualname": "send_email",
+          "line": 4,
+          "end_line": 6,
+          "params": [
+            {
+              "name": "to",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "subject",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "body",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "smtp.sendmail",
+            "smtplib.SMTP"
+          ],
+          "side_effects": [
+            {
+              "kind": "email",
+              "op": "write",
+              "call": "smtplib.SMTP",
+              "line": 5,
+              "detail": ""
+            },
+            {
+              "kind": "email",
+              "op": "write",
+              "call": "smtp.sendmail",
+              "line": 6,
+              "detail": ""
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "app/main.py",
+      "language": "python",
+      "name": "app.main",
+      "lines": 16,
+      "imports": {
+        "BackgroundScheduler": "apscheduler.schedulers.background.BackgroundScheduler",
+        "FastAPI": "fastapi.FastAPI",
+        "invoices": "app.routers.invoices",
+        "send_overdue_reminders": "app.jobs.send_overdue_reminders"
+      },
+      "functions": [
+        {
+          "qualname": "health",
+          "line": 15,
+          "end_line": 16,
+          "params": [],
+          "decorators": [
+            "app.get"
+          ],
+          "calls": [],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "app/models.py",
+      "language": "python",
+      "name": "app.models",
+      "lines": 10,
+      "imports": {
+        "BaseModel": "pydantic.BaseModel"
+      },
+      "functions": [],
+      "classes": [
+        {
+          "name": "InvoiceIn",
+          "line": 4,
+          "bases": [
+            "pydantic.BaseModel"
+          ],
+          "methods": [],
+          "docstring": ""
+        },
+        {
+          "name": "RefundIn",
+          "line": 9,
+          "bases": [
+            "pydantic.BaseModel"
+          ],
+          "methods": [],
+          "docstring": ""
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "app/routers/__init__.py",
+      "language": "python",
+      "name": "app.routers",
+      "lines": 0,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "app/routers/invoices.py",
+      "language": "python",
+      "name": "app.routers.invoices",
+      "lines": 38,
+      "imports": {
+        "APIRouter": "fastapi.APIRouter",
+        "Depends": "fastapi.Depends",
+        "InvoiceIn": "app.models.InvoiceIn",
+        "RefundIn": "app.models.RefundIn",
+        "get_session": "app.db.get_session",
+        "httpx": "httpx",
+        "stripe": "stripe"
+      },
+      "functions": [
+        {
+          "qualname": "read_invoice",
+          "line": 12,
+          "end_line": 14,
+          "params": [
+            {
+              "name": "invoice_id",
+              "type": "int",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "router.get"
+          ],
+          "calls": [
+            "session.execute",
+            "session.execute().first"
+          ],
+          "side_effects": [],
+          "docstring": "Return one invoice.",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "search_invoices",
+          "line": 18,
+          "end_line": 19,
+          "params": [
+            {
+              "name": "customer_id",
+              "type": "int | None",
+              "required": false,
+              "location": null
+            },
+            {
+              "name": "limit",
+              "type": "int",
+              "required": false,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "router.get"
+          ],
+          "calls": [
+            "session.query",
+            "session.query().limit",
+            "session.query().limit().all"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "session.query().limit().all",
+              "line": 19,
+              "detail": ""
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "create_invoice",
+          "line": 23,
+          "end_line": 28,
+          "params": [
+            {
+              "name": "body",
+              "type": "InvoiceIn",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "router.post"
+          ],
+          "calls": [
+            "body.dict",
+            "httpx.post",
+            "session.commit",
+            "session.execute"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "session.execute",
+              "line": 25,
+              "detail": "INSERT"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "session.commit",
+              "line": 26,
+              "detail": ""
+            },
+            {
+              "kind": "http_out",
+              "op": "write",
+              "call": "httpx.post",
+              "line": 27,
+              "detail": "https://tax.example.com/v1/register"
+            }
+          ],
+          "docstring": "Create an invoice and register it with the tax service.",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "refund_invoice",
+          "line": 32,
+          "end_line": 38,
+          "params": [
+            {
+              "name": "invoice_id",
+              "type": "int",
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "body",
+              "type": "RefundIn",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "router.post"
+          ],
+          "calls": [
+            "session.commit",
+            "session.execute",
+            "session.execute().first",
+            "stripe.Refund.create"
+          ],
+          "side_effects": [
+            {
+              "kind": "payment",
+              "op": "write",
+              "call": "stripe.Refund.create",
+              "line": 35,
+              "detail": "stripe"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "session.execute",
+              "line": 36,
+              "detail": "UPDATE"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "session.commit",
+              "line": 37,
+              "detail": ""
+            }
+          ],
+          "docstring": "Refund a paid invoice to the original card.",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    }
+  ],
+  "entry_points": [
+    {
+      "kind": "http_route",
+      "framework": "fastapi",
+      "handler": "app/main.py::health",
+      "file": "app/main.py",
+      "line": 15,
+      "name": "GET /health",
+      "method": "GET",
+      "path": "/health",
+      "params": []
+    },
+    {
+      "kind": "http_route",
+      "framework": "fastapi",
+      "handler": "app/routers/invoices.py::search_invoices",
+      "file": "app/routers/invoices.py",
+      "line": 18,
+      "name": "GET /invoices/",
+      "method": "GET",
+      "path": "/invoices/",
+      "params": [
+        {
+          "name": "customer_id",
+          "type": "int | None",
+          "required": false,
+          "location": "query"
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "location": "query"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "fastapi",
+      "handler": "app/routers/invoices.py::create_invoice",
+      "file": "app/routers/invoices.py",
+      "line": 23,
+      "name": "POST /invoices/",
+      "method": "POST",
+      "path": "/invoices/",
+      "params": [
+        {
+          "name": "body",
+          "type": "InvoiceIn",
+          "required": true,
+          "location": "body"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "fastapi",
+      "handler": "app/routers/invoices.py::read_invoice",
+      "file": "app/routers/invoices.py",
+      "line": 12,
+      "name": "GET /invoices/{invoice_id}",
+      "method": "GET",
+      "path": "/invoices/{invoice_id}",
+      "params": [
+        {
+          "name": "invoice_id",
+          "type": "int",
+          "required": true,
+          "location": "path"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "fastapi",
+      "handler": "app/routers/invoices.py::refund_invoice",
+      "file": "app/routers/invoices.py",
+      "line": 32,
+      "name": "POST /invoices/{invoice_id}/refund",
+      "method": "POST",
+      "path": "/invoices/{invoice_id}/refund",
+      "params": [
+        {
+          "name": "invoice_id",
+          "type": "int",
+          "required": true,
+          "location": "path"
+        },
+        {
+          "name": "body",
+          "type": "RefundIn",
+          "required": true,
+          "location": "body"
+        }
+      ]
+    },
+    {
+      "kind": "scheduled_job",
+      "framework": "apscheduler",
+      "handler": "app/jobs.py::send_overdue_reminders",
+      "file": "app/main.py",
+      "line": 11,
+      "name": "job send_overdue_reminders",
+      "method": null,
+      "path": null,
+      "params": []
+    }
+  ]
+}

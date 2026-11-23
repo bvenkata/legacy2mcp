@@ -1,0 +1,567 @@
+{
+  "schema_version": "1",
+  "project": "django_clinic",
+  "summary": {
+    "files": 11,
+    "lines": 85,
+    "languages": {
+      "python": {
+        "files": 11,
+        "lines": 85
+      }
+    },
+    "frameworks": [
+      "django"
+    ],
+    "entry_points": 7,
+    "functions": 6,
+    "side_effects": {
+      "db": 8,
+      "email": 1,
+      "payment": 1
+    }
+  },
+  "scan": {
+    "included_files": 11,
+    "excluded": {
+      "migrations": 1
+    },
+    "ignore_files": [],
+    "exclude_patterns": []
+  },
+  "modules": [
+    {
+      "path": "appointments/__init__.py",
+      "language": "python",
+      "name": "appointments",
+      "lines": 0,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "appointments/management/__init__.py",
+      "language": "python",
+      "name": "appointments.management",
+      "lines": 0,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "appointments/management/commands/__init__.py",
+      "language": "python",
+      "name": "appointments.management.commands",
+      "lines": 0,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "appointments/management/commands/purge_old.py",
+      "language": "python",
+      "name": "appointments.management.commands.purge_old",
+      "lines": 10,
+      "imports": {
+        "Appointment": "appointments.models.Appointment",
+        "BaseCommand": "django.core.management.base.BaseCommand"
+      },
+      "functions": [
+        {
+          "qualname": "Command.handle",
+          "line": 9,
+          "end_line": 10,
+          "params": [],
+          "decorators": [],
+          "calls": [
+            "appointments.models.Appointment.objects.filter",
+            "appointments.models.Appointment.objects.filter().delete"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "appointments.models.Appointment.objects.filter().delete",
+              "line": 10,
+              "detail": "Appointment"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [
+        {
+          "name": "Command",
+          "line": 6,
+          "bases": [
+            "django.core.management.base.BaseCommand"
+          ],
+          "methods": [
+            "handle"
+          ],
+          "docstring": ""
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "appointments/models.py",
+      "language": "python",
+      "name": "appointments.models",
+      "lines": 7,
+      "imports": {
+        "models": "django.db.models"
+      },
+      "functions": [],
+      "classes": [
+        {
+          "name": "Appointment",
+          "line": 4,
+          "bases": [
+            "django.db.models.Model"
+          ],
+          "methods": [],
+          "docstring": ""
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "appointments/urls.py",
+      "language": "python",
+      "name": "appointments.urls",
+      "lines": 10,
+      "imports": {
+        "path": "django.urls.path",
+        "re_path": "django.urls.re_path",
+        "views": "appointments.views"
+      },
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "appointments/views.py",
+      "language": "python",
+      "name": "appointments.views",
+      "lines": 42,
+      "imports": {
+        "Appointment": "appointments.models.Appointment",
+        "JsonResponse": "django.http.JsonResponse",
+        "View": "django.views.View",
+        "braintree": "braintree",
+        "require_POST": "django.views.decorators.http.require_POST",
+        "send_mail": "django.core.mail.send_mail"
+      },
+      "functions": [
+        {
+          "qualname": "AppointmentListView.get",
+          "line": 13,
+          "end_line": 14,
+          "params": [],
+          "decorators": [],
+          "calls": [
+            "appointments.models.Appointment.objects.filter",
+            "appointments.models.Appointment.objects.filter().values",
+            "django.http.JsonResponse",
+            "list"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "appointments.models.Appointment.objects.filter().values",
+              "line": 14,
+              "detail": "Appointment"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "AppointmentListView.post",
+          "line": 16,
+          "end_line": 18,
+          "params": [
+            {
+              "name": "at",
+              "type": null,
+              "required": true,
+              "location": "form"
+            },
+            {
+              "name": "email",
+              "type": null,
+              "required": true,
+              "location": "form"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "appointments.models.Appointment.objects.create",
+            "django.http.JsonResponse"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "appointments.models.Appointment.objects.create",
+              "line": 17,
+              "detail": "Appointment"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        },
+        {
+          "qualname": "appointment_detail",
+          "line": 21,
+          "end_line": 26,
+          "params": [
+            {
+              "name": "pk",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "at",
+              "type": null,
+              "required": true,
+              "location": "form"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "appointments.models.Appointment.objects.get",
+            "appt.save",
+            "django.http.JsonResponse"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "appointments.models.Appointment.objects.get",
+              "line": 22,
+              "detail": "Appointment"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "appt.save",
+              "line": 25,
+              "detail": "appt"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [
+            "GET",
+            "PUT"
+          ]
+        },
+        {
+          "qualname": "pay_deposit",
+          "line": 30,
+          "end_line": 36,
+          "params": [
+            {
+              "name": "pk",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "nonce",
+              "type": null,
+              "required": true,
+              "location": "form"
+            }
+          ],
+          "decorators": [
+            "django.views.decorators.http.require_POST"
+          ],
+          "calls": [
+            "appointments.models.Appointment.objects.filter",
+            "appointments.models.Appointment.objects.filter().update",
+            "appointments.models.Appointment.objects.get",
+            "braintree.Transaction.sale",
+            "django.core.mail.send_mail",
+            "django.http.JsonResponse"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "appointments.models.Appointment.objects.get",
+              "line": 32,
+              "detail": "Appointment"
+            },
+            {
+              "kind": "payment",
+              "op": "write",
+              "call": "braintree.Transaction.sale",
+              "line": 33,
+              "detail": "braintree"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "appointments.models.Appointment.objects.filter().update",
+              "line": 34,
+              "detail": "Appointment"
+            },
+            {
+              "kind": "email",
+              "op": "write",
+              "call": "django.core.mail.send_mail",
+              "line": 35,
+              "detail": ""
+            }
+          ],
+          "docstring": "Take a card deposit for an appointment.",
+          "is_async": false,
+          "http_methods": [
+            "POST"
+          ]
+        },
+        {
+          "qualname": "cancel_appointment",
+          "line": 40,
+          "end_line": 42,
+          "params": [
+            {
+              "name": "pk",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [
+            "django.views.decorators.http.require_POST"
+          ],
+          "calls": [
+            "appointments.models.Appointment.objects.filter",
+            "appointments.models.Appointment.objects.filter().delete",
+            "django.http.JsonResponse"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "appointments.models.Appointment.objects.filter().delete",
+              "line": 41,
+              "detail": "Appointment"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [
+            "POST"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "AppointmentListView",
+          "line": 10,
+          "bases": [
+            "django.views.View"
+          ],
+          "methods": [
+            "get",
+            "post"
+          ],
+          "docstring": "List or book appointments."
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "clinic/__init__.py",
+      "language": "python",
+      "name": "clinic",
+      "lines": 0,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "clinic/settings.py",
+      "language": "python",
+      "name": "clinic.settings",
+      "lines": 3,
+      "imports": {},
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "clinic/urls.py",
+      "language": "python",
+      "name": "clinic.urls",
+      "lines": 5,
+      "imports": {
+        "include": "django.urls.include",
+        "path": "django.urls.path"
+      },
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "manage.py",
+      "language": "python",
+      "name": "manage",
+      "lines": 8,
+      "imports": {
+        "execute_from_command_line": "django.core.management.execute_from_command_line",
+        "os": "os",
+        "sys": "sys"
+      },
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    }
+  ],
+  "entry_points": [
+    {
+      "kind": "cli_command",
+      "framework": "django",
+      "handler": "appointments/management/commands/purge_old.py::Command.handle",
+      "file": "appointments/management/commands/purge_old.py",
+      "line": 6,
+      "name": "manage.py purge_old",
+      "method": null,
+      "path": null,
+      "params": []
+    },
+    {
+      "kind": "http_route",
+      "framework": "django",
+      "handler": "appointments/views.py::AppointmentListView.get",
+      "file": "appointments/urls.py",
+      "line": 6,
+      "name": "GET /api/appointments/",
+      "method": "GET",
+      "path": "/api/appointments/",
+      "params": []
+    },
+    {
+      "kind": "http_route",
+      "framework": "django",
+      "handler": "appointments/views.py::AppointmentListView.post",
+      "file": "appointments/urls.py",
+      "line": 6,
+      "name": "POST /api/appointments/",
+      "method": "POST",
+      "path": "/api/appointments/",
+      "params": [
+        {
+          "name": "at",
+          "type": null,
+          "required": true,
+          "location": "form"
+        },
+        {
+          "name": "email",
+          "type": null,
+          "required": true,
+          "location": "form"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "django",
+      "handler": "appointments/views.py::appointment_detail",
+      "file": "appointments/urls.py",
+      "line": 7,
+      "name": "GET /api/appointments/{pk}/",
+      "method": "GET",
+      "path": "/api/appointments/{pk}/",
+      "params": [
+        {
+          "name": "pk",
+          "type": null,
+          "required": true,
+          "location": "path"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "django",
+      "handler": "appointments/views.py::appointment_detail",
+      "file": "appointments/urls.py",
+      "line": 7,
+      "name": "PUT /api/appointments/{pk}/",
+      "method": "PUT",
+      "path": "/api/appointments/{pk}/",
+      "params": [
+        {
+          "name": "pk",
+          "type": null,
+          "required": true,
+          "location": "path"
+        },
+        {
+          "name": "at",
+          "type": null,
+          "required": true,
+          "location": "form"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "django",
+      "handler": "appointments/views.py::cancel_appointment",
+      "file": "appointments/urls.py",
+      "line": 9,
+      "name": "POST /api/appointments/{pk}/cancel/",
+      "method": "POST",
+      "path": "/api/appointments/{pk}/cancel/",
+      "params": [
+        {
+          "name": "pk",
+          "type": null,
+          "required": true,
+          "location": "path"
+        }
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "django",
+      "handler": "appointments/views.py::pay_deposit",
+      "file": "appointments/urls.py",
+      "line": 8,
+      "name": "POST /api/appointments/{pk}/pay/",
+      "method": "POST",
+      "path": "/api/appointments/{pk}/pay/",
+      "params": [
+        {
+          "name": "pk",
+          "type": null,
+          "required": true,
+          "location": "path"
+        },
+        {
+          "name": "nonce",
+          "type": null,
+          "required": true,
+          "location": "form"
+        }
+      ]
+    }
+  ]
+}

@@ -89,6 +89,47 @@ def _cmd_install_skill(args: argparse.Namespace) -> None:
     install_skill(args.project_root)
 
 
+def _cmd_analyze(args: argparse.Namespace) -> None:
+    # Imported lazily so the existing commands never pay for (or depend on)
+    # the analyze extra.
+    from legacy2mcp.analysis import model as analysis_model
+    from legacy2mcp.analysis.pipeline import run_analysis
+    from legacy2mcp.analysis.walk import WalkError
+
+    formats = {f.strip().lower() for f in args.format.split(",") if f.strip()}
+    unknown = formats - {"json", "html"}
+    if unknown:
+        print(f"error: unknown --format value(s): {', '.join(sorted(unknown))} (use json, html)", file=sys.stderr)
+        sys.exit(2)
+    if not args.no_ai:
+        print("note: AI enrichment isn't available in this version yet; running the offline scan (same as --no-ai).",
+              file=sys.stderr)
+    if "html" in formats:
+        print("note: the HTML report isn't available in this version yet; writing analysis.json only.", file=sys.stderr)
+
+    try:
+        analysis = run_analysis(args.path, exclude=args.exclude or [], include_tests=args.include_tests)
+    except WalkError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    out = analysis_model.save(analysis, Path(args.out) / "analysis.json")
+    s = analysis.summary
+    langs = ", ".join(f"{k} ({v.files} files)" for k, v in s.languages.items()) or "none found"
+    print(f"Analyzed {s.files} files, {s.lines} lines -- {langs}")
+    print(f"Frameworks: {', '.join(s.frameworks) or 'none detected'}")
+    print(f"Entry points: {s.entry_points}   Functions: {s.functions}")
+    if s.side_effects:
+        print("Side effects: " + ", ".join(f"{k}={v}" for k, v in s.side_effects.items()))
+    if analysis.scan.excluded:
+        print("Excluded: " + ", ".join(f"{k}={v}" for k, v in analysis.scan.excluded.items()))
+    parse_errors = [m.path for m in analysis.modules if m.parse_error]
+    if parse_errors:
+        print(f"warning: {len(parse_errors)} file(s) could not be parsed: {', '.join(parse_errors[:5])}"
+              + (" ..." if len(parse_errors) > 5 else ""), file=sys.stderr)
+    print(f"Wrote {out}")
+
+
 def _cmd_discover(args: argparse.Namespace) -> None:
     """Discover a legacy interface's real shape -- operations, inputs,
     enums, error codes, confidence -- into a human-reviewable contract.yaml,
@@ -727,6 +768,36 @@ def main() -> None:
         "--no-open", action="store_true", help="Don't open chat.html in a browser automatically."
     )
     discover_parser.set_defaults(func=_cmd_discover)
+
+    analyze_parser = subparsers.add_parser(
+        "analyze",
+        help=(
+            "Statically analyze a local Python codebase (JavaScript/TypeScript coming) "
+            "into analysis.json: languages, frameworks, entry points (routes, CLI "
+            "commands, jobs, message handlers), functions, calls and side effects. "
+            "Runs entirely on this machine; nothing is executed or sent anywhere."
+        ),
+    )
+    analyze_parser.add_argument("path", help="Root directory of the codebase to analyze.")
+    analyze_parser.add_argument(
+        "--out", default="./legacy2mcp-analysis", help="Output directory (default: ./legacy2mcp-analysis)."
+    )
+    analyze_parser.add_argument(
+        "--no-ai", action="store_true", help="Offline scan only: no LLM calls, no API key needed."
+    )
+    analyze_parser.add_argument(
+        "--exclude",
+        action="append",
+        metavar="PATTERN",
+        help="Gitignore-style pattern to leave out, in addition to .gitignore and .legacy2mcpignore. Repeatable.",
+    )
+    analyze_parser.add_argument(
+        "--include-tests", action="store_true", help="Also analyze test files and test directories (skipped by default)."
+    )
+    analyze_parser.add_argument(
+        "--format", default="json", help="Comma-separated outputs: json, html (default: json)."
+    )
+    analyze_parser.set_defaults(func=_cmd_analyze)
 
     demo_parser = subparsers.add_parser(
         "demo",
