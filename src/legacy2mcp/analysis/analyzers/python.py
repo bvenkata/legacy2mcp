@@ -20,7 +20,7 @@ import re
 
 from legacy2mcp.analysis.analyzers.base import FileResult, Mount
 from legacy2mcp.analysis.analyzers.common import sql_effect
-from legacy2mcp.analysis.model import Class, EntryPoint, Function, Module, Param, SideEffect
+from legacy2mcp.analysis.model import Class, EntryPoint, Function, MethodBranch, Module, Param, SideEffect
 from legacy2mcp.analysis.walk import SourceFile
 
 HTTP_METHODS = ("get", "post", "put", "patch", "delete")
@@ -150,8 +150,9 @@ def classify_call(call: ast.Call, name: str, imports: _Imports) -> SideEffect | 
     receiver = ".".join(segs[:-1])
     line = call.lineno
 
-    def effect(kind: str, op: str, detail: str | None = "") -> SideEffect:
-        return SideEffect(kind=kind, op=op, call=qualified, line=line, detail=detail or "")
+    def effect(kind: str, op: str, detail: str | None = "", verb: str | None = None) -> SideEffect:
+        return SideEffect(kind=kind, op=op, call=qualified, line=line, detail=detail or "",
+                          verb=verb if verb is not None else qualified.split(".")[-1].rstrip("()[]"))
 
     if qualified.startswith(_PAYMENT_LIBS):
         return effect("payment", "read" if last in _PAYMENT_READ_VERBS else "write", segs[0])
@@ -198,7 +199,7 @@ def classify_call(call: ast.Call, name: str, imports: _Imports) -> SideEffect | 
         sql = _str_const(call.args[0]) if call.args else None
         parsed = sql_effect(sql) if sql else None
         if parsed:
-            return effect("db", *parsed)
+            return effect("db", parsed[0], parsed[1], verb=parsed[2])
         return effect("db", "unknown")
     if last in {"save", "delete"} and receiver and call.args == [] and not receiver.startswith(("self", "os", "Path")):
         owner = receiver.split(".")[-1]
@@ -228,12 +229,16 @@ class _FunctionVisitor(ast.NodeVisitor):
         self.effects: list[SideEffect] = []
         self.request_methods: set[str] = set()
         self.request_params: dict[str, Param] = {}
+        self.call_sites: dict[str, int] = {}
+        self.branches: list[MethodBranch] = []
         self._chained: set[int] = set()
 
     def visit_Call(self, node: ast.Call) -> None:
         name = dotted(node.func)
         if name:
-            self.calls.add(self.imports.qualify(name))
+            qualified_name = self.imports.qualify(name)
+            self.calls.add(qualified_name)
+            self.call_sites.setdefault(qualified_name, node.lineno)
             # `Order.query.filter_by(...).all()`: tag only the outermost call of a
             # chain that matches a rule, so one statement doesn't count as several
             # side effects -- but fall through to inner calls when the outer one
@@ -271,6 +276,20 @@ class _FunctionVisitor(ast.NodeVisitor):
             key = _str_const(node.args[0])
             if key and key not in self.request_params:
                 self.request_params[key] = Param(name=key, required=False, location=location)
+
+    def visit_If(self, node: ast.If) -> None:
+        # `if request.method == "POST":` -> the body only runs for POST.
+        test = node.test
+        if isinstance(test, ast.Compare) and dotted(test.left) == "request.method" and node.body \
+                and len(test.ops) == 1 and isinstance(test.ops[0], (ast.Eq, ast.In)):
+            comp = test.comparators[0]
+            values = comp.elts if isinstance(comp, (ast.Tuple, ast.List, ast.Set)) else [comp]
+            start, end = node.body[0].lineno, node.body[-1].end_lineno or node.body[-1].lineno
+            for v in values:
+                s = _str_const(v)
+                if s:
+                    self.branches.append(MethodBranch(method=s.upper(), start=start, end=end))
+        self.generic_visit(node)
 
     def visit_Compare(self, node: ast.Compare) -> None:
         # Django function views branching on `request.method == "POST"`.
@@ -382,6 +401,8 @@ class PythonAnalyzer:
                     docstring=_first_doc_line(node),
                     is_async=isinstance(node, ast.AsyncFunctionDef),
                     http_methods=sorted(http_methods),
+                    call_sites=dict(sorted(visitor.call_sites.items())),
+                    method_branches=sorted(visitor.branches, key=lambda b: (b.start, b.method)),
                 )
             )
             result.entry_points.extend(self._decorator_entry_points(node, qualname, source.rel, imports, prefixes))

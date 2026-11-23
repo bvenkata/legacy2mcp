@@ -22,6 +22,12 @@
       "http_out": 1,
       "payment": 2,
       "queue": 1
+    },
+    "flows": 10,
+    "risk": {
+      "read_only": 3,
+      "low_risk_write": 1,
+      "high_risk": 6
     }
   },
   "scan": {
@@ -64,7 +70,11 @@
           "side_effects": [],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "src/services/payments.refundOrder": 9
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -109,7 +119,11 @@
           "side_effects": [],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "res.json": 10
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -166,12 +180,18 @@
               "op": "read",
               "call": "src/db.query",
               "line": 7,
-              "detail": "orders"
+              "detail": "orders",
+              "verb": "SELECT"
             }
           ],
           "docstring": "List orders, optionally filtered by status.",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "res.json": 8,
+            "src/db.query": 7
+          },
+          "method_branches": []
         },
         {
           "qualname": "get",
@@ -208,12 +228,18 @@
               "op": "read",
               "call": "src/db.query",
               "line": 12,
-              "detail": "orders"
+              "detail": "orders",
+              "verb": "SELECT"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "res.json": 13,
+            "src/db.query": 12
+          },
+          "method_branches": []
         },
         {
           "qualname": "create",
@@ -258,19 +284,28 @@
               "op": "write",
               "call": "src/db.query",
               "line": 19,
-              "detail": "orders"
+              "detail": "orders",
+              "verb": "INSERT"
             },
             {
               "kind": "queue",
               "op": "write",
               "call": "src/queues.emailQueue.add",
               "line": 20,
-              "detail": "emailQueue"
+              "detail": "emailQueue",
+              "verb": "add"
             }
           ],
           "docstring": "Create an order and queue a confirmation email.",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "res.status": 21,
+            "res.status().json": 21,
+            "src/db.query": 19,
+            "src/queues.emailQueue.add": 20
+          },
+          "method_branches": []
         },
         {
           "qualname": "remove",
@@ -308,12 +343,19 @@
               "op": "write",
               "call": "src/db.query",
               "line": 25,
-              "detail": "orders"
+              "detail": "orders",
+              "verb": "DELETE"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "res.status": 26,
+            "res.status().end": 26,
+            "src/db.query": 25
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -360,12 +402,17 @@
               "op": "write",
               "call": "src/db.query",
               "line": 5,
-              "detail": "carts"
+              "detail": "carts",
+              "verb": "DELETE"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "src/db.query": 5
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -418,12 +465,18 @@
               "op": "read",
               "call": "jsonwebtoken.verify",
               "line": 5,
-              "detail": ""
+              "detail": "",
+              "verb": "verify"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "jsonwebtoken.verify": 5,
+            "next": 6
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -504,26 +557,38 @@
               "op": "read",
               "call": "src/db.query",
               "line": 10,
-              "detail": "users"
+              "detail": "users",
+              "verb": "SELECT"
             },
             {
               "kind": "auth",
               "op": "read",
               "call": "bcrypt.compare",
               "line": 11,
-              "detail": ""
+              "detail": "",
+              "verb": "compare"
             },
             {
               "kind": "auth",
               "op": "write",
               "call": "jsonwebtoken.sign",
               "line": 13,
-              "detail": ""
+              "detail": "",
+              "verb": "sign"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "bcrypt.compare": 11,
+            "jsonwebtoken.sign": 13,
+            "res.json": 13,
+            "res.status": 12,
+            "res.status().end": 12,
+            "src/db.query": 10
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -582,7 +647,12 @@
           "side_effects": [],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "res.json": 15,
+            "src/services/payments.chargeOrder": 14
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -633,26 +703,35 @@
               "op": "read",
               "call": "src/db.query",
               "line": 9,
-              "detail": "orders"
+              "detail": "orders",
+              "verb": "SELECT"
             },
             {
               "kind": "payment",
               "op": "write",
               "call": "stripe().paymentIntents.create",
               "line": 10,
-              "detail": "stripe"
+              "detail": "stripe",
+              "verb": "create"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "src/db.query",
               "line": 16,
-              "detail": "orders"
+              "detail": "orders",
+              "verb": "UPDATE"
             }
           ],
           "docstring": "Charge the order total and hand the order to the warehouse.",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "notifyWarehouse": 17,
+            "src/db.query": 9,
+            "stripe().paymentIntents.create": 10
+          },
+          "method_branches": []
         },
         {
           "qualname": "refundOrder",
@@ -677,19 +756,26 @@
               "op": "read",
               "call": "src/db.query",
               "line": 22,
-              "detail": "orders"
+              "detail": "orders",
+              "verb": "SELECT"
             },
             {
               "kind": "payment",
               "op": "write",
               "call": "stripe().refunds.create",
               "line": 23,
-              "detail": "stripe"
+              "detail": "stripe",
+              "verb": "create"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "src/db.query": 22,
+            "stripe().refunds.create": 23
+          },
+          "method_branches": []
         },
         {
           "qualname": "notifyWarehouse",
@@ -713,12 +799,17 @@
               "op": "write",
               "call": "axios.post",
               "line": 27,
-              "detail": "https://warehouse.example.com/v1/shipments"
+              "detail": "https://warehouse.example.com/v1/shipments",
+              "verb": "post"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "axios.post": 27
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -757,12 +848,17 @@
               "op": "write",
               "call": "nodemailer.createTransport().sendMail",
               "line": 7,
-              "detail": ""
+              "detail": "",
+              "verb": "sendMail"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "nodemailer.createTransport().sendMail": 7
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -980,17 +1076,20 @@
       {
         "source": "bin/cli.js::<cli refund>",
         "target": "src/services/payments.js::refundOrder",
-        "kind": "call"
+        "kind": "call",
+        "line": 9
       },
       {
         "source": "src/routes/orders.js::<POST /{id}/pay>",
         "target": "src/services/payments.js::chargeOrder",
-        "kind": "call"
+        "kind": "call",
+        "line": 14
       },
       {
         "source": "src/services/payments.js::chargeOrder",
         "target": "src/services/payments.js::notifyWarehouse",
-        "kind": "call"
+        "kind": "call",
+        "line": 17
       }
     ],
     "module_edges": [
@@ -1217,5 +1316,715 @@
         "stripe"
       ]
     }
-  }
+  },
+  "flows": [
+    {
+      "id": "cli-refund",
+      "name": "cli refund",
+      "entry_kind": "cli_command",
+      "entry_name": "cli refund",
+      "handler": "bin/cli.js::<cli refund>",
+      "framework": "commander",
+      "method": null,
+      "path": null,
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "bin/cli.js::<cli refund>",
+          "line": 8,
+          "label": "cli refund -> <cli refund>",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 1,
+          "kind": "call",
+          "function": "src/services/payments.js::refundOrder",
+          "line": 9,
+          "label": "calls refundOrder",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/services/payments.js::refundOrder",
+          "line": 22,
+          "label": "reads orders",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:orders",
+          "risk": "read_only"
+        },
+        {
+          "order": 4,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/services/payments.js::refundOrder",
+          "line": 23,
+          "label": "charges/changes via stripe",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:stripe",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "bin/cli.js::<cli refund>",
+        "src/services/payments.js::refundOrder"
+      ],
+      "resources": [
+        {
+          "resource": "db:orders",
+          "op": "read"
+        },
+        {
+          "resource": "payment:stripe",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "moves money through stripe (stripe().refunds.create)",
+          "where": "src/services/payments.js:23"
+        }
+      ],
+      "authenticated": null,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-api-auth-login",
+      "name": "POST /api/auth/login",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/auth/login",
+      "handler": "src/routes/auth.js::<POST /login>",
+      "framework": "express",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/routes/auth.js::<POST /login>",
+          "line": 8,
+          "label": "POST /api/auth/login -> <POST /login>",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/routes/auth.js::<POST /login>",
+          "line": 10,
+          "label": "reads users",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:users",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/routes/auth.js::<POST /login>",
+          "line": 11,
+          "label": "checks auth / credentials",
+          "effect_kind": "auth",
+          "op": "read",
+          "resource": "auth",
+          "risk": "read_only"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/routes/auth.js::<POST /login>",
+          "line": 13,
+          "label": "changes auth / credentials",
+          "effect_kind": "auth",
+          "op": "write",
+          "resource": "auth",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "src/routes/auth.js::<POST /login>"
+      ],
+      "resources": [
+        {
+          "resource": "auth",
+          "op": "write"
+        },
+        {
+          "resource": "db:users",
+          "op": "read"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "changes credentials or issues tokens (jsonwebtoken.sign)",
+          "where": "src/routes/auth.js:13"
+        }
+      ],
+      "authenticated": true,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-api-orders",
+      "name": "List orders, optionally filtered by status",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/orders",
+      "handler": "src/controllers/orders.js::list",
+      "framework": "express",
+      "method": "GET",
+      "path": "/api/orders",
+      "description": "List orders, optionally filtered by status.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/controllers/orders.js::list",
+          "line": 5,
+          "label": "GET /api/orders -> list",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/controllers/orders.js::list",
+          "line": 7,
+          "label": "reads orders",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:orders",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "src/controllers/orders.js::list"
+      ],
+      "resources": [
+        {
+          "resource": "db:orders",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": true,
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "post-api-orders",
+      "name": "Create an order and queue a confirmation email",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/orders",
+      "handler": "src/controllers/orders.js::create",
+      "framework": "express",
+      "method": "POST",
+      "path": "/api/orders",
+      "description": "Create an order and queue a confirmation email.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/controllers/orders.js::create",
+          "line": 17,
+          "label": "POST /api/orders -> create",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/controllers/orders.js::create",
+          "line": 19,
+          "label": "writes orders",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:orders",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/controllers/orders.js::create",
+          "line": 20,
+          "label": "enqueues to emailQueue",
+          "effect_kind": "queue",
+          "op": "write",
+          "resource": "queue:emailQueue",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "src/controllers/orders.js::create"
+      ],
+      "resources": [
+        {
+          "resource": "db:orders",
+          "op": "write"
+        },
+        {
+          "resource": "queue:emailQueue",
+          "op": "write"
+        }
+      ],
+      "risk": "low_risk_write",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes orders",
+          "where": "src/controllers/orders.js:19"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "enqueues background work (emailQueue)",
+          "where": "src/controllers/orders.js:20"
+        }
+      ],
+      "authenticated": true,
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "delete-api-orders-id",
+      "name": "DELETE /api/orders/{id}",
+      "entry_kind": "http_route",
+      "entry_name": "DELETE /api/orders/{id}",
+      "handler": "src/controllers/orders.js::remove",
+      "framework": "express",
+      "method": "DELETE",
+      "path": "/api/orders/{id}",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/controllers/orders.js::remove",
+          "line": 24,
+          "label": "DELETE /api/orders/{id} -> remove",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/controllers/orders.js::remove",
+          "line": 25,
+          "label": "writes orders",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:orders",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "src/controllers/orders.js::remove"
+      ],
+      "resources": [
+        {
+          "resource": "db:orders",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "deletes orders records",
+          "where": "src/controllers/orders.js:25"
+        },
+        {
+          "level": "high_risk",
+          "text": "HTTP DELETE endpoint",
+          "where": "src/routes/orders.js:18"
+        }
+      ],
+      "authenticated": true,
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "get-api-orders-id",
+      "name": "GET /api/orders/{id}",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/orders/{id}",
+      "handler": "src/controllers/orders.js::get",
+      "framework": "express",
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/controllers/orders.js::get",
+          "line": 11,
+          "label": "GET /api/orders/{id} -> get",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/controllers/orders.js::get",
+          "line": 12,
+          "label": "reads orders",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:orders",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "src/controllers/orders.js::get"
+      ],
+      "resources": [
+        {
+          "resource": "db:orders",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": true,
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "post-api-orders-id-pay",
+      "name": "POST /api/orders/{id}/pay",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/orders/{id}/pay",
+      "handler": "src/routes/orders.js::<POST /{id}/pay>",
+      "framework": "express",
+      "method": "POST",
+      "path": "/api/orders/{id}/pay",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/routes/orders.js::<POST /{id}/pay>",
+          "line": 12,
+          "label": "POST /api/orders/{id}/pay -> <POST /{id}/pay>",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 1,
+          "kind": "call",
+          "function": "src/services/payments.js::chargeOrder",
+          "line": 14,
+          "label": "calls chargeOrder",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/services/payments.js::chargeOrder",
+          "line": 9,
+          "label": "reads orders",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:orders",
+          "risk": "read_only"
+        },
+        {
+          "order": 4,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/services/payments.js::chargeOrder",
+          "line": 10,
+          "label": "charges/changes via stripe",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:stripe",
+          "risk": "high_risk"
+        },
+        {
+          "order": 5,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/services/payments.js::chargeOrder",
+          "line": 16,
+          "label": "writes orders",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:orders",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 6,
+          "depth": 2,
+          "kind": "call",
+          "function": "src/services/payments.js::notifyWarehouse",
+          "line": 17,
+          "label": "calls notifyWarehouse",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 7,
+          "depth": 2,
+          "kind": "effect",
+          "function": "src/services/payments.js::notifyWarehouse",
+          "line": 27,
+          "label": "sends to warehouse.example.com",
+          "effect_kind": "http_out",
+          "op": "write",
+          "resource": "http:warehouse.example.com",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "src/routes/orders.js::<POST /{id}/pay>",
+        "src/services/payments.js::chargeOrder",
+        "src/services/payments.js::notifyWarehouse"
+      ],
+      "resources": [
+        {
+          "resource": "db:orders",
+          "op": "write"
+        },
+        {
+          "resource": "http:warehouse.example.com",
+          "op": "write"
+        },
+        {
+          "resource": "payment:stripe",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "moves money through stripe (stripe().paymentIntents.create)",
+          "where": "src/services/payments.js:10"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "writes orders",
+          "where": "src/services/payments.js:16"
+        },
+        {
+          "level": "high_risk",
+          "text": "sends data to an external service (warehouse.example.com)",
+          "where": "src/services/payments.js:27"
+        }
+      ],
+      "authenticated": true,
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "get-health",
+      "name": "GET /health",
+      "entry_kind": "http_route",
+      "entry_name": "GET /health",
+      "handler": "src/app.js::<GET /health>",
+      "framework": "express",
+      "method": "GET",
+      "path": "/health",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/app.js::<GET /health>",
+          "line": 10,
+          "label": "GET /health -> <GET /health>",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "src/app.js::<GET /health>"
+      ],
+      "resources": [],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "worker-emails",
+      "name": "worker emails",
+      "entry_kind": "message_handler",
+      "entry_name": "worker emails",
+      "handler": "src/workers/email.js::<worker emails>",
+      "framework": "bullmq",
+      "method": null,
+      "path": null,
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/workers/email.js::<worker emails>",
+          "line": 6,
+          "label": "worker emails -> <worker emails>",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/workers/email.js::<worker emails>",
+          "line": 7,
+          "label": "sends email via email",
+          "effect_kind": "email",
+          "op": "write",
+          "resource": "email",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "src/workers/email.js::<worker emails>"
+      ],
+      "resources": [
+        {
+          "resource": "email",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "sends email outside the system",
+          "where": "src/workers/email.js:7"
+        }
+      ],
+      "authenticated": null,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "job-0-3",
+      "name": "job 0 3 * * *",
+      "entry_kind": "scheduled_job",
+      "entry_name": "job 0 3 * * *",
+      "handler": "src/jobs/cleanup.js::<cron 0 3 * * *>",
+      "framework": "node-cron",
+      "method": null,
+      "path": null,
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/jobs/cleanup.js::<cron 0 3 * * *>",
+          "line": 4,
+          "label": "job 0 3 * * * -> <cron 0 3 * * *>",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/jobs/cleanup.js::<cron 0 3 * * *>",
+          "line": 5,
+          "label": "writes carts",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:carts",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "src/jobs/cleanup.js::<cron 0 3 * * *>"
+      ],
+      "resources": [
+        {
+          "resource": "db:carts",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "deletes carts records",
+          "where": "src/jobs/cleanup.js:5"
+        }
+      ],
+      "authenticated": null,
+      "middleware": [],
+      "truncated": false
+    }
+  ]
 }

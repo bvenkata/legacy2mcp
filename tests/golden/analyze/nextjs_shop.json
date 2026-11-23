@@ -20,6 +20,12 @@
       "email": 1,
       "http_out": 1,
       "payment": 2
+    },
+    "flows": 6,
+    "risk": {
+      "read_only": 2,
+      "low_risk_write": 1,
+      "high_risk": 3
     }
   },
   "scan": {
@@ -75,26 +81,36 @@
               "op": "read",
               "call": "@/lib/prisma.prisma.order.findUnique",
               "line": 8,
-              "detail": "order"
+              "detail": "order",
+              "verb": "findUnique"
             },
             {
               "kind": "payment",
               "op": "write",
               "call": "stripe().refunds.create",
               "line": 9,
-              "detail": "stripe"
+              "detail": "stripe",
+              "verb": "create"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "@/lib/prisma.prisma.order.update",
               "line": 10,
-              "detail": "order"
+              "detail": "order",
+              "verb": "update"
             }
           ],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "@/lib/prisma.prisma.order.findUnique": 8,
+            "@/lib/prisma.prisma.order.update": 10,
+            "next/server.NextResponse.json": 11,
+            "stripe().refunds.create": 9
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -155,26 +171,38 @@
               "op": "read",
               "call": "@/lib/prisma.prisma.cart.findUnique",
               "line": 11,
-              "detail": "cart"
+              "detail": "cart",
+              "verb": "findUnique"
             },
             {
               "kind": "payment",
               "op": "write",
               "call": "stripe().checkout.sessions.create",
               "line": 12,
-              "detail": "stripe"
+              "detail": "stripe",
+              "verb": "create"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "@/lib/prisma.prisma.order.create",
               "line": 13,
-              "detail": "order"
+              "detail": "order",
+              "verb": "create"
             }
           ],
           "docstring": "Turn a cart into a paid order.",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "@/lib/email.sendOrderEmail": 14,
+            "@/lib/prisma.prisma.cart.findUnique": 11,
+            "@/lib/prisma.prisma.order.create": 13,
+            "next/server.NextResponse.json": 15,
+            "request.json": 10,
+            "stripe().checkout.sessions.create": 12
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -223,12 +251,19 @@
               "op": "read",
               "call": "@/lib/prisma.prisma.product.findMany",
               "line": 8,
-              "detail": "product"
+              "detail": "product",
+              "verb": "findMany"
             }
           ],
           "docstring": "Search the product catalog.",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "@/lib/prisma.prisma.product.findMany": 8,
+            "next/server.NextResponse.json": 9,
+            "searchParams.get": 7
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -261,12 +296,17 @@
               "op": "read",
               "call": "fetch",
               "line": 4,
-              "detail": "/api/products"
+              "detail": "/api/products",
+              "verb": "fetch"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "fetch": 4
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -299,7 +339,9 @@
           "side_effects": [],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {},
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -345,12 +387,17 @@
               "op": "write",
               "call": "resend.Resend().emails.send",
               "line": 7,
-              "detail": ""
+              "detail": "",
+              "verb": "send"
             }
           ],
           "docstring": "Send the order confirmation email.",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "resend.Resend().emails.send": 7
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -423,21 +470,24 @@
               "op": "read",
               "call": "@/lib/prisma.prisma.product.findUnique",
               "line": 8,
-              "detail": "product"
+              "detail": "product",
+              "verb": "findUnique"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "@/lib/prisma.prisma.product.update",
               "line": 10,
-              "detail": "product"
+              "detail": "product",
+              "verb": "update"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "@/lib/prisma.prisma.product.delete",
               "line": 12,
-              "detail": "product"
+              "detail": "product",
+              "verb": "delete"
             }
           ],
           "docstring": "",
@@ -446,6 +496,32 @@
             "DELETE",
             "GET",
             "PUT"
+          ],
+          "call_sites": {
+            "@/lib/prisma.prisma.product.delete": 12,
+            "@/lib/prisma.prisma.product.findUnique": 8,
+            "@/lib/prisma.prisma.product.update": 10,
+            "String": 5,
+            "res.json": 8,
+            "res.status": 13,
+            "res.status().end": 13
+          },
+          "method_branches": [
+            {
+              "method": "GET",
+              "start": 7,
+              "end": 8
+            },
+            {
+              "method": "PUT",
+              "start": 9,
+              "end": 10
+            },
+            {
+              "method": "DELETE",
+              "start": 11,
+              "end": 13
+            }
           ]
         }
       ],
@@ -580,7 +656,8 @@
       {
         "source": "src/app/api/checkout/route.ts::POST",
         "target": "src/lib/email.ts::sendOrderEmail",
-        "kind": "call"
+        "kind": "call",
+        "line": 14
       }
     ],
     "module_edges": [
@@ -727,5 +804,466 @@
         "stripe"
       ]
     }
-  }
+  },
+  "flows": [
+    {
+      "id": "post-api-admin-orders-orderid-refund",
+      "name": "POST /api/admin/orders/{orderId}/refund",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/admin/orders/{orderId}/refund",
+      "handler": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts::POST",
+      "framework": "nextjs",
+      "method": "POST",
+      "path": "/api/admin/orders/{orderId}/refund",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts::POST",
+          "line": 7,
+          "label": "POST /api/admin/orders/{orderId}/refund -> POST",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts::POST",
+          "line": 8,
+          "label": "reads order",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:order",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts::POST",
+          "line": 9,
+          "label": "charges/changes via stripe",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:stripe",
+          "risk": "high_risk"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts::POST",
+          "line": 10,
+          "label": "writes order",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:order",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts::POST"
+      ],
+      "resources": [
+        {
+          "resource": "db:order",
+          "op": "write"
+        },
+        {
+          "resource": "payment:stripe",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "moves money through stripe (stripe().refunds.create)",
+          "where": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts:9"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "writes order",
+          "where": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts:10"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "src/app/(admin)/api/admin/orders/[orderId]/refund/route.ts:7"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-api-checkout",
+      "name": "Turn a cart into a paid order",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/checkout",
+      "handler": "src/app/api/checkout/route.ts::POST",
+      "framework": "nextjs",
+      "method": "POST",
+      "path": "/api/checkout",
+      "description": "Turn a cart into a paid order.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/app/api/checkout/route.ts::POST",
+          "line": 9,
+          "label": "POST /api/checkout -> POST",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/app/api/checkout/route.ts::POST",
+          "line": 11,
+          "label": "reads cart",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:cart",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/app/api/checkout/route.ts::POST",
+          "line": 12,
+          "label": "charges/changes via stripe",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:stripe",
+          "risk": "high_risk"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/app/api/checkout/route.ts::POST",
+          "line": 13,
+          "label": "writes order",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:order",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 5,
+          "depth": 1,
+          "kind": "call",
+          "function": "src/lib/email.ts::sendOrderEmail",
+          "line": 14,
+          "label": "calls sendOrderEmail",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 6,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/lib/email.ts::sendOrderEmail",
+          "line": 7,
+          "label": "sends email via email",
+          "effect_kind": "email",
+          "op": "write",
+          "resource": "email",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "src/app/api/checkout/route.ts::POST",
+        "src/lib/email.ts::sendOrderEmail"
+      ],
+      "resources": [
+        {
+          "resource": "db:cart",
+          "op": "read"
+        },
+        {
+          "resource": "db:order",
+          "op": "write"
+        },
+        {
+          "resource": "email",
+          "op": "write"
+        },
+        {
+          "resource": "payment:stripe",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "moves money through stripe (stripe().checkout.sessions.create)",
+          "where": "src/app/api/checkout/route.ts:12"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "writes order",
+          "where": "src/app/api/checkout/route.ts:13"
+        },
+        {
+          "level": "high_risk",
+          "text": "sends email outside the system",
+          "where": "src/lib/email.ts:7"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "src/app/api/checkout/route.ts:9"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-api-products",
+      "name": "Search the product catalog",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/products",
+      "handler": "src/app/api/products/route.ts::GET",
+      "framework": "nextjs",
+      "method": "GET",
+      "path": "/api/products",
+      "description": "Search the product catalog.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/app/api/products/route.ts::GET",
+          "line": 5,
+          "label": "GET /api/products -> GET",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/app/api/products/route.ts::GET",
+          "line": 8,
+          "label": "reads product",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:product",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "src/app/api/products/route.ts::GET"
+      ],
+      "resources": [
+        {
+          "resource": "db:product",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "delete-api-products-id",
+      "name": "DELETE /api/products/{id}",
+      "entry_kind": "http_route",
+      "entry_name": "DELETE /api/products/{id}",
+      "handler": "src/pages/api/products/[id].ts::handler",
+      "framework": "nextjs",
+      "method": "DELETE",
+      "path": "/api/products/{id}",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/pages/api/products/[id].ts::handler",
+          "line": 4,
+          "label": "DELETE /api/products/{id} -> handler",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/pages/api/products/[id].ts::handler",
+          "line": 12,
+          "label": "writes product",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:product",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "src/pages/api/products/[id].ts::handler"
+      ],
+      "resources": [
+        {
+          "resource": "db:product",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "deletes product records",
+          "where": "src/pages/api/products/[id].ts:12"
+        },
+        {
+          "level": "high_risk",
+          "text": "HTTP DELETE endpoint",
+          "where": "src/pages/api/products/[id].ts:4"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "src/pages/api/products/[id].ts:4"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-api-products-id",
+      "name": "GET /api/products/{id}",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/products/{id}",
+      "handler": "src/pages/api/products/[id].ts::handler",
+      "framework": "nextjs",
+      "method": "GET",
+      "path": "/api/products/{id}",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/pages/api/products/[id].ts::handler",
+          "line": 4,
+          "label": "GET /api/products/{id} -> handler",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/pages/api/products/[id].ts::handler",
+          "line": 8,
+          "label": "reads product",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:product",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "src/pages/api/products/[id].ts::handler"
+      ],
+      "resources": [
+        {
+          "resource": "db:product",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "put-api-products-id",
+      "name": "PUT /api/products/{id}",
+      "entry_kind": "http_route",
+      "entry_name": "PUT /api/products/{id}",
+      "handler": "src/pages/api/products/[id].ts::handler",
+      "framework": "nextjs",
+      "method": "PUT",
+      "path": "/api/products/{id}",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/pages/api/products/[id].ts::handler",
+          "line": 4,
+          "label": "PUT /api/products/{id} -> handler",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/pages/api/products/[id].ts::handler",
+          "line": 10,
+          "label": "writes product",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:product",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "src/pages/api/products/[id].ts::handler"
+      ],
+      "resources": [
+        {
+          "resource": "db:product",
+          "op": "write"
+        }
+      ],
+      "risk": "low_risk_write",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes product",
+          "where": "src/pages/api/products/[id].ts:10"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "src/pages/api/products/[id].ts:4"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    }
+  ]
 }

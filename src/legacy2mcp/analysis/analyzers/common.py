@@ -12,8 +12,8 @@ _SQL_TABLE_RE = re.compile(
 )
 
 
-def sql_effect(sql: str) -> tuple[str, str] | None:
-    """(op, detail) for a literal SQL string, or None if it doesn't look like SQL.
+def sql_effect(sql: str) -> tuple[str, str, str] | None:
+    """(op, detail, verb) for a literal SQL string, or None if it doesn't look like SQL.
 
     detail is the first table named (FROM/INTO/UPDATE/...), falling back to
     the statement verb when no table can be pulled out."""
@@ -28,4 +28,4 @@ def sql_effect(sql: str) -> tuple[str, str] | None:
     else:
         return None
     m = _SQL_TABLE_RE.search(stripped)
-    return op, (m.group(1) if m else verb)
+    return op, (m.group(1) if m else verb), verb

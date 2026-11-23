@@ -179,6 +179,7 @@ milestone by milestone in [v2-gap-analysis.md](v2-gap-analysis.md):
   tree-sitter, call graph, module graph and data-access graph. ✅ on
   `feat/v2-analyze`
 - M3 -- flow detection from entry points, rule-based risk classification.
+  ✅ on `feat/v2-analyze`
 - M4 -- interactive single-file HTML report (`legacy2mcp report`).
 - M5 -- AI provider interface (Anthropic, OpenAI), secret redaction,
   token budget, enrichment.

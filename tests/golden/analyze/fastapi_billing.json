@@ -21,6 +21,12 @@
       "email": 3,
       "http_out": 1,
       "payment": 1
+    },
+    "flows": 6,
+    "risk": {
+      "read_only": 3,
+      "low_risk_write": 0,
+      "high_risk": 3
     }
   },
   "scan": {
@@ -66,7 +72,12 @@
           "side_effects": [],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "SessionLocal": 9,
+            "session.close": 13
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -101,19 +112,28 @@
               "op": "read",
               "call": "session.execute",
               "line": 8,
-              "detail": "invoices"
+              "detail": "invoices",
+              "verb": "SELECT"
             },
             {
               "kind": "email",
               "op": "write",
               "call": "app.mailer.send_email",
               "line": 10,
-              "detail": ""
+              "detail": "",
+              "verb": "send_email"
             }
           ],
           "docstring": "Email every customer with an overdue invoice.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "app.db.SessionLocal": 7,
+            "app.mailer.send_email": 10,
+            "session.execute": 8,
+            "session.execute().all": 8
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -164,19 +184,26 @@
               "op": "write",
               "call": "smtplib.SMTP",
               "line": 5,
-              "detail": ""
+              "detail": "",
+              "verb": "SMTP"
             },
             {
               "kind": "email",
               "op": "write",
               "call": "smtp.sendmail",
               "line": 6,
-              "detail": ""
+              "detail": "",
+              "verb": "sendmail"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "smtp.sendmail": 6,
+            "smtplib.SMTP": 5
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -207,7 +234,9 @@
           "side_effects": [],
           "docstring": "",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {},
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -297,12 +326,18 @@
               "op": "read",
               "call": "session.execute",
               "line": 14,
-              "detail": "invoices"
+              "detail": "invoices",
+              "verb": "SELECT"
             }
           ],
           "docstring": "Return one invoice.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "session.execute": 14,
+            "session.execute().first": 14
+          },
+          "method_branches": []
         },
         {
           "qualname": "search_invoices",
@@ -336,12 +371,19 @@
               "op": "read",
               "call": "session.query().limit().all",
               "line": 19,
-              "detail": ""
+              "detail": "",
+              "verb": "all"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "session.query": 19,
+            "session.query().limit": 19,
+            "session.query().limit().all": 19
+          },
+          "method_branches": []
         },
         {
           "qualname": "create_invoice",
@@ -370,26 +412,36 @@
               "op": "write",
               "call": "session.execute",
               "line": 25,
-              "detail": "invoices"
+              "detail": "invoices",
+              "verb": "INSERT"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "session.commit",
               "line": 26,
-              "detail": ""
+              "detail": "",
+              "verb": "commit"
             },
             {
               "kind": "http_out",
               "op": "write",
               "call": "httpx.post",
               "line": 27,
-              "detail": "https://tax.example.com/v1/register"
+              "detail": "https://tax.example.com/v1/register",
+              "verb": "post"
             }
           ],
           "docstring": "Create an invoice and register it with the tax service.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "body.dict": 25,
+            "httpx.post": 27,
+            "session.commit": 26,
+            "session.execute": 25
+          },
+          "method_branches": []
         },
         {
           "qualname": "refund_invoice",
@@ -424,33 +476,44 @@
               "op": "read",
               "call": "session.execute",
               "line": 34,
-              "detail": "invoices"
+              "detail": "invoices",
+              "verb": "SELECT"
             },
             {
               "kind": "payment",
               "op": "write",
               "call": "stripe.Refund.create",
               "line": 35,
-              "detail": "stripe"
+              "detail": "stripe",
+              "verb": "create"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "session.execute",
               "line": 36,
-              "detail": "invoices"
+              "detail": "invoices",
+              "verb": "UPDATE"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "session.commit",
               "line": 37,
-              "detail": ""
+              "detail": "",
+              "verb": "commit"
             }
           ],
           "docstring": "Refund a paid invoice to the original card.",
           "is_async": true,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "session.commit": 37,
+            "session.execute": 34,
+            "session.execute().first": 34,
+            "stripe.Refund.create": 35
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -576,7 +639,8 @@
       {
         "source": "app/jobs.py::send_overdue_reminders",
         "target": "app/mailer.py::send_email",
-        "kind": "call"
+        "kind": "call",
+        "line": 10
       }
     ],
     "module_edges": [
@@ -726,5 +790,473 @@
         "stripe"
       ]
     }
-  }
+  },
+  "flows": [
+    {
+      "id": "get-health",
+      "name": "GET /health",
+      "entry_kind": "http_route",
+      "entry_name": "GET /health",
+      "handler": "app/main.py::health",
+      "framework": "fastapi",
+      "method": "GET",
+      "path": "/health",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "app/main.py::health",
+          "line": 15,
+          "label": "GET /health -> health",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "app/main.py::health"
+      ],
+      "resources": [],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-invoices",
+      "name": "GET /invoices/",
+      "entry_kind": "http_route",
+      "entry_name": "GET /invoices/",
+      "handler": "app/routers/invoices.py::search_invoices",
+      "framework": "fastapi",
+      "method": "GET",
+      "path": "/invoices/",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "app/routers/invoices.py::search_invoices",
+          "line": 18,
+          "label": "GET /invoices/ -> search_invoices",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::search_invoices",
+          "line": 19,
+          "label": "reads database",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "app/routers/invoices.py::search_invoices"
+      ],
+      "resources": [
+        {
+          "resource": "db",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-invoices",
+      "name": "Create an invoice and register it with the tax service",
+      "entry_kind": "http_route",
+      "entry_name": "POST /invoices/",
+      "handler": "app/routers/invoices.py::create_invoice",
+      "framework": "fastapi",
+      "method": "POST",
+      "path": "/invoices/",
+      "description": "Create an invoice and register it with the tax service.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "app/routers/invoices.py::create_invoice",
+          "line": 23,
+          "label": "POST /invoices/ -> create_invoice",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::create_invoice",
+          "line": 25,
+          "label": "writes invoices",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:invoices",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::create_invoice",
+          "line": 26,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::create_invoice",
+          "line": 27,
+          "label": "sends to tax.example.com",
+          "effect_kind": "http_out",
+          "op": "write",
+          "resource": "http:tax.example.com",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "app/routers/invoices.py::create_invoice"
+      ],
+      "resources": [
+        {
+          "resource": "db",
+          "op": "write"
+        },
+        {
+          "resource": "db:invoices",
+          "op": "write"
+        },
+        {
+          "resource": "http:tax.example.com",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes invoices",
+          "where": "app/routers/invoices.py:25"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "commits database changes",
+          "where": "app/routers/invoices.py:26"
+        },
+        {
+          "level": "high_risk",
+          "text": "sends data to an external service (tax.example.com)",
+          "where": "app/routers/invoices.py:27"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "app/routers/invoices.py:23"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-invoices-invoice-id",
+      "name": "Return one invoice",
+      "entry_kind": "http_route",
+      "entry_name": "GET /invoices/{invoice_id}",
+      "handler": "app/routers/invoices.py::read_invoice",
+      "framework": "fastapi",
+      "method": "GET",
+      "path": "/invoices/{invoice_id}",
+      "description": "Return one invoice.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "app/routers/invoices.py::read_invoice",
+          "line": 12,
+          "label": "GET /invoices/{invoice_id} -> read_invoice",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::read_invoice",
+          "line": 14,
+          "label": "reads invoices",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:invoices",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "app/routers/invoices.py::read_invoice"
+      ],
+      "resources": [
+        {
+          "resource": "db:invoices",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-invoices-invoice-id-refund",
+      "name": "Refund a paid invoice to the original card",
+      "entry_kind": "http_route",
+      "entry_name": "POST /invoices/{invoice_id}/refund",
+      "handler": "app/routers/invoices.py::refund_invoice",
+      "framework": "fastapi",
+      "method": "POST",
+      "path": "/invoices/{invoice_id}/refund",
+      "description": "Refund a paid invoice to the original card.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "app/routers/invoices.py::refund_invoice",
+          "line": 32,
+          "label": "POST /invoices/{invoice_id}/refund -> refund_invoice",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::refund_invoice",
+          "line": 34,
+          "label": "reads invoices",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:invoices",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::refund_invoice",
+          "line": 35,
+          "label": "charges/changes via stripe",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:stripe",
+          "risk": "high_risk"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::refund_invoice",
+          "line": 36,
+          "label": "writes invoices",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:invoices",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 5,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/routers/invoices.py::refund_invoice",
+          "line": 37,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "app/routers/invoices.py::refund_invoice"
+      ],
+      "resources": [
+        {
+          "resource": "db",
+          "op": "write"
+        },
+        {
+          "resource": "db:invoices",
+          "op": "write"
+        },
+        {
+          "resource": "payment:stripe",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "moves money through stripe (stripe.Refund.create)",
+          "where": "app/routers/invoices.py:35"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "writes invoices",
+          "where": "app/routers/invoices.py:36"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "commits database changes",
+          "where": "app/routers/invoices.py:37"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "app/routers/invoices.py:32"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "job-send-overdue-reminders",
+      "name": "Email every customer with an overdue invoice",
+      "entry_kind": "scheduled_job",
+      "entry_name": "job send_overdue_reminders",
+      "handler": "app/jobs.py::send_overdue_reminders",
+      "framework": "apscheduler",
+      "method": null,
+      "path": null,
+      "description": "Email every customer with an overdue invoice.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "app/jobs.py::send_overdue_reminders",
+          "line": 5,
+          "label": "job send_overdue_reminders -> send_overdue_reminders",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/jobs.py::send_overdue_reminders",
+          "line": 8,
+          "label": "reads invoices",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:invoices",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "app/jobs.py::send_overdue_reminders",
+          "line": 10,
+          "label": "sends email via email",
+          "effect_kind": "email",
+          "op": "write",
+          "resource": "email",
+          "risk": "high_risk"
+        },
+        {
+          "order": 4,
+          "depth": 1,
+          "kind": "call",
+          "function": "app/mailer.py::send_email",
+          "line": 10,
+          "label": "calls send_email",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 5,
+          "depth": 1,
+          "kind": "effect",
+          "function": "app/mailer.py::send_email",
+          "line": 5,
+          "label": "sends email via email",
+          "effect_kind": "email",
+          "op": "write",
+          "resource": "email",
+          "risk": "high_risk"
+        },
+        {
+          "order": 6,
+          "depth": 1,
+          "kind": "effect",
+          "function": "app/mailer.py::send_email",
+          "line": 6,
+          "label": "sends email via email",
+          "effect_kind": "email",
+          "op": "write",
+          "resource": "email",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "app/jobs.py::send_overdue_reminders",
+        "app/mailer.py::send_email"
+      ],
+      "resources": [
+        {
+          "resource": "db:invoices",
+          "op": "read"
+        },
+        {
+          "resource": "email",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "sends email outside the system",
+          "where": "app/jobs.py:10"
+        }
+      ],
+      "authenticated": null,
+      "middleware": [],
+      "truncated": false
+    }
+  ]
 }

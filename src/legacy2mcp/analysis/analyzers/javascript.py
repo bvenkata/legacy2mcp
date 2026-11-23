@@ -27,7 +27,7 @@ import re
 
 from legacy2mcp.analysis.analyzers.base import FileResult, Mount
 from legacy2mcp.analysis.analyzers.common import sql_effect
-from legacy2mcp.analysis.model import Class, EntryPoint, Function, Module, Param, SideEffect
+from legacy2mcp.analysis.model import Class, EntryPoint, Function, MethodBranch, Module, Param, SideEffect
 from legacy2mcp.analysis.walk import SourceFile
 
 try:
@@ -247,8 +247,9 @@ def classify_js_call(call, name: str, qualified: str) -> SideEffect | None:
     first = _string_value(args[0]) if args else None
     line = _line(call)
 
-    def effect(kind: str, op: str, detail: str | None = "") -> SideEffect:
-        return SideEffect(kind=kind, op=op, call=qualified, line=line, detail=detail or "")
+    def effect(kind: str, op: str, detail: str | None = "", verb: str | None = None) -> SideEffect:
+        return SideEffect(kind=kind, op=op, call=qualified, line=line, detail=detail or "",
+                          verb=verb if verb is not None else qualified.split(".")[-1].rstrip("()[]"))
 
     def pkg(prefixes) -> bool:
         return any(root == p.rstrip("/") or (p.endswith("/") and root.startswith(p)) for p in prefixes)
@@ -295,7 +296,7 @@ def classify_js_call(call, name: str, qualified: str) -> SideEffect | None:
     if last in {"query", "execute", "run", "all", "get", "prepare"} and _DB_RECEIVER_RE.search(receiver or ""):
         parsed = sql_effect(first) if first else None
         if parsed:
-            return effect("db", *parsed)
+            return effect("db", parsed[0], parsed[1], verb=parsed[2])
         if last in {"query", "execute"}:
             return effect("db", "unknown")
 
@@ -332,11 +333,13 @@ class _FunctionScanner:
         self.skip = skip
         self.req_names = req_names | _REQ_NAMES
         self.calls: set[str] = set()
+        self.call_sites: dict[str, int] = {}
         self.effects: list[SideEffect] = []
         self.params: dict[str, Param] = {}
         self.eq_methods: set[str] = set()
         self.neq_methods: set[str] = set()
         self.switch_methods: set[str] = set()
+        self.branches: list[MethodBranch] = []
         self._chained: set[tuple[int, int]] = set()
 
     def scan(self, node) -> None:
@@ -356,6 +359,8 @@ class _FunctionScanner:
                 self._method_check(n)
             elif n.type == "switch_statement":
                 self._switch(n)
+            elif n.type == "if_statement":
+                self._if_branch(n)
             stack.extend(reversed(n.children))
 
     def _call(self, n) -> None:
@@ -364,6 +369,7 @@ class _FunctionScanner:
             return
         qualified = self.imports.qualify(name)
         self.calls.add(qualified)
+        self.call_sites.setdefault(qualified, _line(n))
         key = (n.start_byte, n.end_byte)
         eff = None
         if key not in self._chained:
@@ -446,11 +452,33 @@ class _FunctionScanner:
         if value is None or not (_dotted(value.named_children[0] if value.type == "parenthesized_expression" and value.named_children else value) or "").endswith(".method"):
             return
         body = n.child_by_field_name("body")
+        pending: list[str] = []  # `case "GET": case "HEAD": ...` fall-through labels
         for case in (body.named_children if body is not None else []):
-            if case.type == "switch_case":
-                v = _string_value(case.child_by_field_name("value"))
-                if v:
-                    self.switch_methods.add(v.upper())
+            if case.type not in ("switch_case", "switch_default"):
+                continue
+            v = _string_value(case.child_by_field_name("value")) if case.type == "switch_case" else None
+            if v:
+                self.switch_methods.add(v.upper())
+                pending.append(v.upper())
+            if case.children_by_field_name("body"):
+                for method in pending:
+                    self.branches.append(MethodBranch(method=method, start=_line(case), end=case.end_point[0] + 1))
+                pending = []
+
+    def _if_branch(self, n) -> None:
+        cond = n.child_by_field_name("condition")
+        inner = cond.named_children[0] if cond is not None and cond.type == "parenthesized_expression" and cond.named_children else cond
+        if inner is None or inner.type != "binary_expression" or _text(inner.child_by_field_name("operator")) not in ("===", "=="):
+            return
+        left, right = inner.child_by_field_name("left"), inner.child_by_field_name("right")
+        for a, b in ((left, right), (right, left)):
+            d = _dotted(a) or ""
+            value = _string_value(b)
+            if d.endswith(".method") and d.split(".")[0] in self.req_names and value:
+                body = n.child_by_field_name("consequence")
+                if body is not None:
+                    self.branches.append(MethodBranch(method=value.upper(), start=_line(body), end=body.end_point[0] + 1))
+                return
 
     def http_methods(self) -> list[str]:
         methods = self.switch_methods | self.eq_methods | self.neq_methods
@@ -788,6 +816,8 @@ class JavaScriptAnalyzer:
             docstring=_first_line_of_jsdoc(decl),
             is_async=_is_async(fn),
             http_methods=scanner.http_methods(),
+            call_sites=dict(sorted(scanner.call_sites.items())),
+            method_branches=sorted(scanner.branches, key=lambda b: (b.start, b.method)),
         )
 
     # -- entry points -------------------------------------------------------

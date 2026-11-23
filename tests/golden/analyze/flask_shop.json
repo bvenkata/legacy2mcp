@@ -24,6 +24,12 @@
       "http_out": 1,
       "payment": 2,
       "queue": 1
+    },
+    "flows": 7,
+    "risk": {
+      "read_only": 2,
+      "low_risk_write": 1,
+      "high_risk": 4
     }
   },
   "scan": {
@@ -67,7 +73,13 @@
           "side_effects": [],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "app.register_blueprint": 10,
+            "flask.Flask": 8,
+            "shop.models.db.init_app": 9
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -96,7 +108,9 @@
           "side_effects": [],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {},
+          "method_branches": []
         },
         {
           "qualname": "export_orders",
@@ -117,19 +131,27 @@
               "op": "write",
               "call": "open",
               "line": 14,
-              "detail": "orders.csv"
+              "detail": "orders.csv",
+              "verb": "open"
             },
             {
               "kind": "db",
               "op": "read",
               "call": "shop.models.Order.query.all",
               "line": 15,
-              "detail": "Order"
+              "detail": "Order",
+              "verb": "all"
             }
           ],
           "docstring": "Write all orders to a CSV file.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "fh.write": 16,
+            "open": 14,
+            "shop.models.Order.query.all": 15
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -200,12 +222,19 @@
               "op": "read",
               "call": "shop.models.Order.query.filter_by().all",
               "line": 15,
-              "detail": "Order"
+              "detail": "Order",
+              "verb": "all"
             }
           ],
           "docstring": "List recent orders.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "flask.request.args.get": 14,
+            "shop.models.Order.query.filter_by": 15,
+            "shop.models.Order.query.filter_by().all": 15
+          },
+          "method_branches": []
         },
         {
           "qualname": "get_order",
@@ -231,12 +260,17 @@
               "op": "read",
               "call": "shop.models.Order.query.get_or_404",
               "line": 21,
-              "detail": "Order"
+              "detail": "Order",
+              "verb": "get_or_404"
             }
           ],
           "docstring": "Fetch one order by id.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "shop.models.Order.query.get_or_404": 21
+          },
+          "method_branches": []
         },
         {
           "qualname": "create_order",
@@ -259,26 +293,37 @@
               "op": "write",
               "call": "shop.models.db.session.add",
               "line": 29,
-              "detail": ""
+              "detail": "",
+              "verb": "add"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "shop.models.db.session.commit",
               "line": 30,
-              "detail": ""
+              "detail": "",
+              "verb": "commit"
             },
             {
               "kind": "queue",
               "op": "write",
               "call": "shop.tasks.sync_inventory.delay",
               "line": 31,
-              "detail": "sync_inventory"
+              "detail": "sync_inventory",
+              "verb": "delay"
             }
           ],
           "docstring": "Create a pending order.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "flask.request.get_json": 27,
+            "shop.models.Order": 28,
+            "shop.models.db.session.add": 29,
+            "shop.models.db.session.commit": 30,
+            "shop.tasks.sync_inventory.delay": 31
+          },
+          "method_branches": []
         },
         {
           "qualname": "checkout",
@@ -313,19 +358,28 @@
               "op": "read",
               "call": "shop.models.Order.query.get_or_404",
               "line": 38,
-              "detail": "Order"
+              "detail": "Order",
+              "verb": "get_or_404"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "shop.models.db.session.commit",
               "line": 41,
-              "detail": ""
+              "detail": "",
+              "verb": "commit"
             }
           ],
           "docstring": "Charge the customer's card and mark the order paid.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "shop.models.Order.query.get_or_404": 38,
+            "shop.models.db.session.commit": 41,
+            "shop.services.notify.send_receipt": 42,
+            "shop.services.payments.charge_card": 39
+          },
+          "method_branches": []
         },
         {
           "qualname": "delete_order",
@@ -353,26 +407,35 @@
               "op": "read",
               "call": "shop.models.Order.query.get_or_404",
               "line": 48,
-              "detail": "Order"
+              "detail": "Order",
+              "verb": "get_or_404"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "shop.models.db.session.delete",
               "line": 49,
-              "detail": ""
+              "detail": "",
+              "verb": "delete"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "shop.models.db.session.commit",
               "line": 50,
-              "detail": ""
+              "detail": "",
+              "verb": "commit"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "shop.models.Order.query.get_or_404": 48,
+            "shop.models.db.session.commit": 50,
+            "shop.models.db.session.delete": 49
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -425,12 +488,20 @@
               "op": "write",
               "call": "smtplib.SMTP",
               "line": 9,
-              "detail": ""
+              "detail": "",
+              "verb": "SMTP"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "email.message.EmailMessage": 6,
+            "msg.set_content": 8,
+            "smtp.send_message": 10,
+            "smtplib.SMTP": 9
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -475,12 +546,18 @@
               "op": "write",
               "call": "stripe.Charge.create",
               "line": 6,
-              "detail": "stripe"
+              "detail": "stripe",
+              "verb": "create"
             }
           ],
           "docstring": "Charge the order total to a tokenized card.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "int": 6,
+            "stripe.Charge.create": 6
+          },
+          "method_branches": []
         },
         {
           "qualname": "refund",
@@ -504,12 +581,17 @@
               "op": "write",
               "call": "stripe.Refund.create",
               "line": 10,
-              "detail": "stripe"
+              "detail": "stripe",
+              "verb": "create"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "stripe.Refund.create": 10
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -550,12 +632,17 @@
               "op": "write",
               "call": "requests.post",
               "line": 10,
-              "detail": "https://warehouse.internal/api/reservations"
+              "detail": "https://warehouse.internal/api/reservations",
+              "verb": "post"
             }
           ],
           "docstring": "Push the order's items to the warehouse system.",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "requests.post": 10
+          },
+          "method_branches": []
         }
       ],
       "classes": [],
@@ -694,17 +781,20 @@
       {
         "source": "shop/orders.py::checkout",
         "target": "shop/services/notify.py::send_receipt",
-        "kind": "call"
+        "kind": "call",
+        "line": 42
       },
       {
         "source": "shop/orders.py::checkout",
         "target": "shop/services/payments.py::charge_card",
-        "kind": "call"
+        "kind": "call",
+        "line": 39
       },
       {
         "source": "shop/orders.py::create_order",
         "target": "shop/tasks.py::sync_inventory",
-        "kind": "async"
+        "kind": "async",
+        "line": 31
       }
     ],
     "module_edges": [
@@ -882,5 +972,619 @@
         "stripe"
       ]
     }
-  }
+  },
+  "flows": [
+    {
+      "id": "cli-export-orders",
+      "name": "Write all orders to a CSV file",
+      "entry_kind": "cli_command",
+      "entry_name": "cli export-orders",
+      "handler": "shop/cli.py::export_orders",
+      "framework": "click",
+      "method": null,
+      "path": null,
+      "description": "Write all orders to a CSV file.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "shop/cli.py::export_orders",
+          "line": 12,
+          "label": "cli export-orders -> export_orders",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/cli.py::export_orders",
+          "line": 14,
+          "label": "writes orders.csv",
+          "effect_kind": "file",
+          "op": "write",
+          "resource": "file:orders.csv",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/cli.py::export_orders",
+          "line": 15,
+          "label": "reads Order",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Order",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "shop/cli.py::export_orders"
+      ],
+      "resources": [
+        {
+          "resource": "db:Order",
+          "op": "read"
+        },
+        {
+          "resource": "file:orders.csv",
+          "op": "write"
+        }
+      ],
+      "risk": "low_risk_write",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes files (orders.csv)",
+          "where": "shop/cli.py:14"
+        }
+      ],
+      "authenticated": null,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-api-orders",
+      "name": "List recent orders",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/orders/",
+      "handler": "shop/orders.py::list_orders",
+      "framework": "flask",
+      "method": "GET",
+      "path": "/api/orders/",
+      "description": "List recent orders.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "shop/orders.py::list_orders",
+          "line": 12,
+          "label": "GET /api/orders/ -> list_orders",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::list_orders",
+          "line": 15,
+          "label": "reads Order",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Order",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "shop/orders.py::list_orders"
+      ],
+      "resources": [
+        {
+          "resource": "db:Order",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-api-orders",
+      "name": "Create a pending order",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/orders/",
+      "handler": "shop/orders.py::create_order",
+      "framework": "flask",
+      "method": "POST",
+      "path": "/api/orders/",
+      "description": "Create a pending order.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "shop/orders.py::create_order",
+          "line": 25,
+          "label": "POST /api/orders/ -> create_order",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::create_order",
+          "line": 29,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::create_order",
+          "line": 30,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::create_order",
+          "line": 31,
+          "label": "enqueues to sync_inventory",
+          "effect_kind": "queue",
+          "op": "write",
+          "resource": "queue:sync_inventory",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 5,
+          "depth": 1,
+          "kind": "async",
+          "function": "shop/tasks.py::sync_inventory",
+          "line": 31,
+          "label": "enqueues sync_inventory to run in the background",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 6,
+          "depth": 1,
+          "kind": "effect",
+          "function": "shop/tasks.py::sync_inventory",
+          "line": 10,
+          "label": "sends to warehouse.internal (background)",
+          "effect_kind": "http_out",
+          "op": "write",
+          "resource": "http:warehouse.internal",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "shop/orders.py::create_order",
+        "shop/tasks.py::sync_inventory"
+      ],
+      "resources": [
+        {
+          "resource": "db",
+          "op": "write"
+        },
+        {
+          "resource": "http:warehouse.internal",
+          "op": "write"
+        },
+        {
+          "resource": "queue:sync_inventory",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes database",
+          "where": "shop/orders.py:29"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "commits database changes",
+          "where": "shop/orders.py:30"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "enqueues background work (sync_inventory)",
+          "where": "shop/orders.py:31"
+        },
+        {
+          "level": "high_risk",
+          "text": "sends data to an external service (warehouse.internal)",
+          "where": "shop/tasks.py:10"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "shop/orders.py:25"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "delete-api-orders-order-id",
+      "name": "DELETE /api/orders/{order_id}",
+      "entry_kind": "http_route",
+      "entry_name": "DELETE /api/orders/{order_id}",
+      "handler": "shop/orders.py::delete_order",
+      "framework": "flask",
+      "method": "DELETE",
+      "path": "/api/orders/{order_id}",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "shop/orders.py::delete_order",
+          "line": 47,
+          "label": "DELETE /api/orders/{order_id} -> delete_order",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::delete_order",
+          "line": 48,
+          "label": "reads Order",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Order",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::delete_order",
+          "line": 49,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "high_risk"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::delete_order",
+          "line": 50,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "shop/orders.py::delete_order"
+      ],
+      "resources": [
+        {
+          "resource": "db",
+          "op": "write"
+        },
+        {
+          "resource": "db:Order",
+          "op": "read"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "deletes database records",
+          "where": "shop/orders.py:49"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "commits database changes",
+          "where": "shop/orders.py:50"
+        },
+        {
+          "level": "high_risk",
+          "text": "HTTP DELETE endpoint",
+          "where": "shop/orders.py:47"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "shop/orders.py:47"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-api-orders-order-id",
+      "name": "Fetch one order by id",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/orders/{order_id}",
+      "handler": "shop/orders.py::get_order",
+      "framework": "flask",
+      "method": "GET",
+      "path": "/api/orders/{order_id}",
+      "description": "Fetch one order by id.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "shop/orders.py::get_order",
+          "line": 19,
+          "label": "GET /api/orders/{order_id} -> get_order",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::get_order",
+          "line": 21,
+          "label": "reads Order",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Order",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "shop/orders.py::get_order"
+      ],
+      "resources": [
+        {
+          "resource": "db:Order",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-api-orders-order-id-checkout",
+      "name": "Charge the customer's card and mark the order paid",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/orders/{order_id}/checkout",
+      "handler": "shop/orders.py::checkout",
+      "framework": "flask",
+      "method": "POST",
+      "path": "/api/orders/{order_id}/checkout",
+      "description": "Charge the customer's card and mark the order paid.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "shop/orders.py::checkout",
+          "line": 36,
+          "label": "POST /api/orders/{order_id}/checkout -> checkout",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::checkout",
+          "line": 38,
+          "label": "reads Order",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Order",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 1,
+          "kind": "call",
+          "function": "shop/services/payments.py::charge_card",
+          "line": 39,
+          "label": "calls charge_card",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 4,
+          "depth": 1,
+          "kind": "effect",
+          "function": "shop/services/payments.py::charge_card",
+          "line": 6,
+          "label": "charges/changes via stripe",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:stripe",
+          "risk": "high_risk"
+        },
+        {
+          "order": 5,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/orders.py::checkout",
+          "line": 41,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 6,
+          "depth": 1,
+          "kind": "call",
+          "function": "shop/services/notify.py::send_receipt",
+          "line": 42,
+          "label": "calls send_receipt",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 7,
+          "depth": 1,
+          "kind": "effect",
+          "function": "shop/services/notify.py::send_receipt",
+          "line": 9,
+          "label": "sends email via email",
+          "effect_kind": "email",
+          "op": "write",
+          "resource": "email",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "shop/orders.py::checkout",
+        "shop/services/notify.py::send_receipt",
+        "shop/services/payments.py::charge_card"
+      ],
+      "resources": [
+        {
+          "resource": "db",
+          "op": "write"
+        },
+        {
+          "resource": "db:Order",
+          "op": "read"
+        },
+        {
+          "resource": "email",
+          "op": "write"
+        },
+        {
+          "resource": "payment:stripe",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "moves money through stripe (stripe.Charge.create)",
+          "where": "shop/services/payments.py:6"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "commits database changes",
+          "where": "shop/orders.py:41"
+        },
+        {
+          "level": "high_risk",
+          "text": "sends email outside the system",
+          "where": "shop/services/notify.py:9"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "shop/orders.py:36"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "task-sync-inventory",
+      "name": "Push the order's items to the warehouse system",
+      "entry_kind": "message_handler",
+      "entry_name": "task sync_inventory",
+      "handler": "shop/tasks.py::sync_inventory",
+      "framework": "celery",
+      "method": null,
+      "path": null,
+      "description": "Push the order's items to the warehouse system.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "shop/tasks.py::sync_inventory",
+          "line": 8,
+          "label": "task sync_inventory -> sync_inventory",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "shop/tasks.py::sync_inventory",
+          "line": 10,
+          "label": "sends to warehouse.internal",
+          "effect_kind": "http_out",
+          "op": "write",
+          "resource": "http:warehouse.internal",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "shop/tasks.py::sync_inventory"
+      ],
+      "resources": [
+        {
+          "resource": "http:warehouse.internal",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "sends data to an external service (warehouse.internal)",
+          "where": "shop/tasks.py:10"
+        }
+      ],
+      "authenticated": null,
+      "middleware": [],
+      "truncated": false
+    }
+  ]
 }

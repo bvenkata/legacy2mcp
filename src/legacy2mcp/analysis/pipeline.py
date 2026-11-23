@@ -16,8 +16,9 @@ from pathlib import Path
 from legacy2mcp.analysis import frameworks as fw_detect
 from legacy2mcp.analysis.analyzers import Analyzer, FileResult, Mount, default_analyzers
 from legacy2mcp.analysis.analyzers.python import join_route
+from legacy2mcp.analysis.flows import trace_flows
 from legacy2mcp.analysis.graph import Resolver, build_graph
-from legacy2mcp.analysis.model import Analysis, EntryPoint, LanguageStats, Module, Param, ScanInfo, Summary
+from legacy2mcp.analysis.model import RISK_LEVELS, Analysis, EntryPoint, LanguageStats, Module, Param, ScanInfo, Summary
 from legacy2mcp.analysis.walk import walk
 
 _HTTP_VERBS = ("get", "post", "put", "patch", "delete")
@@ -87,6 +88,7 @@ def run_analysis(
             "ai": False,
         },
     )
+    analysis.flows = trace_flows(analysis)
     analysis.summary = summarize(analysis, frameworks)
     return analysis
 
@@ -111,6 +113,8 @@ def summarize(analysis: Analysis, frameworks: set[str]) -> Summary:
         entry_points=len(analysis.entry_points),
         functions=functions,
         side_effects=dict(sorted(effects.items())),
+        flows=len(analysis.flows),
+        risk={level: sum(1 for f in analysis.flows if f.risk == level) for level in RISK_LEVELS},
     )
 
 

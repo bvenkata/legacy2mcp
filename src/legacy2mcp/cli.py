@@ -121,6 +121,9 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
     print(f"Entry points: {s.entry_points}   Functions: {s.functions}")
     if s.side_effects:
         print("Side effects: " + ", ".join(f"{k}={v}" for k, v in s.side_effects.items()))
+    risk = s.risk
+    print(f"Flows: {s.flows}  (read-only {risk.get('read_only', 0)}, low-risk write {risk.get('low_risk_write', 0)}, "
+          f"high-risk {risk.get('high_risk', 0)})")
     g = analysis.graph
     print(f"Graph: {len(g.call_edges)} internal call edges, {len(g.module_edges)} module dependencies, "
           f"{len(g.resources)} data resources")

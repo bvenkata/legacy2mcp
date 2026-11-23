@@ -30,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and function-to-resource data-access edges. The `analyze` extra now also
   installs `tree-sitter` with its JavaScript and TypeScript grammars. Without
   them, JS/TS files are still counted and the run says so.
+- **`analyze` traces business flows and labels their risk (milestone 3)**.
+  Every entry point becomes a flow: its handler, each internal call
+  (depth-first, in source order, including Celery/queue hand-offs marked as
+  background), and every side effect along the way. Rules label each step
+  and flow read-only, low-risk write or high-risk (payments, deletes,
+  external HTTP sends, email, credential/token changes, HTTP DELETE), and
+  record each reason with its file and line. A flow notes when a write has
+  no visible authentication middleware or check. Handlers that branch on
+  the request method (`if request.method == "POST"`, `switch (req.method)`)
+  are traced per method, so a GET doesn't inherit its DELETE branch.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed

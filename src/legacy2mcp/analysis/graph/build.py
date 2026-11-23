@@ -41,9 +41,13 @@ def resource_for(effect: SideEffect) -> Resource:
     return Resource(id=kind, kind=kind, label=_KIND_LABEL.get(kind, kind))
 
 
+def _add_edge(edges: dict[tuple[str, str, str], int], key: tuple[str, str, str], line: int) -> None:
+    edges[key] = min(edges[key], line) if key in edges and line else (line or edges.get(key, 0))
+
+
 def build_graph(modules: list[Module], resolver: Resolver | None = None) -> Graph:
     resolver = resolver or Resolver(modules)
-    call_edges: set[tuple[str, str, str]] = set()
+    call_edges: dict[tuple[str, str, str], int] = {}
     data_edges: set[tuple[str, str, str]] = set()
     resources: dict[str, Resource] = {}
     module_edges: dict[tuple[str, str], set[str]] = {}
@@ -57,11 +61,11 @@ def build_graph(modules: list[Module], resolver: Resolver | None = None) -> Grap
                 target = resolver.function(call, m, f.qualname)
                 if target is not None:
                     if target != source:
-                        call_edges.add((source, target, "call"))
+                        _add_edge(call_edges, (source, target, "call"), f.call_sites.get(call, 0))
                     continue
                 enqueued = resolver.async_target(call, m)
                 if enqueued is not None:
-                    call_edges.add((source, enqueued, "async"))
+                    _add_edge(call_edges, (source, enqueued, "async"), f.call_sites.get(call, 0))
                     continue
                 unresolved += 1
             for effect in f.side_effects:
@@ -81,7 +85,7 @@ def build_graph(modules: list[Module], resolver: Resolver | None = None) -> Grap
                 module_edges.setdefault((m.path, mod.path), set()).add(alias)
 
     return Graph(
-        call_edges=[CallEdge(source=s, target=t, kind=k) for s, t, k in sorted(call_edges)],
+        call_edges=[CallEdge(source=s, target=t, kind=k, line=line) for (s, t, k), line in sorted(call_edges.items())],
         module_edges=[ModuleEdge(source=s, target=t, names=sorted(n)) for (s, t), n in sorted(module_edges.items())],
         resources=sorted(resources.values(), key=lambda r: r.id),
         data_edges=[DataEdge(function=f, resource=r, op=o) for f, r, o in sorted(data_edges)],

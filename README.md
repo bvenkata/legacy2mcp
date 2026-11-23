@@ -479,7 +479,12 @@ scheduled jobs, message handlers), every function's calls, the side
 effects at each call site (database reads/writes, outbound HTTP, email,
 payments, queues, file writes, auth changes), and three graphs built from
 them -- who calls whom, which module imports which, and which function
-touches which table, host, queue or payment provider. It runs entirely on your
+touches which table, host, queue or payment provider. From every entry point
+it traces a **business flow** -- the ordered steps and side effects that run
+when it fires, including background work it enqueues -- and labels each flow
+**read-only**, **low-risk write** or **high-risk** (payments, deletes, external
+sends, auth changes), with the reasons and source locations behind each label
+and a flag on writes with no visible authentication. It runs entirely on your
 machine. Nothing in the scanned repo is imported or executed, and nothing is
 sent anywhere.
 
@@ -501,7 +506,7 @@ This writes `legacy2mcp-analysis/analysis.json`. Currently supported:
 `.gitignore`, a `.legacy2mcpignore` file (same syntax) and `--exclude PATTERN`,
 and skips tests and migrations unless you pass `--include-tests`.
 
-Coming next: business-flow detection with risk labels, an interactive HTML report, optional
+Coming next: an interactive HTML report, optional
 bring-your-own-key AI enrichment, and `legacy2mcp generate`, which turns the
 flows you approve into an MCP server config. See
 [docs/v2-gap-analysis.md](docs/v2-gap-analysis.md) for the plan.

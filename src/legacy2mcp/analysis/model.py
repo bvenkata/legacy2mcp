@@ -25,6 +25,9 @@ SCHEMA_VERSION = "1"
 # "read" or "write" where that distinction is knowable from the call alone.
 SIDE_EFFECT_KINDS = ("db", "http_out", "email", "payment", "queue", "file", "auth")
 
+# Risk levels, lowest to highest. "info" reasons never raise a level.
+RISK_LEVELS = ("read_only", "low_risk_write", "high_risk")
+
 # Entry-point kinds the flow tracer (M3) starts from.
 ENTRY_POINT_KINDS = ("http_route", "cli_command", "scheduled_job", "message_handler")
 
@@ -36,6 +39,7 @@ class SideEffect:
     call: str  # the call expression as written, e.g. "stripe.Charge.create"
     line: int
     detail: str = ""  # e.g. the model/table name, URL literal, SQL verb
+    verb: str = ""  # the operation: SQL verb (DELETE) or method name (destroy, refunds.create -> create)
 
 
 @dataclass
@@ -46,6 +50,16 @@ class Param:
     # Where a caller supplies it, when known: "path" | "query" | "body" | "form".
     # None for a plain function parameter that isn't an HTTP input.
     location: str | None = None
+
+
+@dataclass
+class MethodBranch:
+    """Lines of a handler that only run for one HTTP method
+    (`if request.method == "POST":` body, `case "DELETE":` block)."""
+
+    method: str
+    start: int
+    end: int
 
 
 @dataclass
@@ -62,6 +76,8 @@ class Function:
     # HTTP methods this function visibly handles when used as a view
     # (`@require_POST`, `@api_view(["GET"])`, `if request.method == "POST"`).
     http_methods: list[str] = field(default_factory=list)
+    call_sites: dict[str, int] = field(default_factory=dict)  # call name -> first line it's called on
+    method_branches: list[MethodBranch] = field(default_factory=list)
 
 
 @dataclass
@@ -129,6 +145,8 @@ class Summary:
     entry_points: int = 0
     functions: int = 0
     side_effects: dict[str, int] = field(default_factory=dict)  # kind -> count
+    flows: int = 0
+    risk: dict[str, int] = field(default_factory=dict)  # risk level -> number of flows
 
 
 @dataclass
@@ -136,6 +154,7 @@ class CallEdge:
     source: str  # "<file>::<qualname>"
     target: str
     kind: str = "call"  # "call" | "async" (enqueued, e.g. Celery .delay())
+    line: int = 0  # first call site in the source function
 
 
 @dataclass
@@ -170,6 +189,54 @@ class Graph:
 
 
 @dataclass
+class RiskReason:
+    level: str  # one of RISK_LEVELS, or "info"
+    text: str
+    where: str = ""  # "<file>:<line>" when it comes from one step
+
+
+@dataclass
+class FlowStep:
+    order: int
+    depth: int  # call depth from the entry point's handler (0 = the handler itself)
+    kind: str  # "enter" | "call" | "async" | "effect" | "seen" (already expanded above)
+    function: str  # "<file>::<qualname>" this step happens in (or enters)
+    line: int
+    label: str  # plain-English one-liner
+    effect_kind: str | None = None
+    op: str | None = None
+    resource: str | None = None  # Resource.id
+    risk: str = "read_only"
+
+
+@dataclass
+class FlowResource:
+    resource: str  # Resource.id
+    op: str  # strongest op seen: "write" > "unknown" > "read"
+
+
+@dataclass
+class Flow:
+    id: str  # stable slug, e.g. "post-api-orders-id-pay"
+    name: str  # plain-English name; AI enrichment may replace it
+    entry_kind: str
+    entry_name: str  # EntryPoint.name
+    handler: str
+    framework: str
+    method: str | None = None
+    path: str | None = None
+    description: str = ""
+    steps: list[FlowStep] = field(default_factory=list)
+    functions: list[str] = field(default_factory=list)
+    resources: list[FlowResource] = field(default_factory=list)
+    risk: str = "read_only"
+    reasons: list[RiskReason] = field(default_factory=list)
+    authenticated: bool | None = None  # None = not applicable / can't tell
+    middleware: list[str] = field(default_factory=list)
+    truncated: bool = False
+
+
+@dataclass
 class Analysis:
     project: str  # basename of the scanned root
     summary: Summary = field(default_factory=Summary)
@@ -177,6 +244,7 @@ class Analysis:
     modules: list[Module] = field(default_factory=list)
     entry_points: list[EntryPoint] = field(default_factory=list)
     graph: Graph = field(default_factory=Graph)
+    flows: list[Flow] = field(default_factory=list)
     meta: dict[str, Any] = field(default_factory=dict)
     schema_version: str = SCHEMA_VERSION
 
@@ -206,6 +274,8 @@ class Analysis:
                 entry_points=summary.get("entry_points", 0),
                 functions=summary.get("functions", 0),
                 side_effects=dict(summary.get("side_effects", {})),
+                flows=summary.get("flows", 0),
+                risk=dict(summary.get("risk", {})),
             ),
             scan=ScanInfo(**data.get("scan", {})),
             modules=[_module_from_dict(m) for m in data.get("modules", [])],
@@ -214,9 +284,19 @@ class Analysis:
                 for e in data.get("entry_points", [])
             ],
             graph=_graph_from_dict(data.get("graph", {})),
+            flows=[_flow_from_dict(f) for f in data.get("flows", [])],
             meta=dict(data.get("meta", {})),
             schema_version=version,
         )
+
+
+def _flow_from_dict(f: dict[str, Any]) -> Flow:
+    return Flow(**{
+        **f,
+        "steps": [FlowStep(**st) for st in f.get("steps", [])],
+        "resources": [FlowResource(**r) for r in f.get("resources", [])],
+        "reasons": [RiskReason(**r) for r in f.get("reasons", [])],
+    })
 
 
 def _graph_from_dict(g: dict[str, Any]) -> Graph:
@@ -243,6 +323,7 @@ def _module_from_dict(m: dict[str, Any]) -> Module:
                     **f,
                     "params": [Param(**p) for p in f.get("params", [])],
                     "side_effects": [SideEffect(**s) for s in f.get("side_effects", [])],
+                    "method_branches": [MethodBranch(**b) for b in f.get("method_branches", [])],
                 }
             )
             for f in m.get("functions", [])

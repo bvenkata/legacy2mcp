@@ -19,6 +19,12 @@
       "db": 8,
       "email": 1,
       "payment": 1
+    },
+    "flows": 7,
+    "risk": {
+      "read_only": 2,
+      "low_risk_write": 2,
+      "high_risk": 3
     }
   },
   "scan": {
@@ -91,12 +97,18 @@
               "op": "write",
               "call": "appointments.models.Appointment.objects.filter().delete",
               "line": 10,
-              "detail": "Appointment"
+              "detail": "Appointment",
+              "verb": "delete"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "appointments.models.Appointment.objects.filter": 10,
+            "appointments.models.Appointment.objects.filter().delete": 10
+          },
+          "method_branches": []
         }
       ],
       "classes": [
@@ -185,12 +197,20 @@
               "op": "read",
               "call": "appointments.models.Appointment.objects.filter().values",
               "line": 14,
-              "detail": "Appointment"
+              "detail": "Appointment",
+              "verb": "values"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "appointments.models.Appointment.objects.filter": 14,
+            "appointments.models.Appointment.objects.filter().values": 14,
+            "django.http.JsonResponse": 14,
+            "list": 14
+          },
+          "method_branches": []
         },
         {
           "qualname": "AppointmentListView.post",
@@ -221,12 +241,18 @@
               "op": "write",
               "call": "appointments.models.Appointment.objects.create",
               "line": 17,
-              "detail": "Appointment"
+              "detail": "Appointment",
+              "verb": "create"
             }
           ],
           "docstring": "",
           "is_async": false,
-          "http_methods": []
+          "http_methods": [],
+          "call_sites": {
+            "appointments.models.Appointment.objects.create": 17,
+            "django.http.JsonResponse": 18
+          },
+          "method_branches": []
         },
         {
           "qualname": "appointment_detail",
@@ -258,14 +284,16 @@
               "op": "read",
               "call": "appointments.models.Appointment.objects.get",
               "line": 22,
-              "detail": "Appointment"
+              "detail": "Appointment",
+              "verb": "get"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "appt.save",
               "line": 25,
-              "detail": ""
+              "detail": "",
+              "verb": "save"
             }
           ],
           "docstring": "",
@@ -273,6 +301,18 @@
           "http_methods": [
             "GET",
             "PUT"
+          ],
+          "call_sites": {
+            "appointments.models.Appointment.objects.get": 22,
+            "appt.save": 25,
+            "django.http.JsonResponse": 26
+          },
+          "method_branches": [
+            {
+              "method": "PUT",
+              "start": 24,
+              "end": 25
+            }
           ]
         },
         {
@@ -310,35 +350,48 @@
               "op": "read",
               "call": "appointments.models.Appointment.objects.get",
               "line": 32,
-              "detail": "Appointment"
+              "detail": "Appointment",
+              "verb": "get"
             },
             {
               "kind": "payment",
               "op": "write",
               "call": "braintree.Transaction.sale",
               "line": 33,
-              "detail": "braintree"
+              "detail": "braintree",
+              "verb": "sale"
             },
             {
               "kind": "db",
               "op": "write",
               "call": "appointments.models.Appointment.objects.filter().update",
               "line": 34,
-              "detail": "Appointment"
+              "detail": "Appointment",
+              "verb": "update"
             },
             {
               "kind": "email",
               "op": "write",
               "call": "django.core.mail.send_mail",
               "line": 35,
-              "detail": ""
+              "detail": "",
+              "verb": "send_mail"
             }
           ],
           "docstring": "Take a card deposit for an appointment.",
           "is_async": false,
           "http_methods": [
             "POST"
-          ]
+          ],
+          "call_sites": {
+            "appointments.models.Appointment.objects.filter": 34,
+            "appointments.models.Appointment.objects.filter().update": 34,
+            "appointments.models.Appointment.objects.get": 32,
+            "braintree.Transaction.sale": 33,
+            "django.core.mail.send_mail": 35,
+            "django.http.JsonResponse": 36
+          },
+          "method_branches": []
         },
         {
           "qualname": "cancel_appointment",
@@ -366,14 +419,21 @@
               "op": "write",
               "call": "appointments.models.Appointment.objects.filter().delete",
               "line": 41,
-              "detail": "Appointment"
+              "detail": "Appointment",
+              "verb": "delete"
             }
           ],
           "docstring": "",
           "is_async": false,
           "http_methods": [
             "POST"
-          ]
+          ],
+          "call_sites": {
+            "appointments.models.Appointment.objects.filter": 41,
+            "appointments.models.Appointment.objects.filter().delete": 41,
+            "django.http.JsonResponse": 42
+          },
+          "method_branches": []
         }
       ],
       "classes": [
@@ -696,5 +756,488 @@
         "sys"
       ]
     }
-  }
+  },
+  "flows": [
+    {
+      "id": "manage-py-purge-old",
+      "name": "manage.py purge_old",
+      "entry_kind": "cli_command",
+      "entry_name": "manage.py purge_old",
+      "handler": "appointments/management/commands/purge_old.py::Command.handle",
+      "framework": "django",
+      "method": null,
+      "path": null,
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "appointments/management/commands/purge_old.py::Command.handle",
+          "line": 9,
+          "label": "manage.py purge_old -> Command.handle",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/management/commands/purge_old.py::Command.handle",
+          "line": 10,
+          "label": "writes Appointment",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:Appointment",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "appointments/management/commands/purge_old.py::Command.handle"
+      ],
+      "resources": [
+        {
+          "resource": "db:Appointment",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "deletes Appointment records",
+          "where": "appointments/management/commands/purge_old.py:10"
+        }
+      ],
+      "authenticated": null,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-api-appointments",
+      "name": "GET /api/appointments/",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/appointments/",
+      "handler": "appointments/views.py::AppointmentListView.get",
+      "framework": "django",
+      "method": "GET",
+      "path": "/api/appointments/",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "appointments/views.py::AppointmentListView.get",
+          "line": 13,
+          "label": "GET /api/appointments/ -> AppointmentListView.get",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::AppointmentListView.get",
+          "line": 14,
+          "label": "reads Appointment",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Appointment",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "appointments/views.py::AppointmentListView.get"
+      ],
+      "resources": [
+        {
+          "resource": "db:Appointment",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-api-appointments",
+      "name": "POST /api/appointments/",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/appointments/",
+      "handler": "appointments/views.py::AppointmentListView.post",
+      "framework": "django",
+      "method": "POST",
+      "path": "/api/appointments/",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "appointments/views.py::AppointmentListView.post",
+          "line": 16,
+          "label": "POST /api/appointments/ -> AppointmentListView.post",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::AppointmentListView.post",
+          "line": 17,
+          "label": "writes Appointment",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:Appointment",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "appointments/views.py::AppointmentListView.post"
+      ],
+      "resources": [
+        {
+          "resource": "db:Appointment",
+          "op": "write"
+        }
+      ],
+      "risk": "low_risk_write",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes Appointment",
+          "where": "appointments/views.py:17"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "appointments/urls.py:6"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "get-api-appointments-pk",
+      "name": "GET /api/appointments/{pk}/",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/appointments/{pk}/",
+      "handler": "appointments/views.py::appointment_detail",
+      "framework": "django",
+      "method": "GET",
+      "path": "/api/appointments/{pk}/",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "appointments/views.py::appointment_detail",
+          "line": 21,
+          "label": "GET /api/appointments/{pk}/ -> appointment_detail",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::appointment_detail",
+          "line": 22,
+          "label": "reads Appointment",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Appointment",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "appointments/views.py::appointment_detail"
+      ],
+      "resources": [
+        {
+          "resource": "db:Appointment",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "put-api-appointments-pk",
+      "name": "PUT /api/appointments/{pk}/",
+      "entry_kind": "http_route",
+      "entry_name": "PUT /api/appointments/{pk}/",
+      "handler": "appointments/views.py::appointment_detail",
+      "framework": "django",
+      "method": "PUT",
+      "path": "/api/appointments/{pk}/",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "appointments/views.py::appointment_detail",
+          "line": 21,
+          "label": "PUT /api/appointments/{pk}/ -> appointment_detail",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::appointment_detail",
+          "line": 22,
+          "label": "reads Appointment",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Appointment",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::appointment_detail",
+          "line": 25,
+          "label": "writes database",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "appointments/views.py::appointment_detail"
+      ],
+      "resources": [
+        {
+          "resource": "db",
+          "op": "write"
+        },
+        {
+          "resource": "db:Appointment",
+          "op": "read"
+        }
+      ],
+      "risk": "low_risk_write",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes database",
+          "where": "appointments/views.py:25"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "appointments/urls.py:7"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [],
+      "truncated": false
+    },
+    {
+      "id": "post-api-appointments-pk-cancel",
+      "name": "POST /api/appointments/{pk}/cancel/",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/appointments/{pk}/cancel/",
+      "handler": "appointments/views.py::cancel_appointment",
+      "framework": "django",
+      "method": "POST",
+      "path": "/api/appointments/{pk}/cancel/",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "appointments/views.py::cancel_appointment",
+          "line": 40,
+          "label": "POST /api/appointments/{pk}/cancel/ -> cancel_appointment",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::cancel_appointment",
+          "line": 41,
+          "label": "writes Appointment",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:Appointment",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "appointments/views.py::cancel_appointment"
+      ],
+      "resources": [
+        {
+          "resource": "db:Appointment",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "deletes Appointment records",
+          "where": "appointments/views.py:41"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "appointments/urls.py:9"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [
+        "django.views.decorators.http.require_POST"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "post-api-appointments-pk-pay",
+      "name": "Take a card deposit for an appointment",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/appointments/{pk}/pay/",
+      "handler": "appointments/views.py::pay_deposit",
+      "framework": "django",
+      "method": "POST",
+      "path": "/api/appointments/{pk}/pay/",
+      "description": "Take a card deposit for an appointment.",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "appointments/views.py::pay_deposit",
+          "line": 30,
+          "label": "POST /api/appointments/{pk}/pay/ -> pay_deposit",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::pay_deposit",
+          "line": 32,
+          "label": "reads Appointment",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:Appointment",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::pay_deposit",
+          "line": 33,
+          "label": "charges/changes via braintree",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:braintree",
+          "risk": "high_risk"
+        },
+        {
+          "order": 4,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::pay_deposit",
+          "line": 34,
+          "label": "writes Appointment",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:Appointment",
+          "risk": "low_risk_write"
+        },
+        {
+          "order": 5,
+          "depth": 0,
+          "kind": "effect",
+          "function": "appointments/views.py::pay_deposit",
+          "line": 35,
+          "label": "sends email via email",
+          "effect_kind": "email",
+          "op": "write",
+          "resource": "email",
+          "risk": "high_risk"
+        }
+      ],
+      "functions": [
+        "appointments/views.py::pay_deposit"
+      ],
+      "resources": [
+        {
+          "resource": "db:Appointment",
+          "op": "write"
+        },
+        {
+          "resource": "email",
+          "op": "write"
+        },
+        {
+          "resource": "payment:braintree",
+          "op": "write"
+        }
+      ],
+      "risk": "high_risk",
+      "reasons": [
+        {
+          "level": "high_risk",
+          "text": "moves money through braintree (braintree.Transaction.sale)",
+          "where": "appointments/views.py:33"
+        },
+        {
+          "level": "low_risk_write",
+          "text": "writes Appointment",
+          "where": "appointments/views.py:34"
+        },
+        {
+          "level": "high_risk",
+          "text": "sends email outside the system",
+          "where": "appointments/views.py:35"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "appointments/urls.py:8"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [
+        "django.views.decorators.http.require_POST"
+      ],
+      "truncated": false
+    }
+  ]
 }
