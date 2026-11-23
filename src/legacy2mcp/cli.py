@@ -201,6 +201,51 @@ def _analyze_ai_step(args: argparse.Namespace, analysis) -> None:
         note(f"AI request failed: {err}")
 
 
+def _load_analysis_arg(path_arg: str):
+    from legacy2mcp.analysis import model as analysis_model
+
+    source = Path(path_arg)
+    if source.is_dir():
+        source = source / "analysis.json"
+    if not source.is_file():
+        print(f"error: no analysis file at '{source}' (run `legacy2mcp analyze` first)", file=sys.stderr)
+        sys.exit(1)
+    try:
+        return source, analysis_model.load(source)
+    except (ValueError, KeyError, TypeError) as exc:
+        print(f"error: '{source}' is not a readable analysis file: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _cmd_generate(args: argparse.Namespace) -> None:
+    from legacy2mcp.analysis.generate import GenerateError, build_config, load_selections
+
+    source, analysis = _load_analysis_arg(args.path)
+    flows = [f for f in (args.flows or "").split(",") if f.strip()] or None
+    try:
+        selections = load_selections(args.selections) if args.selections else None
+        result = build_config(analysis, flows=flows, selections=selections, base_url=args.base_url,
+                              allow_writes=args.allow_writes, token_env=args.auth_token_env, server_name=args.server_name)
+    except GenerateError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    text = generate.render_yaml(result.config, f"legacy2mcp analyze of {analysis.project} ({source})", result.todos,
+                                generator="legacy2mcp generate")
+    out = generate.write_config(args.out, text)
+    writes = sum(1 for t in result.selected if t.risk != "read_only")
+    print(f"Wrote {out}: {len(result.selected)} tool(s) ({len(result.selected) - writes} read-only, {writes} write"
+          f"{'' if args.allow_writes else ', hidden until allow_write_operations: true'}).")
+    for t in result.selected:
+        print(f"  - {t.name}  [{t.risk}]  {t.method} {t.path}")
+    for reason in result.skipped:
+        print(f"note: skipped {reason}", file=sys.stderr)
+    if result.todos:
+        print(f"Review the {len(result.todos)} TODO comment(s) at the top of {out} before running it.")
+    print(f"Next: legacy2mcp inspect --config {out}")
+    print()
+    print(client_snippet.render_client_snippets(out))
+
+
 def _cmd_report(args: argparse.Namespace) -> None:
     from legacy2mcp.analysis import model as analysis_model
     from legacy2mcp.analysis.report import write_report
@@ -917,6 +962,26 @@ def main() -> None:
     report_parser.add_argument("path", help="analysis.json, or the `analyze --out` directory containing it.")
     report_parser.add_argument("--out", help="Where to write the HTML (default: report.html next to analysis.json).")
     report_parser.set_defaults(func=_cmd_report)
+
+    generate_parser = subparsers.add_parser(
+        "generate",
+        help=(
+            "Turn approved tools from an analysis into a runnable MCP server config (type: rest), with the same "
+            "schema validation, audit logging and writes-off-by-default as every other legacy2mcp server."
+        ),
+    )
+    generate_parser.add_argument("path", help="analysis.json, or the `analyze --out` directory containing it.")
+    generate_parser.add_argument("--flows", help="Comma-separated flow ids or tool names to expose (overrides --selections).")
+    generate_parser.add_argument("--selections", help="selections.json exported from the HTML report.")
+    generate_parser.add_argument("--out", default="./config.yaml", help="Where to write the config (default: ./config.yaml).")
+    generate_parser.add_argument("--base-url", help="Where the analyzed app is running, e.g. https://staging.example.com.")
+    generate_parser.add_argument(
+        "--allow-writes", action="store_true",
+        help="Set allow_write_operations: true so selected write tools are exposed. Off by default.",
+    )
+    generate_parser.add_argument("--auth-token-env", help="Env var holding a bearer token the server sends to the app.")
+    generate_parser.add_argument("--server-name", help="MCP server name (default: derived from the project name).")
+    generate_parser.set_defaults(func=_cmd_generate)
 
     demo_parser = subparsers.add_parser(
         "demo",

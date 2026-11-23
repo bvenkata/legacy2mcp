@@ -548,9 +548,28 @@ Anthropic calls use the official SDK with `claude-opus-5-5` by default
 (`--model` to change it) and server-side refusal fallbacks. OpenAI-compatible
 endpoints work with `--provider openai --base-url ...`.
 
-Coming next: `legacy2mcp generate`, which turns the
-flows you approve into an MCP server config. See
-[docs/v2-gap-analysis.md](docs/v2-gap-analysis.md) for the plan.
+### Generate an MCP server from the flows you approve
+
+```bash
+# read-only tools only (the default selection)
+legacy2mcp generate ./legacy2mcp-analysis --base-url https://staging.example.com --out config.yaml
+# or exactly what you ticked in the report
+legacy2mcp generate ./legacy2mcp-analysis --selections selections.json --base-url https://staging.example.com
+# or by flow id / tool name
+legacy2mcp generate ./legacy2mcp-analysis --flows get-api-orders,post-api-orders --base-url https://staging.example.com
+
+legacy2mcp inspect --config config.yaml
+legacy2mcp run --config config.yaml
+```
+
+`generate` writes a `type: rest` config for the server legacy2mcp already
+runs, so every tool gets JSON-Schema validation, audit logging, and the
+same safety default: selected write tools are in the config but stay hidden
+until `allow_write_operations: true` (`--allow-writes` sets it explicitly).
+High-risk tools are marked in their descriptions, and the config's `# TODO`
+header lists what static analysis couldn't settle: structured bodies to
+spell out, missing auth, and the human-approval step your MCP client
+should enforce.
 
 ## Teach your AI coding agent about legacy2mcp
 
@@ -612,8 +631,11 @@ legacy2mcp discover --postman-file my-collection.json --out contract.yaml
 legacy2mcp demo --from-contract contract.yaml
 legacy2mcp demo --config config.yaml
 
-# Map a whole local codebase (entry points, calls, side effects) -- offline
+# Map a whole local codebase (entry points, flows, risk, report) -- offline
 legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
+
+# Turn the approved flows into a runnable MCP server config
+legacy2mcp generate ./legacy2mcp-analysis --selections selections.json --base-url https://staging.example.com
 
 # Review the tools a config generates -- no server started
 legacy2mcp inspect --config config.yaml

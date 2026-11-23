@@ -78,6 +78,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   topology, multimodal and roadmap sections. With AI enabled, an extra
   request names and describes agents, adds evidence-tied multimodal ideas
   and writes orchestration notes.
+- **`legacy2mcp generate <analysis>` (milestone 7)** turns approved tools
+  into a runnable `type: rest` config for the existing server. Selection
+  comes from `--flows` (flow ids or tool names), `--selections` (the
+  report's export) or each tool's default (read-only only). The config is
+  validated against the runtime schema before it's written. Write tools are
+  included but hidden until `allow_write_operations: true`
+  (`--allow-writes`); high-risk tools are labelled. TODOs cover structured
+  bodies, form fields, missing auth, base URL and the approval step.
+  `--auth-token-env` configures bearer auth. It prints the MCP client
+  connection snippet. `render_yaml()` gained an optional `generator` label;
+  existing callers are unchanged.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed
