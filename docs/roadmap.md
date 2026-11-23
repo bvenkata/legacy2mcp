@@ -183,7 +183,7 @@ milestone by milestone in [v2-gap-analysis.md](v2-gap-analysis.md):
 - M4 -- interactive single-file HTML report (`legacy2mcp report`).
   ✅ on `feat/v2-analyze`
 - M5 -- AI provider interface (Anthropic, OpenAI), secret redaction,
-  token budget, enrichment.
+  token budget, enrichment. ✅ on `feat/v2-analyze`
 - M6 -- orchestration blueprint, multimodal suggestions, roadmap.
 - M7 -- `legacy2mcp generate`: approved flows → a `type: rest` config
   that inherits validation, audit logging and writes-off-by-default.

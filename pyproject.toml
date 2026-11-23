@@ -45,6 +45,7 @@ dev = [
     "tree-sitter>=0.23,<1",
     "tree-sitter-javascript>=0.23,<1",
     "tree-sitter-typescript>=0.23,<1",
+    "anthropic>=2.13,<3",
 ]
 # `legacy2mcp analyze` (whole-codebase analysis). Kept out of the core install
 # so the SOAP/DB/REST server path stays as light as it is today. Python is
@@ -60,12 +61,10 @@ analyze = [
 db-postgres = ["psycopg[binary]>=3.1,<4"]
 db-mssql = ["pyodbc>=5.0,<6"]
 db-oracle = ["oracledb>=2.0,<27"]
-# `legacy2mcp init`'s AI-assisted analysis is a plain HTTP call via
-# `requests`, already a core dependency -- there's nothing extra to
-# install. This extra is intentionally empty: it exists so the install
-# story has a stable `pip install "legacy2mcp[ai]"` name, identical to
-# the plain install today, with somewhere to grow into if that changes.
-ai = []
+# `legacy2mcp init`'s AI assist and `analyze --provider openai` are plain
+# HTTP calls via `requests` (already core). `analyze --provider anthropic`
+# uses the official Anthropic SDK, installed only with this extra.
+ai = ["anthropic>=2.13,<3"]
 
 [project.urls]
 Homepage = "https://github.com/OWASP/legacy2mcp"

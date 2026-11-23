@@ -518,8 +518,32 @@ Currently supported:
 `.gitignore`, a `.legacy2mcpignore` file (same syntax) and `--exclude PATTERN`,
 and skips tests and migrations unless you pass `--include-tests`.
 
-Coming next: optional
-bring-your-own-key AI enrichment, and `legacy2mcp generate`, which turns the
+### Optional AI enrichment (bring your own key)
+
+The offline report is complete on its own. With an API key set, `analyze`
+can also ask an LLM to name and describe each flow in plain English, add a
+review note to risky flows, and write MCP tool names and descriptions:
+
+```bash
+pip install "legacy2mcp[analyze,ai]"
+export ANTHROPIC_API_KEY=...          # or OPENAI_API_KEY with --provider openai
+legacy2mcp analyze ./path/to/repo --ai-dry-run   # see exactly what would be sent
+legacy2mcp analyze ./path/to/repo                # preview, confirm, send
+```
+
+Before anything is sent you see the number of requests, an estimated
+token count and cost, and how many secret-looking values were redacted,
+and you're asked to confirm (`--yes` skips the prompt; non-interactive
+runs without `--yes` stay offline). By default only structure is sent:
+entry points, step labels, resources, risk reasons and parameter names. No
+source code is sent unless you pass `--ai-snippets` (up to 40 redacted lines
+per handler). `--max-tokens-budget` caps total tokens (default 200,000).
+AI never changes a risk level or which tools are selected.
+Anthropic calls use the official SDK with `claude-opus-5-5` by default
+(`--model` to change it) and server-side refusal fallbacks. OpenAI-compatible
+endpoints work with `--provider openai --base-url ...`.
+
+Coming next: `legacy2mcp generate`, which turns the
 flows you approve into an MCP server config. See
 [docs/v2-gap-analysis.md](docs/v2-gap-analysis.md) for the plan.
 

@@ -54,6 +54,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   description listing what the flow reads and changes, and a JSON Schema
   built from path/query/body params. Read-only tools start included; writes
   start excluded.
+- **Optional AI enrichment for `analyze` (milestone 5)**, bring your own
+  key. It sits behind a provider interface: `anthropic` (official SDK, in the
+  `legacy2mcp[ai]` extra; `claude-opus-5-5` by default, structured JSON output,
+  server-side refusal fallbacks) and `openai` (any OpenAI-compatible
+  endpoint over `requests`). Before sending, it shows the request count,
+  estimated tokens and cost, and the redaction count, and asks to confirm
+  (`--yes`, `--ai-dry-run` writes the exact payloads). It sends structure
+  only by default; source code only with `--ai-snippets`. Every payload is
+  scanned for secrets by content (API keys, tokens, JWTs, private keys,
+  credentials in connection strings, secret assignments) and redacted.
+  `--max-tokens-budget` is enforced per request. AI may rename and describe
+  flows and tools and add review notes, but never changes risk levels or
+  selections. Any failure falls back to the offline result.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed

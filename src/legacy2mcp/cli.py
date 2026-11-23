@@ -101,15 +101,14 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
     if unknown:
         print(f"error: unknown --format value(s): {', '.join(sorted(unknown))} (use json, html)", file=sys.stderr)
         sys.exit(2)
-    if not args.no_ai:
-        print("note: AI enrichment isn't available in this version yet; running the offline scan (same as --no-ai).",
-              file=sys.stderr)
-
     try:
         analysis = run_analysis(args.path, exclude=args.exclude or [], include_tests=args.include_tests)
     except WalkError as exc:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
+
+    if not args.no_ai:
+        _analyze_ai_step(args, analysis)
 
     out_dir = Path(args.out)
     written = []
@@ -142,6 +141,75 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
               + (" ..." if len(parse_errors) > 5 else ""), file=sys.stderr)
     for path in written:
         print(f"Wrote {path}")
+
+
+def _analyze_ai_step(args: argparse.Namespace, analysis) -> None:
+    """Optional AI enrichment: preview, ask, send within budget, merge.
+    Every failure path degrades to the offline result with a note."""
+    from legacy2mcp.analysis.ai import enrich, providers
+
+    def note(msg: str) -> None:
+        print(f"note: {msg}", file=sys.stderr)
+
+    name = args.provider or providers.available_provider()
+    if name is None:
+        note("no ANTHROPIC_API_KEY or OPENAI_API_KEY set, so AI enrichment was skipped (offline result written). "
+             "Pass --provider anthropic to use an `ant auth login` profile, or --no-ai to silence this.")
+        return
+    if not analysis.flows:
+        note("no flows found, so there is nothing for AI enrichment to do.")
+        return
+    try:
+        provider = providers.get_provider(name, model=args.model, api_key_env=args.api_key_env, base_url=args.base_url)
+    except providers.ProviderError as exc:
+        note(f"AI enrichment skipped: {exc}")
+        return
+
+    plan = enrich.plan_enrichment(analysis, provider.name, provider.model, snippets=args.ai_snippets,
+                                  root=Path(args.path).resolve())
+    for extra in _extra_ai_planners():
+        extra(analysis, plan)
+    cost = plan.est_cost_usd
+    print(f"AI enrichment plan: {len(plan.requests)} request(s) to {provider.name}/{provider.model}, "
+          f"~{plan.est_input_tokens:,} input + up to {plan.est_output_tokens:,} output tokens"
+          + (f" (~${cost:.2f})" if cost is not None else "") + ".")
+    print(f"  Sends: entry points, step labels, resources, risk reasons and params"
+          f"{' plus up to 40 lines of each handler' if args.ai_snippets else ' (no source code)'}; "
+          f"{plan.redactions} secret-looking value(s) redacted.")
+    budget = args.max_tokens_budget if args.max_tokens_budget and args.max_tokens_budget > 0 else None
+    if budget is not None and plan.est_input_tokens + plan.est_output_tokens > budget:
+        print(f"  Budget: {budget:,} tokens -- requests beyond it will be skipped.")
+
+    if args.ai_dry_run:
+        out = Path(args.out) / "ai-payload.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps([{"task": r.task, "system": r.system, "user": json.loads(r.user),
+                                    "max_tokens": r.max_tokens} for r in plan.requests], indent=2) + "\n")
+        print(f"  Dry run: wrote the exact payloads to {out}; nothing was sent.")
+        return
+    if not args.yes:
+        if not sys.stdin.isatty():
+            note("AI enrichment needs confirmation; re-run with --yes to send in a non-interactive shell.")
+            return
+        answer = input(f"Send to {provider.name}? Review with --ai-dry-run first if unsure. [y/N] ").strip().lower()
+        if answer not in ("y", "yes"):
+            print("  Skipped AI enrichment.")
+            return
+
+    result = enrich.run_plan(plan, provider, analysis, budget, appliers=_extra_ai_appliers())
+    print(f"AI enrichment: {result.requests_sent} sent, {result.requests_skipped} skipped, "
+          f"{result.input_tokens:,} input + {result.output_tokens:,} output tokens used.")
+    for err in result.errors[:3]:
+        note(f"AI request failed: {err}")
+
+
+def _extra_ai_planners() -> list:
+    """Hooks for later stages to add requests to the AI plan."""
+    return []
+
+
+def _extra_ai_appliers() -> dict:
+    return {}
 
 
 def _cmd_report(args: argparse.Namespace) -> None:
@@ -819,6 +887,25 @@ def main() -> None:
     analyze_parser.add_argument(
         "--no-ai", action="store_true", help="Offline scan only: no LLM calls, no API key needed."
     )
+    analyze_parser.add_argument(
+        "--provider", choices=["anthropic", "openai"],
+        help="LLM for optional enrichment (default: whichever of ANTHROPIC_API_KEY / OPENAI_API_KEY is set).",
+    )
+    analyze_parser.add_argument("--model", help="Model id (default: claude-opus-5-5 for anthropic, gpt-4o-mini for openai).")
+    analyze_parser.add_argument(
+        "--max-tokens-budget", type=int, default=200_000,
+        help="Hard cap on input+output tokens for AI enrichment; requests that would exceed it are skipped (default 200000, 0 = no cap).",
+    )
+    analyze_parser.add_argument("--api-key-env", help="Env var holding the API key (instead of the provider's default).")
+    analyze_parser.add_argument("--base-url", help="OpenAI-compatible endpoint base URL (--provider openai only).")
+    analyze_parser.add_argument(
+        "--ai-snippets", action="store_true",
+        help="Also send up to 40 lines of each flow's handler source (redacted). Default: structure only, no source code.",
+    )
+    analyze_parser.add_argument(
+        "--ai-dry-run", action="store_true", help="Write the exact AI payloads to <out>/ai-payload.json and send nothing."
+    )
+    analyze_parser.add_argument("--yes", "-y", action="store_true", help="Send AI requests without asking for confirmation.")
     analyze_parser.add_argument(
         "--exclude",
         action="append",
