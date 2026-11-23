@@ -21,6 +21,9 @@
   --series-6: #008300;
   --series-7: #6250d6;
   --series-8: #e34948;
+  --phase-1: #86b6ef; /* ordinal blue ramp, light -> dark */
+  --phase-2: #3987e5;
+  --phase-3: #1c5cab;
   --good: #0ca30c;
   --warning: #fab219;
   --critical: #d03b3b;
@@ -39,6 +42,9 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
+    --phase-1: #86b6ef;
+    --phase-2: #3987e5;
+    --phase-3: #184f95;
     --surface-0: #121211;
     --surface-1: #1a1a19;
     --surface-2: #242422;
@@ -68,6 +74,9 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --phase-1: #86b6ef;
+  --phase-2: #3987e5;
+  --phase-3: #184f95;
   --surface-0: #121211;
   --surface-1: #1a1a19;
   --surface-2: #242422;
@@ -250,6 +259,14 @@ table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .table-wrap { overflow-x: auto; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+.agent-cards, .mm-grid, .phase-grid { display: grid; gap: 12px; margin-top: 14px; }
+.agent-cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.mm-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.phase-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.agent-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; background: var(--surface-1); font-size: 14px; }
+.agent-card ul { padding-left: 18px; margin: 4px 0 10px; }
+.agent-card p { margin: 6px 0 10px; }
+.agent-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .callout { border-left: 3px solid var(--accent); background: var(--surface-2); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; }
 .empty { color: var(--text-muted); font-style: italic; }
 .hidden, [hidden] { display: none !important; }
@@ -263,7 +280,7 @@ table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 1000px) {
   .layout { grid-template-columns: 1fr; }
   .toc { display: none; }
-  .map-layout, .two-col, .flow-body { grid-template-columns: 1fr; }
+  .map-layout, .two-col, .flow-body, .phase-grid { grid-template-columns: 1fr; }
   main { padding: 16px; }
   .flow > summary { grid-template-columns: 1fr; gap: 4px; }
   .topbar { flex-wrap: wrap; padding: 10px 16px; }

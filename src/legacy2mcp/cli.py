@@ -167,8 +167,6 @@ def _analyze_ai_step(args: argparse.Namespace, analysis) -> None:
 
     plan = enrich.plan_enrichment(analysis, provider.name, provider.model, snippets=args.ai_snippets,
                                   root=Path(args.path).resolve())
-    for extra in _extra_ai_planners():
-        extra(analysis, plan)
     cost = plan.est_cost_usd
     print(f"AI enrichment plan: {len(plan.requests)} request(s) to {provider.name}/{provider.model}, "
           f"~{plan.est_input_tokens:,} input + up to {plan.est_output_tokens:,} output tokens"
@@ -196,20 +194,11 @@ def _analyze_ai_step(args: argparse.Namespace, analysis) -> None:
             print("  Skipped AI enrichment.")
             return
 
-    result = enrich.run_plan(plan, provider, analysis, budget, appliers=_extra_ai_appliers())
+    result = enrich.run_plan(plan, provider, analysis, budget)
     print(f"AI enrichment: {result.requests_sent} sent, {result.requests_skipped} skipped, "
           f"{result.input_tokens:,} input + {result.output_tokens:,} output tokens used.")
     for err in result.errors[:3]:
         note(f"AI request failed: {err}")
-
-
-def _extra_ai_planners() -> list:
-    """Hooks for later stages to add requests to the AI plan."""
-    return []
-
-
-def _extra_ai_appliers() -> dict:
-    return {}
 
 
 def _cmd_report(args: argparse.Namespace) -> None:

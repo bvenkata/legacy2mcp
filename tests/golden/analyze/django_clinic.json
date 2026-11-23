@@ -1412,5 +1412,163 @@
       ],
       "source": "rules"
     }
-  ]
+  ],
+  "orchestration": {
+    "coordinator": {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "role": "coordinator",
+      "description": "Understands the user's goal, routes it to the right specialist, and gathers approvals before any write. It holds no tools itself, so every data change goes through an approval point.",
+      "domain": "",
+      "flows": [],
+      "tool_flows": [],
+      "risk": "read_only"
+    },
+    "agents": [
+      {
+        "id": "appointments-agent",
+        "name": "Appointments agent",
+        "role": "specialist",
+        "description": "Handles appointments requests with 6 tools; 4 change data and need approval.",
+        "domain": "appointments",
+        "flows": [
+          "get-api-appointments",
+          "get-api-appointments-pk",
+          "post-api-appointments",
+          "post-api-appointments-pk-cancel",
+          "post-api-appointments-pk-pay",
+          "put-api-appointments-pk"
+        ],
+        "tool_flows": [
+          "get-api-appointments",
+          "get-api-appointments-pk",
+          "post-api-appointments",
+          "post-api-appointments-pk-cancel",
+          "post-api-appointments-pk-pay",
+          "put-api-appointments-pk"
+        ],
+        "risk": "high_risk"
+      },
+      {
+        "id": "operations-agent",
+        "name": "Operations agent",
+        "role": "operations",
+        "description": "Knows the 1 background flow(s) (scheduled jobs, queue consumers, CLI commands) so other agents can explain delayed effects. It has no tools; these flows aren't exposed directly.",
+        "domain": "operations",
+        "flows": [
+          "manage-py-purge-old"
+        ],
+        "tool_flows": [],
+        "risk": "high_risk"
+      }
+    ],
+    "approvals": [
+      {
+        "flow_id": "post-api-appointments",
+        "agent": "appointments-agent",
+        "level": "policy",
+        "reason": "writes Appointment"
+      },
+      {
+        "flow_id": "post-api-appointments-pk-cancel",
+        "agent": "appointments-agent",
+        "level": "human",
+        "reason": "deletes Appointment records"
+      },
+      {
+        "flow_id": "post-api-appointments-pk-pay",
+        "agent": "appointments-agent",
+        "level": "human",
+        "reason": "moves money through braintree (braintree.Transaction.sale)"
+      },
+      {
+        "flow_id": "put-api-appointments-pk",
+        "agent": "appointments-agent",
+        "level": "policy",
+        "reason": "writes database"
+      }
+    ],
+    "notes": ""
+  },
+  "multimodal": [
+    {
+      "kind": "voice",
+      "title": "Voice self-service",
+      "description": "Expose the read-only lookups in these flows to a voice agent (phone or assistant), so callers can check status without waiting for staff. Keep writes behind confirmation.",
+      "flows": [
+        "get-api-appointments",
+        "get-api-appointments-pk"
+      ],
+      "evidence": [
+        "GET /api/appointments/: appointment",
+        "GET /api/appointments/{pk}/: appointment"
+      ],
+      "source": "rules"
+    }
+  ],
+  "roadmap": {
+    "phases": [
+      {
+        "id": "phase-1",
+        "name": "Phase 1: Read-only tools",
+        "summary": "Expose 2 read-only tool(s) through `legacy2mcp generate`. Agents can look things up but change nothing; every call is schema-validated and audit-logged.",
+        "effort": "S",
+        "effort_days": 3,
+        "risk": "read_only",
+        "tool_flows": [
+          "get-api-appointments",
+          "get-api-appointments-pk"
+        ],
+        "prerequisites": [
+          "Review each tool's description and input schema in the report",
+          "Point the generated config at a staging base URL"
+        ],
+        "exit_criteria": [
+          "Agents answer real questions using only these tools",
+          "Audit log reviewed for a week with no surprises"
+        ]
+      },
+      {
+        "id": "phase-2",
+        "name": "Phase 2: Low-risk writes with approval",
+        "summary": "Add 2 low-risk write tool(s) with `allow_write_operations: true`, each behind a policy approval and rate limits.",
+        "effort": "S",
+        "effort_days": 4,
+        "risk": "low_risk_write",
+        "tool_flows": [
+          "post-api-appointments",
+          "put-api-appointments-pk"
+        ],
+        "prerequisites": [
+          "Decide the approval policy (who approves, which writes are auto-approved)",
+          "Add authentication to 4 write flow(s) that showed none"
+        ],
+        "exit_criteria": [
+          "Every write is attributable to an approver in the audit log",
+          "Rollback path tested for each write tool"
+        ]
+      },
+      {
+        "id": "phase-3",
+        "name": "Phase 3: Agent orchestration",
+        "summary": "Run a coordinator with 1 specialist agent(s); add 2 high-risk tool(s) (deletes Appointment records; moves money through braintree; sends email outside the system) behind human approval on every call, and 1 multimodal intake path(s).",
+        "effort": "M",
+        "effort_days": 12,
+        "risk": "high_risk",
+        "tool_flows": [
+          "post-api-appointments-pk-cancel",
+          "post-api-appointments-pk-pay"
+        ],
+        "prerequisites": [
+          "Human-approval UI or chat step wired to the coordinator",
+          "Spending/deletion limits agreed with the business owner",
+          "Incident runbook for a bad agent action"
+        ],
+        "exit_criteria": [
+          "High-risk calls happen only after a recorded human approval",
+          "End-to-end flows succeed on staging data"
+        ]
+      }
+    ]
+  }
 }

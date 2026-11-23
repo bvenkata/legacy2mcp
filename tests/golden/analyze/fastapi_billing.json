@@ -1392,5 +1392,166 @@
       ],
       "source": "rules"
     }
-  ]
+  ],
+  "orchestration": {
+    "coordinator": {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "role": "coordinator",
+      "description": "Understands the user's goal, routes it to the right specialist, and gathers approvals before any write. It holds no tools itself, so every data change goes through an approval point.",
+      "domain": "",
+      "flows": [],
+      "tool_flows": [],
+      "risk": "read_only"
+    },
+    "agents": [
+      {
+        "id": "health-agent",
+        "name": "Health agent",
+        "role": "specialist",
+        "description": "Handles health requests with 1 tool, all read-only.",
+        "domain": "health",
+        "flows": [
+          "get-health"
+        ],
+        "tool_flows": [
+          "get-health"
+        ],
+        "risk": "read_only"
+      },
+      {
+        "id": "invoices-agent",
+        "name": "Invoices agent",
+        "role": "specialist",
+        "description": "Handles invoices requests with 4 tools; 2 change data and need approval.",
+        "domain": "invoices",
+        "flows": [
+          "get-invoices",
+          "get-invoices-invoice-id",
+          "post-invoices",
+          "post-invoices-invoice-id-refund"
+        ],
+        "tool_flows": [
+          "get-invoices",
+          "get-invoices-invoice-id",
+          "post-invoices",
+          "post-invoices-invoice-id-refund"
+        ],
+        "risk": "high_risk"
+      },
+      {
+        "id": "operations-agent",
+        "name": "Operations agent",
+        "role": "operations",
+        "description": "Knows the 1 background flow(s) (scheduled jobs, queue consumers, CLI commands) so other agents can explain delayed effects. It has no tools; these flows aren't exposed directly.",
+        "domain": "operations",
+        "flows": [
+          "job-send-overdue-reminders"
+        ],
+        "tool_flows": [],
+        "risk": "high_risk"
+      }
+    ],
+    "approvals": [
+      {
+        "flow_id": "post-invoices",
+        "agent": "invoices-agent",
+        "level": "human",
+        "reason": "sends data to an external service (tax.example.com)"
+      },
+      {
+        "flow_id": "post-invoices-invoice-id-refund",
+        "agent": "invoices-agent",
+        "level": "human",
+        "reason": "moves money through stripe (stripe.Refund.create)"
+      }
+    ],
+    "notes": ""
+  },
+  "multimodal": [
+    {
+      "kind": "document",
+      "title": "Document intake",
+      "description": "Let an agent read uploaded or emailed documents (PDFs, receipts, spreadsheets) and fill these flows' inputs, with the extracted fields shown to a person before any write.",
+      "flows": [
+        "get-invoices",
+        "post-invoices",
+        "get-invoices-invoice-id",
+        "post-invoices-invoice-id-refund",
+        "job-send-overdue-reminders"
+      ],
+      "evidence": [
+        "GET /invoices/: invoice",
+        "POST /invoices/: invoice",
+        "GET /invoices/{invoice_id}: invoice",
+        "POST /invoices/{invoice_id}/refund: invoice",
+        "job send_overdue_reminders: invoice"
+      ],
+      "source": "rules"
+    }
+  ],
+  "roadmap": {
+    "phases": [
+      {
+        "id": "phase-1",
+        "name": "Phase 1: Read-only tools",
+        "summary": "Expose 3 read-only tool(s) through `legacy2mcp generate`. Agents can look things up but change nothing; every call is schema-validated and audit-logged.",
+        "effort": "S",
+        "effort_days": 4,
+        "risk": "read_only",
+        "tool_flows": [
+          "get-health",
+          "get-invoices",
+          "get-invoices-invoice-id"
+        ],
+        "prerequisites": [
+          "Review each tool's description and input schema in the report",
+          "Point the generated config at a staging base URL"
+        ],
+        "exit_criteria": [
+          "Agents answer real questions using only these tools",
+          "Audit log reviewed for a week with no surprises"
+        ]
+      },
+      {
+        "id": "phase-2",
+        "name": "Phase 2: Low-risk writes with approval",
+        "summary": "No low-risk write tools were proposed; use this phase to put approvals and auth in place for phase 3.",
+        "effort": "S",
+        "effort_days": 2,
+        "risk": "read_only",
+        "tool_flows": [],
+        "prerequisites": [
+          "Decide the approval policy (who approves, which writes are auto-approved)",
+          "Add authentication to 2 write flow(s) that showed none",
+          "Write explicit body schemas for 2 tool(s) whose fields weren't inferred"
+        ],
+        "exit_criteria": [
+          "Every write is attributable to an approver in the audit log",
+          "Rollback path tested for each write tool"
+        ]
+      },
+      {
+        "id": "phase-3",
+        "name": "Phase 3: Agent orchestration",
+        "summary": "Run a coordinator with 2 specialist agent(s); add 2 high-risk tool(s) (moves money through stripe; sends data to an external service) behind human approval on every call, and 1 multimodal intake path(s).",
+        "effort": "M",
+        "effort_days": 13,
+        "risk": "high_risk",
+        "tool_flows": [
+          "post-invoices",
+          "post-invoices-invoice-id-refund"
+        ],
+        "prerequisites": [
+          "Human-approval UI or chat step wired to the coordinator",
+          "Spending/deletion limits agreed with the business owner",
+          "Incident runbook for a bad agent action"
+        ],
+        "exit_criteria": [
+          "High-risk calls happen only after a recorded human approval",
+          "End-to-end flows succeed on staging data"
+        ]
+      }
+    ]
+  }
 }

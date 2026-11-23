@@ -15,6 +15,8 @@ def test_tool_names():
     assert tool_name("GET", "/api/orders/{id}", used) == "get_orders_by_id"
     assert tool_name("POST", "/api/v1/invoices/{invoiceId}/refund", used) == "refund_invoices_by_invoice_id"
     assert tool_name("GET", "/health", used) == "get_health"
+    assert tool_name("POST", "/api/auth/login", used) == "login_auth"
+    assert tool_name("POST", "/api/checkout", used) == "checkout"
     assert tool_name("GET", "/api/orders", used) == "list_orders_2"
 
 

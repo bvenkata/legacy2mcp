@@ -500,8 +500,13 @@ This writes two files to `legacy2mcp-analysis/`:
   interactive codebase map, call-graph and data-flow views for any flow or
   function, every business flow with its ordered steps and risk reasons, and
   the proposed MCP tools with include toggles. Export your choices as
-  `selections.json` for `legacy2mcp generate`. Light and dark themes, search,
-  risk filters, and a print-to-PDF layout.
+  `selections.json` for `legacy2mcp generate`. It also proposes an **agent
+  topology** (a coordinator, one specialist agent per business domain, an
+  approval gate on every write tool), **multimodal opportunities** (where
+  documents, images or voice fit, each with the evidence found), and a
+  **phased roadmap** (read-only tools, then low-risk writes with approval,
+  then full orchestration) with effort and risk per phase. Light and dark
+  themes, search, risk filters, and a print-to-PDF layout.
 - **`analysis.json`** -- the same data, versioned, for scripting and CI.
   `legacy2mcp report legacy2mcp-analysis/` regenerates the HTML from it.
 

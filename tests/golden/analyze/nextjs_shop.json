@@ -1296,7 +1296,7 @@
       "source": "rules"
     },
     {
-      "name": "create_checkout",
+      "name": "checkout",
       "flow_id": "post-api-checkout",
       "description": "Turn a cart into a paid order. Reads cart. Changes email, order, stripe.",
       "risk": "high_risk",
@@ -1429,5 +1429,160 @@
       ],
       "source": "rules"
     }
-  ]
+  ],
+  "orchestration": {
+    "coordinator": {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "role": "coordinator",
+      "description": "Understands the user's goal, routes it to the right specialist, and gathers approvals before any write. It holds no tools itself, so every data change goes through an approval point.",
+      "domain": "",
+      "flows": [],
+      "tool_flows": [],
+      "risk": "read_only"
+    },
+    "agents": [
+      {
+        "id": "products-agent",
+        "name": "Products agent",
+        "role": "specialist",
+        "description": "Handles products requests with 4 tools; 2 change data and need approval.",
+        "domain": "products",
+        "flows": [
+          "delete-api-products-id",
+          "get-api-products",
+          "get-api-products-id",
+          "put-api-products-id"
+        ],
+        "tool_flows": [
+          "delete-api-products-id",
+          "get-api-products",
+          "get-api-products-id",
+          "put-api-products-id"
+        ],
+        "risk": "high_risk"
+      },
+      {
+        "id": "orders-agent",
+        "name": "Orders agent",
+        "role": "specialist",
+        "description": "Handles orders requests with 1 tool; 1 changes data and needs approval.",
+        "domain": "orders",
+        "flows": [
+          "post-api-admin-orders-orderid-refund"
+        ],
+        "tool_flows": [
+          "post-api-admin-orders-orderid-refund"
+        ],
+        "risk": "high_risk"
+      },
+      {
+        "id": "checkout-agent",
+        "name": "Checkout agent",
+        "role": "specialist",
+        "description": "Handles checkout requests with 1 tool; 1 changes data and needs approval.",
+        "domain": "checkout",
+        "flows": [
+          "post-api-checkout"
+        ],
+        "tool_flows": [
+          "post-api-checkout"
+        ],
+        "risk": "high_risk"
+      }
+    ],
+    "approvals": [
+      {
+        "flow_id": "delete-api-products-id",
+        "agent": "products-agent",
+        "level": "human",
+        "reason": "deletes product records"
+      },
+      {
+        "flow_id": "put-api-products-id",
+        "agent": "products-agent",
+        "level": "policy",
+        "reason": "writes product"
+      },
+      {
+        "flow_id": "post-api-admin-orders-orderid-refund",
+        "agent": "orders-agent",
+        "level": "human",
+        "reason": "moves money through stripe (stripe().refunds.create)"
+      },
+      {
+        "flow_id": "post-api-checkout",
+        "agent": "checkout-agent",
+        "level": "human",
+        "reason": "moves money through stripe (stripe().checkout.sessions.create)"
+      }
+    ],
+    "notes": ""
+  },
+  "multimodal": [],
+  "roadmap": {
+    "phases": [
+      {
+        "id": "phase-1",
+        "name": "Phase 1: Read-only tools",
+        "summary": "Expose 2 read-only tool(s) through `legacy2mcp generate`. Agents can look things up but change nothing; every call is schema-validated and audit-logged.",
+        "effort": "S",
+        "effort_days": 3,
+        "risk": "read_only",
+        "tool_flows": [
+          "get-api-products",
+          "get-api-products-id"
+        ],
+        "prerequisites": [
+          "Review each tool's description and input schema in the report",
+          "Point the generated config at a staging base URL"
+        ],
+        "exit_criteria": [
+          "Agents answer real questions using only these tools",
+          "Audit log reviewed for a week with no surprises"
+        ]
+      },
+      {
+        "id": "phase-2",
+        "name": "Phase 2: Low-risk writes with approval",
+        "summary": "Add 1 low-risk write tool(s) with `allow_write_operations: true`, each behind a policy approval and rate limits.",
+        "effort": "S",
+        "effort_days": 3,
+        "risk": "low_risk_write",
+        "tool_flows": [
+          "put-api-products-id"
+        ],
+        "prerequisites": [
+          "Decide the approval policy (who approves, which writes are auto-approved)",
+          "Add authentication to 4 write flow(s) that showed none"
+        ],
+        "exit_criteria": [
+          "Every write is attributable to an approver in the audit log",
+          "Rollback path tested for each write tool"
+        ]
+      },
+      {
+        "id": "phase-3",
+        "name": "Phase 3: Agent orchestration",
+        "summary": "Run a coordinator with 3 specialist agent(s); add 3 high-risk tool(s) (HTTP DELETE endpoint; deletes product records; moves money through stripe) behind human approval on every call.",
+        "effort": "M",
+        "effort_days": 13,
+        "risk": "high_risk",
+        "tool_flows": [
+          "post-api-admin-orders-orderid-refund",
+          "post-api-checkout",
+          "delete-api-products-id"
+        ],
+        "prerequisites": [
+          "Human-approval UI or chat step wired to the coordinator",
+          "Spending/deletion limits agreed with the business owner",
+          "Incident runbook for a bad agent action"
+        ],
+        "exit_criteria": [
+          "High-risk calls happen only after a recorded human approval",
+          "End-to-end flows succeed on staging data"
+        ]
+      }
+    ]
+  }
 }

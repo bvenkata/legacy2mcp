@@ -21,7 +21,7 @@ from pathlib import Path
 
 from legacy2mcp.analysis.ai.providers import Provider, ProviderError, estimate_cost
 from legacy2mcp.analysis.ai.redact import redact
-from legacy2mcp.analysis.model import Analysis, RiskReason
+from legacy2mcp.analysis.model import Analysis, MultimodalOpportunity, RiskReason
 
 FLOWS_PER_REQUEST = 12
 OUTPUT_TOKENS_PER_FLOW = 160
@@ -67,6 +67,39 @@ NAME_FLOWS_SCHEMA = {
         }
     },
     "required": ["flows"],
+    "additionalProperties": False,
+}
+
+
+ORCHESTRATION_SYSTEM = """\
+You help design an AI-agent setup around an existing application. You get a rule-built blueprint: a coordinator,
+specialist agents grouped by business domain (each with the flows it owns and their risk), an operations agent for
+background work, and the multimodal opportunities static analysis already found.
+
+Return:
+- agents: for every agent id given (including "coordinator"), a short name (2-4 words) and a 1-2 sentence description
+  of what it does for users and which actions need approval. Keep the ids exactly.
+- multimodal: up to 3 additional, concrete places where documents, images or voice would help, each tied to flow ids
+  from the input (never invent ids). Return [] if nothing is well supported by the data.
+- notes: 2-4 sentences of orchestration advice specific to this codebase (sequencing, approvals, what to keep human)."""
+
+ORCHESTRATION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "agents": {"type": "array", "items": {
+            "type": "object",
+            "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"}},
+            "required": ["id", "name", "description"], "additionalProperties": False}},
+        "multimodal": {"type": "array", "items": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["document", "image", "voice"]},
+                "title": {"type": "string"}, "description": {"type": "string"},
+                "flows": {"type": "array", "items": {"type": "string"}}},
+            "required": ["kind", "title", "description", "flows"], "additionalProperties": False}},
+        "notes": {"type": "string"},
+    },
+    "required": ["agents", "multimodal", "notes"],
     "additionalProperties": False,
 }
 
@@ -169,7 +202,65 @@ def plan_enrichment(analysis: Analysis, provider: str, model: str, snippets: boo
             max_tokens=max(1024, OUTPUT_TOKENS_PER_FLOW * len(batch) + 400),
             est_input_tokens=estimate_tokens(NAME_FLOWS_SYSTEM + user),
         ))
+    orch = analysis.orchestration
+    if orch.agents:
+        names = {f.id: f.name for f in flows}
+        risks = {f.id: f.risk for f in flows}
+        agents = ([orch.coordinator] if orch.coordinator else []) + orch.agents
+        payload = {
+            "task": "orchestration",
+            "project": analysis.project,
+            "agents": [{"id": a.id, "role": a.role, "domain": a.domain,
+                        "flows": [{"id": fid, "name": names.get(fid, fid), "risk": risks.get(fid)} for fid in a.flows][:25]}
+                       for a in agents],
+            "approvals": [{"flow": ap.flow_id, "level": ap.level, "reason": ap.reason} for ap in orch.approvals][:40],
+            "multimodal_found": [{"kind": m.kind, "flows": m.flows[:10], "evidence": m.evidence[:5]} for m in analysis.multimodal],
+        }
+        user, count = redact(json.dumps(payload, ensure_ascii=False))
+        plan.redactions += count
+        plan.requests.append(AIRequest(
+            task="orchestration", system=ORCHESTRATION_SYSTEM, user=user, schema=ORCHESTRATION_SCHEMA,
+            max_tokens=2000, est_input_tokens=estimate_tokens(ORCHESTRATION_SYSTEM + user),
+        ))
     return plan
+
+
+def apply_orchestration_results(analysis: Analysis, result: dict) -> int:
+    """Merge an `orchestration` answer: agent names/descriptions, extra
+    multimodal ideas tied to real flow ids, and notes."""
+    if not isinstance(result, dict):
+        return 0
+    orch = analysis.orchestration
+    agents = {a.id: a for a in orch.agents}
+    if orch.coordinator:
+        agents[orch.coordinator.id] = orch.coordinator
+    updated = 0
+    for item in result.get("agents", []):
+        if not isinstance(item, dict) or item.get("id") not in agents:
+            continue
+        agent = agents[item["id"]]
+        if str(item.get("name") or "").strip():
+            agent.name = str(item["name"]).strip()[:60]
+        if str(item.get("description") or "").strip():
+            agent.description = str(item["description"]).strip()[:400]
+        updated += 1
+    flow_ids = {f.id for f in analysis.flows}
+    seen = {(m.kind, m.title.lower()) for m in analysis.multimodal}
+    for item in result.get("multimodal", [])[:3]:
+        if not isinstance(item, dict) or item.get("kind") not in ("document", "image", "voice"):
+            continue
+        flows = [f for f in item.get("flows", []) if f in flow_ids]
+        title = str(item.get("title") or "").strip()[:80]
+        if not flows or not title or (item["kind"], title.lower()) in seen:
+            continue
+        seen.add((item["kind"], title.lower()))
+        analysis.multimodal.append(MultimodalOpportunity(
+            kind=item["kind"], title=title, description=str(item.get("description") or "").strip()[:400],
+            flows=flows, evidence=["suggested by AI from the flows listed"], source="ai"))
+    notes = str(result.get("notes") or "").strip()
+    if notes:
+        orch.notes = notes[:1200]
+    return updated
 
 
 def _clean_tool_name(raw: str, used: set[str]) -> str | None:
@@ -231,7 +322,7 @@ def run_plan(plan: AIPlan, provider: Provider, analysis: Analysis, budget: int |
              appliers: dict | None = None) -> RunResult:
     """Send each request while (spent + estimate) fits the budget; merge answers.
     A failed request is recorded and skipped -- the rule-based result stands."""
-    appliers = {"name_flows": apply_flow_results, **(appliers or {})}
+    appliers = {"name_flows": apply_flow_results, "orchestration": apply_orchestration_results, **(appliers or {})}
     out = RunResult()
     for req in plan.requests:
         spent = out.input_tokens + out.output_tokens

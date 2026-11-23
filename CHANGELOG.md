@@ -67,6 +67,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `--max-tokens-budget` is enforced per request. AI may rename and describe
   flows and tools and add review notes, but never changes risk levels or
   selections. Any failure falls back to the offline result.
+- **Orchestration blueprint, multimodal opportunities and roadmap
+  (milestone 6)**. Rules build a coordinator with one specialist agent per
+  business domain and an operations agent for background flows, and put an
+  approval point on every write tool (human for high-risk, policy for
+  low-risk). Document, image and voice opportunities are inferred from code
+  names, each with its evidence. A three-phase roadmap (read-only tools →
+  low-risk writes with approval → orchestration) gives effort (S/M/L, days),
+  risk, prerequisites and exit criteria per phase. The report gains agent
+  topology, multimodal and roadmap sections. With AI enabled, an extra
+  request names and describes agents, adds evidence-tied multimodal ideas
+  and writes orchestration notes.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed

@@ -185,6 +185,7 @@ milestone by milestone in [v2-gap-analysis.md](v2-gap-analysis.md):
 - M5 -- AI provider interface (Anthropic, OpenAI), secret redaction,
   token budget, enrichment. ✅ on `feat/v2-analyze`
 - M6 -- orchestration blueprint, multimodal suggestions, roadmap.
+  ✅ on `feat/v2-analyze`
 - M7 -- `legacy2mcp generate`: approved flows → a `type: rest` config
   that inherits validation, audit logging and writes-off-by-default.
 - M8 -- docs, sample report, packaging and launch.

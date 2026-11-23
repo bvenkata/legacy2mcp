@@ -1718,5 +1718,166 @@
       ],
       "source": "rules"
     }
-  ]
+  ],
+  "orchestration": {
+    "coordinator": {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "role": "coordinator",
+      "description": "Understands the user's goal, routes it to the right specialist, and gathers approvals before any write. It holds no tools itself, so every data change goes through an approval point.",
+      "domain": "",
+      "flows": [],
+      "tool_flows": [],
+      "risk": "read_only"
+    },
+    "agents": [
+      {
+        "id": "orders-agent",
+        "name": "Orders agent",
+        "role": "specialist",
+        "description": "Handles orders requests with 5 tools; 3 change data and need approval.",
+        "domain": "orders",
+        "flows": [
+          "delete-api-orders-order-id",
+          "get-api-orders",
+          "get-api-orders-order-id",
+          "post-api-orders",
+          "post-api-orders-order-id-checkout"
+        ],
+        "tool_flows": [
+          "delete-api-orders-order-id",
+          "get-api-orders",
+          "get-api-orders-order-id",
+          "post-api-orders",
+          "post-api-orders-order-id-checkout"
+        ],
+        "risk": "high_risk"
+      },
+      {
+        "id": "operations-agent",
+        "name": "Operations agent",
+        "role": "operations",
+        "description": "Knows the 2 background flow(s) (scheduled jobs, queue consumers, CLI commands) so other agents can explain delayed effects. It has no tools; these flows aren't exposed directly.",
+        "domain": "operations",
+        "flows": [
+          "cli-export-orders",
+          "task-sync-inventory"
+        ],
+        "tool_flows": [],
+        "risk": "high_risk"
+      }
+    ],
+    "approvals": [
+      {
+        "flow_id": "delete-api-orders-order-id",
+        "agent": "orders-agent",
+        "level": "human",
+        "reason": "deletes database records"
+      },
+      {
+        "flow_id": "post-api-orders",
+        "agent": "orders-agent",
+        "level": "human",
+        "reason": "sends data to an external service (warehouse.internal)"
+      },
+      {
+        "flow_id": "post-api-orders-order-id-checkout",
+        "agent": "orders-agent",
+        "level": "human",
+        "reason": "moves money through stripe (stripe.Charge.create)"
+      }
+    ],
+    "notes": ""
+  },
+  "multimodal": [
+    {
+      "kind": "document",
+      "title": "Document intake",
+      "description": "Let an agent read uploaded or emailed documents (PDFs, receipts, spreadsheets) and fill these flows' inputs, with the extracted fields shown to a person before any write.",
+      "flows": [
+        "cli-export-orders"
+      ],
+      "evidence": [
+        "cli export-orders: file"
+      ],
+      "source": "rules"
+    },
+    {
+      "kind": "voice",
+      "title": "Voice self-service",
+      "description": "Expose the read-only lookups in these flows to a voice agent (phone or assistant), so callers can check status without waiting for staff. Keep writes behind confirmation.",
+      "flows": [
+        "get-api-orders",
+        "get-api-orders-order-id"
+      ],
+      "evidence": [
+        "GET /api/orders/: order, status",
+        "GET /api/orders/{order_id}: order"
+      ],
+      "source": "rules"
+    }
+  ],
+  "roadmap": {
+    "phases": [
+      {
+        "id": "phase-1",
+        "name": "Phase 1: Read-only tools",
+        "summary": "Expose 2 read-only tool(s) through `legacy2mcp generate`. Agents can look things up but change nothing; every call is schema-validated and audit-logged.",
+        "effort": "S",
+        "effort_days": 3,
+        "risk": "read_only",
+        "tool_flows": [
+          "get-api-orders",
+          "get-api-orders-order-id"
+        ],
+        "prerequisites": [
+          "Review each tool's description and input schema in the report",
+          "Point the generated config at a staging base URL"
+        ],
+        "exit_criteria": [
+          "Agents answer real questions using only these tools",
+          "Audit log reviewed for a week with no surprises"
+        ]
+      },
+      {
+        "id": "phase-2",
+        "name": "Phase 2: Low-risk writes with approval",
+        "summary": "No low-risk write tools were proposed; use this phase to put approvals and auth in place for phase 3.",
+        "effort": "S",
+        "effort_days": 2,
+        "risk": "read_only",
+        "tool_flows": [],
+        "prerequisites": [
+          "Decide the approval policy (who approves, which writes are auto-approved)",
+          "Add authentication to 3 write flow(s) that showed none"
+        ],
+        "exit_criteria": [
+          "Every write is attributable to an approver in the audit log",
+          "Rollback path tested for each write tool"
+        ]
+      },
+      {
+        "id": "phase-3",
+        "name": "Phase 3: Agent orchestration",
+        "summary": "Run a coordinator with 1 specialist agent(s); add 3 high-risk tool(s) (HTTP DELETE endpoint; deletes database records; moves money through stripe) behind human approval on every call, and 2 multimodal intake path(s).",
+        "effort": "L",
+        "effort_days": 17,
+        "risk": "high_risk",
+        "tool_flows": [
+          "post-api-orders",
+          "delete-api-orders-order-id",
+          "post-api-orders-order-id-checkout"
+        ],
+        "prerequisites": [
+          "Human-approval UI or chat step wired to the coordinator",
+          "Spending/deletion limits agreed with the business owner",
+          "Incident runbook for a bad agent action"
+        ],
+        "exit_criteria": [
+          "High-risk calls happen only after a recorded human approval",
+          "End-to-end flows succeed on staging data"
+        ]
+      }
+    ]
+  }
 }

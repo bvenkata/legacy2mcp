@@ -24,6 +24,8 @@
     }
     return node;
   }
+  // `code` spans in plain-text strings -> <code> elements (no other markup is interpreted).
+  const rich = (text) => String(text || "").split(/`([^`]+)`/).map((part, i) => (i % 2 ? h("code", {}, part) : part));
   const fmt = (n) => Number(n || 0).toLocaleString("en-US");
   const short = (key) => (key || "").split("::").pop();
   const fileOf = (key) => (key || "").split("::")[0];
@@ -83,14 +85,18 @@
     const num = sections.length;
     const details = h("details", { open: opts.collapsed ? null : true },
       h("summary", {}, h("h2", { id: `${id}-h` }, h("span", { class: "section-num" }, `${num}. `), title)),
-      h("div", { class: "card-body" }, lede ? h("p", { class: "lede" }, lede) : null, body));
+      h("div", { class: "card-body" }, lede ? h("p", { class: "lede" }, rich(lede)) : null, body));
     return h("section", { class: "card", id, "aria-labelledby": `${id}-h` }, details);
   }
 
   // --------------------------------------------------------------- summary
   function recommendedSteps() {
-    if (A.roadmap && A.roadmap.phases && A.roadmap.phases.length) {
-      return A.roadmap.phases.slice(0, 3).map((p) => h("li", {}, h("strong", {}, `${p.name}: `), p.summary));
+    if (A.roadmap && A.roadmap.phases && A.roadmap.phases.length && A.flows.length) {
+      const out = A.roadmap.phases.slice(0, 3).map((p) => h("li", {}, h("strong", {}, `${p.name.replace(/^Phase \d+: /, "")}: `), rich(p.summary)));
+      const unauth = A.flows.filter((f) => f.authenticated === false && f.risk !== "read_only");
+      if (unauth.length) out.push(h("li", {}, h("strong", {}, "Check access control: "),
+        `${plural(unauth.length, "write flow")} showed no authentication middleware or check. Verify before any agent can reach them.`));
+      return out;
     }
     const out = [];
     const safeTools = A.tools.filter((t) => t.safe && t.exposable);
@@ -533,9 +539,101 @@
         h("tbody", {}, rows)))] : h("p", { class: "empty" }, "No HTTP flows, so no tools to propose."));
   }
 
-  // ------------------------------------------- orchestration sections (M6)
-  const extraSections = [];
-  window.__legacy2mcpRegisterSection = (fn) => extraSections.push(fn);
+  // ------------------------------------------- orchestration sections
+  const toolByFlow = new Map(A.tools.map((t) => [t.flow_id, t]));
+  const flowName = (id) => (flowsById.get(id) || { name: id }).name;
+  function flowLink(id) {
+    return h("button", { class: "fn-btn", type: "button", onclick: () => {
+      const c = $(`#flows .flow[data-id="${CSS.escape(id)}"]`);
+      if (c) { c.open = true; c.scrollIntoView({ behavior: "smooth", block: "center" }); }
+    } }, flowName(id));
+  }
+  let topoCy = null;
+  function topologySection() {
+    const orch = A.orchestration || {};
+    if (!orch.coordinator) return section("topology", "Agent topology", null, h("p", { class: "empty" }, "No HTTP flows, so no agent topology to propose."));
+    const approvals = new Map((orch.approvals || []).map((a) => [a.flow_id, a]));
+    const container = h("div", { class: "graph" });
+    function elements() {
+      const els = [{ data: { id: "coordinator", label: orch.coordinator.name, color: css("--text-secondary"), size: 44, shape: "round-rectangle",
+        tipTitle: orch.coordinator.name, tip: orch.coordinator.description } }];
+      for (const a of orch.agents) {
+        els.push({ data: { id: `agent:${a.id}`, label: a.name, color: css("--accent"), size: 36, shape: "round-rectangle", tipTitle: a.name, tip: a.description } });
+        els.push({ data: { id: `e:c-${a.id}`, source: "coordinator", target: `agent:${a.id}` } });
+        for (const fid of a.tool_flows) {
+          const t = toolByFlow.get(fid);
+          if (!t) continue;
+          els.push({ data: { id: `tool:${fid}`, label: t.name, color: css(RISK[t.risk].token), size: 18, shape: "ellipse",
+            tipTitle: `${t.name} \u00B7 ${RISK[t.risk].label}`, tip: t.description } });
+          const ap = approvals.get(fid);
+          if (ap) {
+            els.push({ data: { id: `ap:${fid}`, label: ap.level === "human" ? "human approval" : "policy check",
+              color: css(ap.level === "human" ? "--critical" : "--warning"), size: 20, shape: "diamond", tipTitle: ap.level === "human" ? "Human approves every call" : "Policy / rule approval", tip: ap.reason } });
+            els.push({ data: { id: `e:a-${fid}`, source: `agent:${a.id}`, target: `ap:${fid}` } });
+            els.push({ data: { id: `e:t-${fid}`, source: `ap:${fid}`, target: `tool:${fid}` } });
+          } else {
+            els.push({ data: { id: `e:t-${fid}`, source: `agent:${a.id}`, target: `tool:${fid}` } });
+          }
+        }
+      }
+      return els;
+    }
+    const cards = h("div", { class: "agent-cards" }, [orch.coordinator, ...orch.agents].map((a) => h("div", { class: "agent-card" },
+      h("div", { class: "agent-head" }, h("strong", {}, a.name), a.role !== "coordinator" ? riskBadge(a.risk) : h("span", { class: "tag" }, "router")),
+      h("p", { class: "secondary" }, a.description),
+      a.tool_flows.length ? h("ul", {}, a.tool_flows.map((fid) => { const t = toolByFlow.get(fid); const ap = approvals.get(fid);
+        return h("li", {}, h("code", {}, t ? t.name : fid), ap ? h("span", { class: "tag", style: "margin-left:6px" }, ap.level === "human" ? "human approval" : "policy check") : null); })) : null,
+      a.role === "operations" ? h("ul", {}, a.flows.map((fid) => h("li", {}, flowLink(fid)))) : null)));
+    const legend = h("ul", { class: "legend", style: "margin-top:10px" },
+      h("li", {}, h("span", { class: "swatch", style: "background:var(--text-secondary)" }), "coordinator"),
+      h("li", {}, h("span", { class: "swatch", style: "background:var(--accent)" }), "specialist agent"),
+      ["read_only", "low_risk_write", "high_risk"].map((r) => h("li", {}, h("span", { class: "swatch", style: `background:var(${RISK[r].token});border-radius:50%` }), `${RISK[r].label} tool`)),
+      h("li", {}, h("span", { class: "swatch", style: "background:var(--critical);transform:rotate(45deg)" }), "human approval"),
+      h("li", {}, h("span", { class: "swatch", style: "background:var(--warning);transform:rotate(45deg)" }), "policy check"));
+    const el = section("topology", "Agent topology",
+      "A coordinator routes each request to a specialist agent per business domain. Every tool that changes data sits behind an approval point: a person approves each high-risk call; low-risk writes pass a policy check.",
+      [h("div", { class: "graph-wrap" }, container, graphControls(() => topoCy)), legend,
+        orch.notes ? h("p", { class: "callout" }, h("strong", {}, "Orchestration notes: "), orch.notes) : null, cards]);
+    requestAnimationFrame(() => { topoCy = makeGraph(container, elements(), { name: "breadthfirst", directed: true, roots: ["coordinator"], spacingFactor: 1.05, padding: 30, animate: false }); });
+    return el;
+  }
+
+  const MM_LABEL = { document: "Documents", image: "Images", voice: "Voice" };
+  function multimodalSection() {
+    const items = A.multimodal || [];
+    return section("multimodal", "Multimodal opportunities",
+      "Places where agents could take documents, images or voice as input, found from names in the code. Each lists the evidence behind it.",
+      items.length ? h("div", { class: "mm-grid" }, items.map((m) => h("div", { class: "agent-card" },
+        h("div", { class: "agent-head" }, h("span", { class: "tag" }, MM_LABEL[m.kind] || m.kind), h("strong", {}, m.title), m.source === "ai" ? h("span", { class: "tag" }, "AI suggestion") : null),
+        h("p", { class: "secondary" }, m.description),
+        h("strong", { style: "font-size:13px" }, "Flows"), h("ul", {}, m.flows.map((fid) => h("li", {}, flowLink(fid)))),
+        h("details", {}, h("summary", { class: "secondary", style: "cursor:pointer;font-size:13px" }, "Evidence"),
+          h("ul", { style: "font-size:13px" }, m.evidence.map((e) => h("li", {}, e)))))))
+        : h("p", { class: "empty" }, "No document, image or voice signals were found in route, handler, parameter or resource names."));
+  }
+
+  const PHASE_TOKENS = ["--phase-1", "--phase-2", "--phase-3"];
+  function roadmapSection() {
+    const phases = (A.roadmap || {}).phases || [];
+    const total = phases.reduce((n, p) => n + Math.max(1, p.effort_days), 0);
+    const bar = h("div", { class: "riskbar", style: "height:18px", role: "img", "aria-label": phases.map((p) => `${p.name}: about ${p.effort_days} days`).join(", ") },
+      phases.map((p, i) => { const seg = h("span", { style: `flex:${Math.max(1, p.effort_days)};background:var(${PHASE_TOKENS[i] || "--phase-3"})` });
+        seg.addEventListener("mousemove", (e) => showTip(e, [h("strong", {}, p.name), h("div", {}, `Effort ${p.effort} \u00B7 ~${p.effort_days} days \u00B7 ${Math.round((Math.max(1, p.effort_days) / total) * 100)}% of the plan`)]));
+        seg.addEventListener("mouseleave", hideTip);
+        return seg; }));
+    const legend = h("ul", { class: "legend" }, phases.map((p, i) => h("li", {}, h("span", { class: "swatch", style: `background:var(${PHASE_TOKENS[i] || "--phase-3"})` }), `${p.name.replace(/:.*/, "")} `, h("strong", {}, `~${p.effort_days}d`))));
+    const cards = h("div", { class: "phase-grid" }, phases.map((p) => h("div", { class: "agent-card" },
+      h("div", { class: "agent-head" }, h("strong", {}, p.name)),
+      h("div", { style: "display:flex;gap:6px;flex-wrap:wrap;margin:6px 0" }, h("span", { class: "tag" }, `Effort ${p.effort} \u00B7 ~${p.effort_days} days`), riskBadge(p.risk)),
+      h("p", { class: "secondary" }, rich(p.summary)),
+      p.tool_flows.length ? [h("strong", { style: "font-size:13px" }, `Tools (${p.tool_flows.length})`),
+        h("ul", {}, p.tool_flows.map((fid) => h("li", {}, h("code", {}, (toolByFlow.get(fid) || { name: fid }).name))))] : null,
+      h("strong", { style: "font-size:13px" }, "Before you start"), h("ul", {}, p.prerequisites.map((x) => h("li", {}, x))),
+      h("strong", { style: "font-size:13px" }, "Done when"), h("ul", {}, p.exit_criteria.map((x) => h("li", {}, x))))));
+    return section("roadmap", "Phased roadmap",
+      "Read-only first, then low-risk writes with approval, then full orchestration. Effort is a rough planning estimate (setup plus a per-tool cost that grows with risk), not a quote.",
+      phases.length ? [bar, legend, cards] : h("p", { class: "empty" }, "No roadmap: no flows were found."));
+  }
 
   // ------------------------------------------------------------ appendix
   function appendixSection() {
@@ -615,6 +713,10 @@
       cy.nodes().forEach((n) => {
         const d = n.data();
         if (d.dir || n.isParent()) return;
+        if (d.id === "coordinator") { n.data("color", css("--text-secondary")); return; }
+        if (d.id.startsWith("agent:")) { n.data("color", css("--accent")); return; }
+        if (d.id.startsWith("tool:")) { const t = toolByFlow.get(d.id.slice(5)); if (t) n.data("color", css(RISK[t.risk].token)); return; }
+        if (d.id.startsWith("ap:")) { n.data("color", css(String(d.label).startsWith("human") ? "--critical" : "--warning")); return; }
         if (d.id.startsWith("res:")) { const r = resources.get(d.id.slice(4)); if (r && KIND[r.kind]) n.data("color", css(KIND[r.kind].token)); }
         else if (functions.has(d.id)) n.data("color", css("--accent"));
         else { const m = A.modules.find((x) => x.path === d.id); if (m) n.data("color", css(LANG_TOKEN[m.language] || "--series-7")); }
@@ -639,9 +741,8 @@
     const head = h("header", { class: "report-head" },
       h("h1", {}, A.project),
       h("p", { class: "meta" }, `Codebase analysis · ${A.meta && A.meta.generated_at ? new Date(A.meta.generated_at).toLocaleString() : ""} · legacy2mcp ${(A.meta || {}).legacy2mcp_version || ""}${(A.meta || {}).ai ? " · AI-assisted" : " · offline"}`));
-    const parts = [summarySection(), mapSection(), focusSection(), flowsSection(), toolsSection()];
-    for (const fn of extraSections) { const s = fn({ h, section, makeGraph, graphControls, css, riskBadge, plural, fmt, KIND, RISK }); if (s) parts.push(s); }
-    parts.push(appendixSection());
+    const parts = [summarySection(), mapSection(), focusSection(), flowsSection(), toolsSection(),
+      topologySection(), multimodalSection(), roadmapSection(), appendixSection()];
     app.replaceChildren(head, ...parts);
     $("#toc").replaceChildren(...sections.map((s) => h("li", {}, h("a", { href: `#${s.id}` }, s.title))));
     filterFlows();

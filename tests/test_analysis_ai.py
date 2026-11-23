@@ -50,11 +50,11 @@ def test_leaves_ordinary_code_alone():
 def test_plan_sends_structure_not_source():
     a = run_analysis(FIXTURES / "flask_shop")
     plan = enrich.plan_enrichment(a, "mock", "mock-1")
-    assert len(plan.requests) == 1
+    assert [r.task for r in plan.requests] == ["name_flows", "orchestration"]
     payload = json.loads(plan.requests[0].user)
     assert payload["task"] == "name_flows" and len(payload["flows"]) == len(a.flows)
     assert all("handler_source" not in f for f in payload["flows"])
-    assert "stripe.Charge.create(amount" not in plan.requests[0].user
+    assert all("stripe.Charge.create(amount" not in r.user for r in plan.requests)
     assert plan.est_input_tokens > 0 and plan.est_cost_usd is None
 
 
@@ -73,7 +73,7 @@ def test_batches_and_cost_estimate():
     a = run_analysis(FIXTURES / "express_store")
     a.flows = a.flows * 3  # 30 flows -> 3 requests of <= 12
     plan = enrich.plan_enrichment(a, "anthropic", "claude-opus-5-5")
-    assert len(plan.requests) == 3
+    assert [r.task for r in plan.requests].count("name_flows") == 3
     assert plan.est_cost_usd and plan.est_cost_usd > 0
 
 
@@ -85,21 +85,21 @@ def test_mock_run_renames_but_never_changes_risk_or_selection():
     provider = providers.MockProvider()
     plan = enrich.plan_enrichment(a, provider.name, provider.model)
     result = enrich.run_plan(plan, provider, a, budget=None)
-    assert result.requests_sent == 1 and not result.errors
+    assert result.requests_sent == 2 and not result.errors
     assert {f.id: f.risk for f in a.flows} == before
     assert {t.flow_id: (t.safe, t.include) for t in a.tools} == selection
     checkout = next(f for f in a.flows if f.id == "post-api-orders-order-id-checkout")
     assert checkout.name.startswith("Mock POST")
     assert any(r.text == "AI review note: Mock note." and r.level == "info" for r in checkout.reasons)
     assert all(t.source == "ai" and t.name.startswith("mock_") for t in a.tools)
-    assert a.meta["ai"] is True and a.meta["ai_usage"]["requests"] == 1
+    assert a.meta["ai"] is True and a.meta["ai_usage"]["requests"] == 2
 
 
 def test_budget_skips_requests():
     a = run_analysis(FIXTURES / "flask_shop")
     plan = enrich.plan_enrichment(a, "mock", "mock-1")
     result = enrich.run_plan(plan, providers.MockProvider(), a, budget=10)
-    assert result.requests_sent == 0 and result.requests_skipped == 1
+    assert result.requests_sent == 0 and result.requests_skipped == 2
     assert a.meta["ai"] is False
 
 
@@ -128,7 +128,7 @@ def test_provider_failure_keeps_rules():
     a = run_analysis(FIXTURES / "flask_shop")
     names = [f.name for f in a.flows]
     result = enrich.run_plan(enrich.plan_enrichment(a, "x", "y"), _FailingProvider(), a, budget=None)
-    assert result.errors == ["boom"] and [f.name for f in a.flows] == names
+    assert result.errors == ["boom", "boom"] and [f.name for f in a.flows] == names
 
 
 # ------------------------------------------------------------------ providers

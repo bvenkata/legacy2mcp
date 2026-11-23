@@ -255,6 +255,62 @@ class ToolProposal:
 
 
 @dataclass
+class Agent:
+    id: str
+    name: str
+    role: str  # "coordinator" | "specialist" | "operations"
+    description: str
+    domain: str = ""
+    flows: list[str] = field(default_factory=list)  # flow ids it owns
+    tool_flows: list[str] = field(default_factory=list)  # flow ids exposed to it as tools
+    risk: str = "read_only"
+
+
+@dataclass
+class ApprovalPoint:
+    flow_id: str
+    agent: str  # Agent.id that would call the tool
+    level: str  # "human" (high-risk: a person approves every call) | "policy" (low-risk: rule or batch approval)
+    reason: str
+
+
+@dataclass
+class Orchestration:
+    coordinator: Agent | None = None
+    agents: list[Agent] = field(default_factory=list)
+    approvals: list[ApprovalPoint] = field(default_factory=list)
+    notes: str = ""
+
+
+@dataclass
+class MultimodalOpportunity:
+    kind: str  # "document" | "image" | "voice"
+    title: str
+    description: str
+    flows: list[str] = field(default_factory=list)
+    evidence: list[str] = field(default_factory=list)
+    source: str = "rules"
+
+
+@dataclass
+class Phase:
+    id: str
+    name: str
+    summary: str
+    effort: str  # "S" | "M" | "L"
+    effort_days: int
+    risk: str  # one of RISK_LEVELS: the riskiest thing the phase ships
+    tool_flows: list[str] = field(default_factory=list)
+    prerequisites: list[str] = field(default_factory=list)
+    exit_criteria: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Roadmap:
+    phases: list[Phase] = field(default_factory=list)
+
+
+@dataclass
 class Analysis:
     project: str  # basename of the scanned root
     summary: Summary = field(default_factory=Summary)
@@ -264,6 +320,9 @@ class Analysis:
     graph: Graph = field(default_factory=Graph)
     flows: list[Flow] = field(default_factory=list)
     tools: list[ToolProposal] = field(default_factory=list)
+    orchestration: Orchestration = field(default_factory=Orchestration)
+    multimodal: list[MultimodalOpportunity] = field(default_factory=list)
+    roadmap: Roadmap = field(default_factory=Roadmap)
     meta: dict[str, Any] = field(default_factory=dict)
     schema_version: str = SCHEMA_VERSION
 
@@ -305,9 +364,22 @@ class Analysis:
             graph=_graph_from_dict(data.get("graph", {})),
             flows=[_flow_from_dict(f) for f in data.get("flows", [])],
             tools=[ToolProposal(**t) for t in data.get("tools", [])],
+            orchestration=_orchestration_from_dict(data.get("orchestration", {})),
+            multimodal=[MultimodalOpportunity(**m) for m in data.get("multimodal", [])],
+            roadmap=Roadmap(phases=[Phase(**ph) for ph in data.get("roadmap", {}).get("phases", [])]),
             meta=dict(data.get("meta", {})),
             schema_version=version,
         )
+
+
+def _orchestration_from_dict(o: dict[str, Any]) -> Orchestration:
+    coord = o.get("coordinator")
+    return Orchestration(
+        coordinator=Agent(**coord) if coord else None,
+        agents=[Agent(**a) for a in o.get("agents", [])],
+        approvals=[ApprovalPoint(**ap) for ap in o.get("approvals", [])],
+        notes=o.get("notes", ""),
+    )
 
 
 def _flow_from_dict(f: dict[str, Any]) -> Flow:

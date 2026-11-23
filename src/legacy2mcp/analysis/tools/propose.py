@@ -28,7 +28,9 @@ def tool_name(method: str | None, path: str | None, used: set[str]) -> str:
     segs = [s for s in (path or "").strip("/").split("/") if s and s.lower() not in _SKIP_SEGMENTS]
     verb = _METHOD_VERB.get(method or "", (method or "call").lower())
     # POST /invoices/{id}/refund -> refund_invoices_by_id: the trailing literal is the action.
-    if method == "POST" and len(segs) >= 2 and not segs[-1].startswith("{") and segs[-2].startswith("{"):
+    # POST /auth/login -> login_auth: a singular trailing literal reads as the action.
+    if method == "POST" and segs and not segs[-1].startswith("{") and (
+            (len(segs) >= 2 and segs[-2].startswith("{")) or not segs[-1].endswith("s")):
         verb, segs = segs[-1], segs[:-1]
     elif method == "GET" and segs and not segs[-1].startswith("{") and segs[-1].endswith("s"):
         verb = "list"
