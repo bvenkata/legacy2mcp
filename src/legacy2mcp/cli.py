@@ -121,8 +121,13 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
     print(f"Entry points: {s.entry_points}   Functions: {s.functions}")
     if s.side_effects:
         print("Side effects: " + ", ".join(f"{k}={v}" for k, v in s.side_effects.items()))
+    g = analysis.graph
+    print(f"Graph: {len(g.call_edges)} internal call edges, {len(g.module_edges)} module dependencies, "
+          f"{len(g.resources)} data resources")
     if analysis.scan.excluded:
         print("Excluded: " + ", ".join(f"{k}={v}" for k, v in analysis.scan.excluded.items()))
+    for note in analysis.scan.notes:
+        print(f"note: {note}", file=sys.stderr)
     parse_errors = [m.path for m in analysis.modules if m.parse_error]
     if parse_errors:
         print(f"warning: {len(parse_errors)} file(s) could not be parsed: {', '.join(parse_errors[:5])}"
@@ -772,9 +777,10 @@ def main() -> None:
     analyze_parser = subparsers.add_parser(
         "analyze",
         help=(
-            "Statically analyze a local Python codebase (JavaScript/TypeScript coming) "
-            "into analysis.json: languages, frameworks, entry points (routes, CLI "
-            "commands, jobs, message handlers), functions, calls and side effects. "
+            "Statically analyze a local Python or JavaScript/TypeScript codebase into "
+            "analysis.json: languages, frameworks, entry points (routes, CLI commands, "
+            "jobs, message handlers), functions, side effects, and call / module / "
+            "data-access graphs. "
             "Runs entirely on this machine; nothing is executed or sent anywhere."
         ),
     )

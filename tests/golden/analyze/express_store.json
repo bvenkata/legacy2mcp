@@ -1,0 +1,1221 @@
+{
+  "schema_version": "1",
+  "project": "express_store",
+  "summary": {
+    "files": 11,
+    "lines": 152,
+    "languages": {
+      "javascript": {
+        "files": 11,
+        "lines": 152
+      }
+    },
+    "frameworks": [
+      "express"
+    ],
+    "entry_points": 10,
+    "functions": 14,
+    "side_effects": {
+      "auth": 3,
+      "db": 9,
+      "email": 1,
+      "http_out": 1,
+      "payment": 2,
+      "queue": 1
+    }
+  },
+  "scan": {
+    "included_files": 11,
+    "excluded": {
+      "tests": 1
+    },
+    "ignore_files": [],
+    "exclude_patterns": [],
+    "notes": []
+  },
+  "modules": [
+    {
+      "path": "bin/cli.js",
+      "language": "javascript",
+      "name": "bin/cli",
+      "lines": 12,
+      "imports": {
+        "program": "commander.program",
+        "refundOrder": "src/services/payments.refundOrder"
+      },
+      "exports": {},
+      "functions": [
+        {
+          "qualname": "<cli refund>",
+          "line": 8,
+          "end_line": 10,
+          "params": [
+            {
+              "name": "orderId",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "src/services/payments.refundOrder"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/app.js",
+      "language": "javascript",
+      "name": "src/app",
+      "lines": 12,
+      "imports": {
+        "authRouter": "src/routes/auth",
+        "express": "express",
+        "ordersRouter": "src/routes/orders"
+      },
+      "exports": {
+        "default": "app"
+      },
+      "functions": [
+        {
+          "qualname": "<GET /health>",
+          "line": 10,
+          "end_line": 10,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "res.json"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/controllers/orders.js",
+      "language": "javascript",
+      "name": "src/controllers/orders",
+      "lines": 29,
+      "imports": {
+        "db": "src/db",
+        "emailQueue": "src/queues.emailQueue"
+      },
+      "exports": {
+        "create": "create",
+        "get": "get",
+        "list": "list",
+        "remove": "remove"
+      },
+      "functions": [
+        {
+          "qualname": "list",
+          "line": 5,
+          "end_line": 9,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "status",
+              "type": null,
+              "required": false,
+              "location": "query"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "res.json",
+            "src/db.query"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "src/db.query",
+              "line": 7,
+              "detail": "orders"
+            }
+          ],
+          "docstring": "List orders, optionally filtered by status.",
+          "is_async": true,
+          "http_methods": []
+        },
+        {
+          "qualname": "get",
+          "line": 11,
+          "end_line": 14,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "id",
+              "type": null,
+              "required": true,
+              "location": "path"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "res.json",
+            "src/db.query"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "src/db.query",
+              "line": 12,
+              "detail": "orders"
+            }
+          ],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        },
+        {
+          "qualname": "create",
+          "line": 17,
+          "end_line": 22,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "email",
+              "type": null,
+              "required": false,
+              "location": "body"
+            },
+            {
+              "name": "items",
+              "type": null,
+              "required": false,
+              "location": "body"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "res.status",
+            "res.status().json",
+            "src/db.query",
+            "src/queues.emailQueue.add"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "src/db.query",
+              "line": 19,
+              "detail": "orders"
+            },
+            {
+              "kind": "queue",
+              "op": "write",
+              "call": "src/queues.emailQueue.add",
+              "line": 20,
+              "detail": "emailQueue"
+            }
+          ],
+          "docstring": "Create an order and queue a confirmation email.",
+          "is_async": true,
+          "http_methods": []
+        },
+        {
+          "qualname": "remove",
+          "line": 24,
+          "end_line": 27,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "id",
+              "type": null,
+              "required": true,
+              "location": "path"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "res.status",
+            "res.status().end",
+            "src/db.query"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "src/db.query",
+              "line": 25,
+              "detail": "orders"
+            }
+          ],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/db.js",
+      "language": "javascript",
+      "name": "src/db",
+      "lines": 5,
+      "imports": {
+        "Pool": "pg.Pool"
+      },
+      "exports": {
+        "default": "pool"
+      },
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/jobs/cleanup.js",
+      "language": "javascript",
+      "name": "src/jobs/cleanup",
+      "lines": 6,
+      "imports": {
+        "cron": "node-cron",
+        "db": "src/db"
+      },
+      "exports": {},
+      "functions": [
+        {
+          "qualname": "<cron 0 3 * * *>",
+          "line": 4,
+          "end_line": 6,
+          "params": [],
+          "decorators": [],
+          "calls": [
+            "src/db.query"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "src/db.query",
+              "line": 5,
+              "detail": "carts"
+            }
+          ],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/middleware/auth.js",
+      "language": "javascript",
+      "name": "src/middleware/auth",
+      "lines": 9,
+      "imports": {
+        "jwt": "jsonwebtoken"
+      },
+      "exports": {
+        "requireAuth": "requireAuth"
+      },
+      "functions": [
+        {
+          "qualname": "requireAuth",
+          "line": 3,
+          "end_line": 7,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "next",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "jsonwebtoken.verify",
+            "next"
+          ],
+          "side_effects": [
+            {
+              "kind": "auth",
+              "op": "read",
+              "call": "jsonwebtoken.verify",
+              "line": 5,
+              "detail": ""
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/queues.js",
+      "language": "javascript",
+      "name": "src/queues",
+      "lines": 5,
+      "imports": {
+        "Queue": "bullmq.Queue"
+      },
+      "exports": {
+        "emailQueue": "emailQueue"
+      },
+      "functions": [],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/routes/auth.js",
+      "language": "javascript",
+      "name": "src/routes/auth",
+      "lines": 16,
+      "imports": {
+        "bcrypt": "bcrypt",
+        "db": "src/db",
+        "express": "express",
+        "jwt": "jsonwebtoken"
+      },
+      "exports": {
+        "default": "router"
+      },
+      "functions": [
+        {
+          "qualname": "<POST /login>",
+          "line": 8,
+          "end_line": 14,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "email",
+              "type": null,
+              "required": false,
+              "location": "body"
+            },
+            {
+              "name": "password",
+              "type": null,
+              "required": false,
+              "location": "body"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "bcrypt.compare",
+            "jsonwebtoken.sign",
+            "res.json",
+            "res.status",
+            "res.status().end",
+            "src/db.query"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "src/db.query",
+              "line": 10,
+              "detail": "users"
+            },
+            {
+              "kind": "auth",
+              "op": "read",
+              "call": "bcrypt.compare",
+              "line": 11,
+              "detail": ""
+            },
+            {
+              "kind": "auth",
+              "op": "write",
+              "call": "jsonwebtoken.sign",
+              "line": 13,
+              "detail": ""
+            }
+          ],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/routes/orders.js",
+      "language": "javascript",
+      "name": "src/routes/orders",
+      "lines": 20,
+      "imports": {
+        "express": "express",
+        "orders": "src/controllers/orders",
+        "payments": "src/services/payments",
+        "requireAuth": "src/middleware/auth.requireAuth"
+      },
+      "exports": {
+        "default": "router"
+      },
+      "functions": [
+        {
+          "qualname": "<POST /{id}/pay>",
+          "line": 12,
+          "end_line": 16,
+          "params": [
+            {
+              "name": "req",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "res",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "id",
+              "type": null,
+              "required": true,
+              "location": "path"
+            },
+            {
+              "name": "paymentMethodId",
+              "type": null,
+              "required": false,
+              "location": "body"
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "res.json",
+            "src/services/payments.chargeOrder"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/services/payments.js",
+      "language": "javascript",
+      "name": "src/services/payments",
+      "lines": 30,
+      "imports": {
+        "Stripe": "stripe",
+        "axios": "axios",
+        "db": "src/db"
+      },
+      "exports": {
+        "chargeOrder": "chargeOrder",
+        "refundOrder": "refundOrder"
+      },
+      "functions": [
+        {
+          "qualname": "chargeOrder",
+          "line": 8,
+          "end_line": 19,
+          "params": [
+            {
+              "name": "orderId",
+              "type": null,
+              "required": true,
+              "location": null
+            },
+            {
+              "name": "paymentMethodId",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "notifyWarehouse",
+            "src/db.query",
+            "stripe().paymentIntents.create"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "src/db.query",
+              "line": 9,
+              "detail": "orders"
+            },
+            {
+              "kind": "payment",
+              "op": "write",
+              "call": "stripe().paymentIntents.create",
+              "line": 10,
+              "detail": "stripe"
+            },
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "src/db.query",
+              "line": 16,
+              "detail": "orders"
+            }
+          ],
+          "docstring": "Charge the order total and hand the order to the warehouse.",
+          "is_async": true,
+          "http_methods": []
+        },
+        {
+          "qualname": "refundOrder",
+          "line": 21,
+          "end_line": 24,
+          "params": [
+            {
+              "name": "orderId",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "src/db.query",
+            "stripe().refunds.create"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "src/db.query",
+              "line": 22,
+              "detail": "orders"
+            },
+            {
+              "kind": "payment",
+              "op": "write",
+              "call": "stripe().refunds.create",
+              "line": 23,
+              "detail": "stripe"
+            }
+          ],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        },
+        {
+          "qualname": "notifyWarehouse",
+          "line": 26,
+          "end_line": 28,
+          "params": [
+            {
+              "name": "orderId",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "axios.post"
+          ],
+          "side_effects": [
+            {
+              "kind": "http_out",
+              "op": "write",
+              "call": "axios.post",
+              "line": 27,
+              "detail": "https://warehouse.example.com/v1/shipments"
+            }
+          ],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    },
+    {
+      "path": "src/workers/email.js",
+      "language": "javascript",
+      "name": "src/workers/email",
+      "lines": 8,
+      "imports": {
+        "Worker": "bullmq.Worker",
+        "nodemailer": "nodemailer"
+      },
+      "exports": {},
+      "functions": [
+        {
+          "qualname": "<worker emails>",
+          "line": 6,
+          "end_line": 8,
+          "params": [
+            {
+              "name": "job",
+              "type": null,
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "nodemailer.createTransport().sendMail"
+          ],
+          "side_effects": [
+            {
+              "kind": "email",
+              "op": "write",
+              "call": "nodemailer.createTransport().sendMail",
+              "line": 7,
+              "detail": ""
+            }
+          ],
+          "docstring": "",
+          "is_async": true,
+          "http_methods": []
+        }
+      ],
+      "classes": [],
+      "parse_error": null
+    }
+  ],
+  "entry_points": [
+    {
+      "kind": "cli_command",
+      "framework": "commander",
+      "handler": "bin/cli.js::<cli refund>",
+      "file": "bin/cli.js",
+      "line": 5,
+      "name": "cli refund",
+      "method": null,
+      "path": null,
+      "params": [
+        {
+          "name": "orderId",
+          "type": null,
+          "required": true,
+          "location": null
+        }
+      ],
+      "middleware": []
+    },
+    {
+      "kind": "http_route",
+      "framework": "express",
+      "handler": "src/routes/auth.js::<POST /login>",
+      "file": "src/routes/auth.js",
+      "line": 8,
+      "name": "POST /api/auth/login",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "params": [
+        {
+          "name": "email",
+          "type": null,
+          "required": false,
+          "location": "body"
+        },
+        {
+          "name": "password",
+          "type": null,
+          "required": false,
+          "location": "body"
+        }
+      ],
+      "middleware": []
+    },
+    {
+      "kind": "http_route",
+      "framework": "express",
+      "handler": "src/controllers/orders.js::list",
+      "file": "src/routes/orders.js",
+      "line": 8,
+      "name": "GET /api/orders",
+      "method": "GET",
+      "path": "/api/orders",
+      "params": [
+        {
+          "name": "status",
+          "type": null,
+          "required": false,
+          "location": "query"
+        }
+      ],
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "express",
+      "handler": "src/controllers/orders.js::create",
+      "file": "src/routes/orders.js",
+      "line": 10,
+      "name": "POST /api/orders",
+      "method": "POST",
+      "path": "/api/orders",
+      "params": [
+        {
+          "name": "email",
+          "type": null,
+          "required": false,
+          "location": "body"
+        },
+        {
+          "name": "items",
+          "type": null,
+          "required": false,
+          "location": "body"
+        }
+      ],
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "express",
+      "handler": "src/controllers/orders.js::remove",
+      "file": "src/routes/orders.js",
+      "line": 18,
+      "name": "DELETE /api/orders/{id}",
+      "method": "DELETE",
+      "path": "/api/orders/{id}",
+      "params": [
+        {
+          "name": "id",
+          "type": null,
+          "required": true,
+          "location": "path"
+        }
+      ],
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "express",
+      "handler": "src/controllers/orders.js::get",
+      "file": "src/routes/orders.js",
+      "line": 9,
+      "name": "GET /api/orders/{id}",
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "params": [
+        {
+          "name": "id",
+          "type": null,
+          "required": true,
+          "location": "path"
+        }
+      ],
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "express",
+      "handler": "src/routes/orders.js::<POST /{id}/pay>",
+      "file": "src/routes/orders.js",
+      "line": 12,
+      "name": "POST /api/orders/{id}/pay",
+      "method": "POST",
+      "path": "/api/orders/{id}/pay",
+      "params": [
+        {
+          "name": "id",
+          "type": null,
+          "required": true,
+          "location": "path"
+        },
+        {
+          "name": "paymentMethodId",
+          "type": null,
+          "required": false,
+          "location": "body"
+        }
+      ],
+      "middleware": [
+        "src/middleware/auth.requireAuth"
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "express",
+      "handler": "src/app.js::<GET /health>",
+      "file": "src/app.js",
+      "line": 10,
+      "name": "GET /health",
+      "method": "GET",
+      "path": "/health",
+      "params": [],
+      "middleware": []
+    },
+    {
+      "kind": "message_handler",
+      "framework": "bullmq",
+      "handler": "src/workers/email.js::<worker emails>",
+      "file": "src/workers/email.js",
+      "line": 6,
+      "name": "worker emails",
+      "method": null,
+      "path": null,
+      "params": [
+        {
+          "name": "job",
+          "type": null,
+          "required": true,
+          "location": null
+        }
+      ],
+      "middleware": []
+    },
+    {
+      "kind": "scheduled_job",
+      "framework": "node-cron",
+      "handler": "src/jobs/cleanup.js::<cron 0 3 * * *>",
+      "file": "src/jobs/cleanup.js",
+      "line": 4,
+      "name": "job 0 3 * * *",
+      "method": null,
+      "path": null,
+      "params": [],
+      "middleware": []
+    }
+  ],
+  "graph": {
+    "call_edges": [
+      {
+        "source": "bin/cli.js::<cli refund>",
+        "target": "src/services/payments.js::refundOrder",
+        "kind": "call"
+      },
+      {
+        "source": "src/routes/orders.js::<POST /{id}/pay>",
+        "target": "src/services/payments.js::chargeOrder",
+        "kind": "call"
+      },
+      {
+        "source": "src/services/payments.js::chargeOrder",
+        "target": "src/services/payments.js::notifyWarehouse",
+        "kind": "call"
+      }
+    ],
+    "module_edges": [
+      {
+        "source": "bin/cli.js",
+        "target": "src/services/payments.js",
+        "names": [
+          "refundOrder"
+        ]
+      },
+      {
+        "source": "src/app.js",
+        "target": "src/routes/auth.js",
+        "names": [
+          "authRouter"
+        ]
+      },
+      {
+        "source": "src/app.js",
+        "target": "src/routes/orders.js",
+        "names": [
+          "ordersRouter"
+        ]
+      },
+      {
+        "source": "src/controllers/orders.js",
+        "target": "src/db.js",
+        "names": [
+          "db"
+        ]
+      },
+      {
+        "source": "src/controllers/orders.js",
+        "target": "src/queues.js",
+        "names": [
+          "emailQueue"
+        ]
+      },
+      {
+        "source": "src/jobs/cleanup.js",
+        "target": "src/db.js",
+        "names": [
+          "db"
+        ]
+      },
+      {
+        "source": "src/routes/auth.js",
+        "target": "src/db.js",
+        "names": [
+          "db"
+        ]
+      },
+      {
+        "source": "src/routes/orders.js",
+        "target": "src/controllers/orders.js",
+        "names": [
+          "orders"
+        ]
+      },
+      {
+        "source": "src/routes/orders.js",
+        "target": "src/middleware/auth.js",
+        "names": [
+          "requireAuth"
+        ]
+      },
+      {
+        "source": "src/routes/orders.js",
+        "target": "src/services/payments.js",
+        "names": [
+          "payments"
+        ]
+      },
+      {
+        "source": "src/services/payments.js",
+        "target": "src/db.js",
+        "names": [
+          "db"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "id": "auth",
+        "kind": "auth",
+        "label": "auth / credentials"
+      },
+      {
+        "id": "db:carts",
+        "kind": "db",
+        "label": "carts"
+      },
+      {
+        "id": "db:orders",
+        "kind": "db",
+        "label": "orders"
+      },
+      {
+        "id": "db:users",
+        "kind": "db",
+        "label": "users"
+      },
+      {
+        "id": "email",
+        "kind": "email",
+        "label": "email"
+      },
+      {
+        "id": "http:warehouse.example.com",
+        "kind": "http_out",
+        "label": "warehouse.example.com"
+      },
+      {
+        "id": "payment:stripe",
+        "kind": "payment",
+        "label": "stripe"
+      },
+      {
+        "id": "queue:emailQueue",
+        "kind": "queue",
+        "label": "emailQueue"
+      }
+    ],
+    "data_edges": [
+      {
+        "function": "src/controllers/orders.js::create",
+        "resource": "db:orders",
+        "op": "write"
+      },
+      {
+        "function": "src/controllers/orders.js::create",
+        "resource": "queue:emailQueue",
+        "op": "write"
+      },
+      {
+        "function": "src/controllers/orders.js::get",
+        "resource": "db:orders",
+        "op": "read"
+      },
+      {
+        "function": "src/controllers/orders.js::list",
+        "resource": "db:orders",
+        "op": "read"
+      },
+      {
+        "function": "src/controllers/orders.js::remove",
+        "resource": "db:orders",
+        "op": "write"
+      },
+      {
+        "function": "src/jobs/cleanup.js::<cron 0 3 * * *>",
+        "resource": "db:carts",
+        "op": "write"
+      },
+      {
+        "function": "src/middleware/auth.js::requireAuth",
+        "resource": "auth",
+        "op": "read"
+      },
+      {
+        "function": "src/routes/auth.js::<POST /login>",
+        "resource": "auth",
+        "op": "read"
+      },
+      {
+        "function": "src/routes/auth.js::<POST /login>",
+        "resource": "auth",
+        "op": "write"
+      },
+      {
+        "function": "src/routes/auth.js::<POST /login>",
+        "resource": "db:users",
+        "op": "read"
+      },
+      {
+        "function": "src/services/payments.js::chargeOrder",
+        "resource": "db:orders",
+        "op": "read"
+      },
+      {
+        "function": "src/services/payments.js::chargeOrder",
+        "resource": "db:orders",
+        "op": "write"
+      },
+      {
+        "function": "src/services/payments.js::chargeOrder",
+        "resource": "payment:stripe",
+        "op": "write"
+      },
+      {
+        "function": "src/services/payments.js::notifyWarehouse",
+        "resource": "http:warehouse.example.com",
+        "op": "write"
+      },
+      {
+        "function": "src/services/payments.js::refundOrder",
+        "resource": "db:orders",
+        "op": "read"
+      },
+      {
+        "function": "src/services/payments.js::refundOrder",
+        "resource": "payment:stripe",
+        "op": "write"
+      },
+      {
+        "function": "src/workers/email.js::<worker emails>",
+        "resource": "email",
+        "op": "write"
+      }
+    ],
+    "stats": {
+      "internal_calls": 3,
+      "unresolved_calls": 28,
+      "external_packages": [
+        "axios",
+        "bcrypt",
+        "bullmq",
+        "commander",
+        "express",
+        "jsonwebtoken",
+        "node-cron",
+        "nodemailer",
+        "pg",
+        "stripe"
+      ]
+    }
+  }
+}

@@ -16,6 +16,7 @@ from pathlib import Path
 from legacy2mcp.analysis import frameworks as fw_detect
 from legacy2mcp.analysis.analyzers import Analyzer, FileResult, Mount, default_analyzers
 from legacy2mcp.analysis.analyzers.python import join_route
+from legacy2mcp.analysis.graph import Resolver, build_graph
 from legacy2mcp.analysis.model import Analysis, EntryPoint, LanguageStats, Module, Param, ScanInfo, Summary
 from legacy2mcp.analysis.walk import walk
 
@@ -36,22 +37,30 @@ def run_analysis(
             by_language[lang] = analyzer
 
     results: list[FileResult] = []
+    unparsed: dict[str, int] = {}
     for source in walked.files:
         text = source.path.read_text(encoding="utf-8", errors="replace")
         analyzer = by_language.get(source.language)
         if analyzer is None:
-            # Counted in the summary (size, languages) but not parsed yet.
+            # Counted in the summary (size, languages) but not parsed.
+            unparsed[source.language] = unparsed.get(source.language, 0) + 1
             lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
             results.append(FileResult(module=Module(path=source.rel, language=source.language,
                                                     name=source.rel.rsplit(".", 1)[0], lines=lines)))
             continue
         results.append(analyzer.analyze(source, text))
 
+    notes = [
+        f"{count} {lang} file(s) counted but not parsed: install the analyze extra "
+        f"(pip install \"legacy2mcp[analyze]\") for tree-sitter support."
+        for lang, count in sorted(unparsed.items())
+    ]
     modules = [r.module for r in results]
     mounts = [m for r in results for m in r.mounts]
     entry_points = [e for r in results for e in r.entry_points]
     entry_points = _apply_mounts(entry_points, mounts, modules)
-    entry_points = _resolve_handlers(entry_points, modules)
+    resolver = Resolver(modules)
+    entry_points = _resolve_handlers(entry_points, resolver)
     entry_points = [_locate_params(e) for e in entry_points]
     entry_points.sort(key=lambda e: (e.kind, e.path or "", e.method or "", e.name, e.file, e.line))
 
@@ -66,9 +75,11 @@ def run_analysis(
             excluded=dict(sorted(walked.excluded.items())),
             ignore_files=walked.ignore_files,
             exclude_patterns=list(exclude or []),
+            notes=notes,
         ),
         modules=modules,
         entry_points=entry_points,
+        graph=build_graph(modules, resolver),
         meta={
             "legacy2mcp_version": _version(),
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -114,7 +125,8 @@ def _apply_mounts(entry_points: list[EntryPoint], mounts: list[Mount], modules: 
     """Prefix routes declared in a mounted route table (Django include())."""
     if not mounts:
         return entry_points
-    path_of = {m.name: m.path for m in modules}
+    resolver = Resolver(modules)
+    path_of = {name: m.path for name, m in resolver.by_name.items()}
     # file -> list of (prefix, parent file)
     parents: dict[str, list[tuple[str, str]]] = {}
     for mount in mounts:
@@ -137,51 +149,48 @@ def _apply_mounts(entry_points: list[EntryPoint], mounts: list[Mount], modules: 
             continue
         for prefix in prefixes_for(ep.file):
             path = join_route(prefix, ep.path)
+            if ep.framework == "express" and len(path) > 1:
+                path = path.rstrip("/")  # Express treats "/api/orders/" and "/api/orders" alike
             result.append(replace(ep, path=path, name=f"{ep.method} {path}"))
     return result
 
 
-def _resolve_handlers(entry_points: list[EntryPoint], modules: list[Module]) -> list[EntryPoint]:
-    """Turn dotted handler names into `<file>::<qualname>`, expand class-based
-    views into one entry point per HTTP method, and narrow method "ANY"
-    using what the view function visibly handles."""
-    functions: dict[str, tuple[str, object]] = {}
-    classes: dict[str, tuple[str, object]] = {}
-    for m in modules:
-        for f in m.functions:
-            functions[f"{m.path}::{f.qualname}"] = (m.path, f)
-            if m.name:
-                functions[f"{m.name}.{f.qualname}"] = (m.path, f)
-        for c in m.classes:
-            classes[f"{m.path}::{c.name}"] = (m.path, c)
-            if m.name:
-                classes[f"{m.name}.{c.name}"] = (m.path, c)
-
+def _resolve_handlers(entry_points: list[EntryPoint], resolver: Resolver) -> list[EntryPoint]:
+    """Turn handler names into `<file>::<qualname>`, expand class-based views
+    into one entry point per HTTP method, and narrow method "ANY" using what
+    the view function visibly handles."""
     out: list[EntryPoint] = []
     for ep in entry_points:
-        if ep.handler in classes and ep.kind == "http_route":
-            path, cls = classes[ep.handler]
-            verbs = [v for v in _HTTP_VERBS if v in cls.methods]  # type: ignore[attr-defined]
+        found_cls = resolver.cls(ep.handler) if ep.kind == "http_route" else None
+        if found_cls is not None:
+            mod, cls = found_cls
+            verbs = [v for v in _HTTP_VERBS if v in cls.methods]
             for verb in verbs or ["get"]:
                 method = verb.upper() if ep.method == "ANY" else ep.method
-                qual = f"{cls.name}.{verb}"  # type: ignore[attr-defined]
-                handler = f"{path}::{qual}" if verb in cls.methods else f"{path}::{cls.name}"  # type: ignore[attr-defined]
-                func = functions.get(handler, (None, None))[1]
-                out.append(replace(ep, handler=handler, method=method, name=f"{method} {ep.path}",
-                                   params=list(func.params) if func is not None and not ep.params else ep.params))  # type: ignore[attr-defined]
+                key = f"{mod.path}::{cls.name}.{verb}"
+                func = resolver.functions.get(key)
+                out.append(replace(ep, handler=key if func else f"{mod.path}::{cls.name}", method=method,
+                                   name=f"{method} {ep.path}", params=list(func[1].params) if func else ep.params))
             continue
-        if ep.handler in functions:
-            path, func = functions[ep.handler]
+        key = resolver.function(ep.handler)
+        if key is not None:
+            _, func = resolver.functions[key]
             # The function's params include request-derived inputs
             # (request.args.get(...)) that a decorator alone can't see.
-            ep = replace(ep, handler=f"{path}::{func.qualname}", params=list(func.params))  # type: ignore[attr-defined]
-            if ep.method == "ANY" and func.http_methods:  # type: ignore[attr-defined]
-                for method in func.http_methods:  # type: ignore[attr-defined]
+            ep = replace(ep, handler=key, params=list(func.params))
+            if ep.kind == "http_route" and not ep.middleware:
+                ep = replace(ep, middleware=[d for d in func.decorators if d.split(".")[-1] not in _ROUTE_DECORATORS])
+            if ep.method == "ANY" and func.http_methods:
+                for method in func.http_methods:
                     out.append(replace(ep, method=method, name=f"{method} {ep.path}"))
                 continue
         out.append(ep)
     return out
 
+
+_ROUTE_DECORATORS = {"route", "get", "post", "put", "patch", "delete", "head", "options", "api_view"}
+_JS_FRAMEWORKS = {"express", "nextjs"}
+_JS_PLUMBING = {"req", "res", "request", "response", "next", "ctx", "context"}
 
 _PRIMITIVES = {None, "str", "int", "float", "bool", "Optional[str]", "Optional[int]", "int | None", "str | None",
                "float | None", "bool | None", "list[str]", "list[int]"}
@@ -197,6 +206,8 @@ def _locate_params(ep: EntryPoint) -> EntryPoint:
     path_names = _PATH_PARAM_RE.findall(ep.path)
     params = []
     for p in ep.params:
+        if ep.framework in _JS_FRAMEWORKS and p.location is None:
+            continue  # handler signature (req, res, { params }) is plumbing; inputs come from req.*
         if ep.method in {"GET", "HEAD", "DELETE"} and p.location in {"form", "body"}:
             continue  # read by another method's branch of the same view
         if p.name in path_names:

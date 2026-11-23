@@ -80,6 +80,10 @@ class Module:
     name: str  # dotted module name for Python, path without extension otherwise
     lines: int
     imports: dict[str, str] = field(default_factory=dict)  # local alias -> fully qualified target
+    # JS/TS: exported name -> local qualname ("default" for a default export /
+    # `module.exports = x`). Python modules export every top-level name, so
+    # this stays empty for them.
+    exports: dict[str, str] = field(default_factory=dict)
     functions: list[Function] = field(default_factory=list)
     classes: list[Class] = field(default_factory=list)
     parse_error: str | None = None
@@ -96,6 +100,9 @@ class EntryPoint:
     method: str | None = None
     path: str | None = None
     params: list[Param] = field(default_factory=list)
+    # Middleware / decorators wrapping the handler, as qualified names
+    # (`src/middleware/auth.requireAuth`, `flask_login.login_required`).
+    middleware: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -110,6 +117,7 @@ class ScanInfo:
     excluded: dict[str, int] = field(default_factory=dict)  # reason -> count
     ignore_files: list[str] = field(default_factory=list)
     exclude_patterns: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)  # e.g. a language found but not parsed
 
 
 @dataclass
@@ -124,12 +132,51 @@ class Summary:
 
 
 @dataclass
+class CallEdge:
+    source: str  # "<file>::<qualname>"
+    target: str
+    kind: str = "call"  # "call" | "async" (enqueued, e.g. Celery .delay())
+
+
+@dataclass
+class ModuleEdge:
+    source: str  # module path
+    target: str
+    names: list[str] = field(default_factory=list)  # imported names, sorted
+
+
+@dataclass
+class Resource:
+    id: str  # e.g. "db:Order", "http:api.stripe.com", "payment:stripe"
+    kind: str  # one of SIDE_EFFECT_KINDS
+    label: str
+
+
+@dataclass
+class DataEdge:
+    function: str  # "<file>::<qualname>"
+    resource: str  # Resource.id
+    op: str  # "read" | "write" | "unknown"
+
+
+@dataclass
+class Graph:
+    call_edges: list[CallEdge] = field(default_factory=list)
+    module_edges: list[ModuleEdge] = field(default_factory=list)
+    resources: list[Resource] = field(default_factory=list)
+    data_edges: list[DataEdge] = field(default_factory=list)
+    # internal_calls / unresolved_calls / external_packages counts
+    stats: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class Analysis:
     project: str  # basename of the scanned root
     summary: Summary = field(default_factory=Summary)
     scan: ScanInfo = field(default_factory=ScanInfo)
     modules: list[Module] = field(default_factory=list)
     entry_points: list[EntryPoint] = field(default_factory=list)
+    graph: Graph = field(default_factory=Graph)
     meta: dict[str, Any] = field(default_factory=dict)
     schema_version: str = SCHEMA_VERSION
 
@@ -166,9 +213,20 @@ class Analysis:
                 EntryPoint(**{**e, "params": [Param(**p) for p in e.get("params", [])]})
                 for e in data.get("entry_points", [])
             ],
+            graph=_graph_from_dict(data.get("graph", {})),
             meta=dict(data.get("meta", {})),
             schema_version=version,
         )
+
+
+def _graph_from_dict(g: dict[str, Any]) -> Graph:
+    return Graph(
+        call_edges=[CallEdge(**e) for e in g.get("call_edges", [])],
+        module_edges=[ModuleEdge(**e) for e in g.get("module_edges", [])],
+        resources=[Resource(**r) for r in g.get("resources", [])],
+        data_edges=[DataEdge(**e) for e in g.get("data_edges", [])],
+        stats=dict(g.get("stats", {})),
+    )
 
 
 def _module_from_dict(m: dict[str, Any]) -> Module:
@@ -178,6 +236,7 @@ def _module_from_dict(m: dict[str, Any]) -> Module:
         name=m["name"],
         lines=m["lines"],
         imports=dict(m.get("imports", {})),
+        exports=dict(m.get("exports", {})),
         functions=[
             Function(
                 **{

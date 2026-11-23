@@ -171,3 +171,13 @@ def test_syntax_error_is_recorded_not_raised():
     result = _analyze("broken.py", "def f(:\n")
     assert result.module.parse_error.startswith("SyntaxError")
     assert result.module.functions == []
+
+
+def test_non_literal_detail_is_empty_string():
+    result = _analyze("w.py", """
+        def f(path, sql, cursor):
+            open(path, "w")
+            cursor.execute(sql)
+    """)
+    func = result.module.functions[0]
+    assert [(e.kind, e.detail) for e in func.side_effects] == [("file", ""), ("db", "")]

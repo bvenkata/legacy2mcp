@@ -176,7 +176,8 @@ milestone by milestone in [v2-gap-analysis.md](v2-gap-analysis.md):
   (Flask, FastAPI, Django, click/typer, Celery, APScheduler), versioned
   `analysis.json`, `legacy2mcp analyze --no-ai`. ✅ on `feat/v2-analyze`
 - M2 -- JavaScript/TypeScript analyzer (Express, Next.js API routes) via
-  tree-sitter, call graph and data-access graph.
+  tree-sitter, call graph, module graph and data-access graph. ✅ on
+  `feat/v2-analyze`
 - M3 -- flow detection from entry points, rule-based risk classification.
 - M4 -- interactive single-file HTML report (`legacy2mcp report`).
 - M5 -- AI provider interface (Anthropic, OpenAI), secret redaction,

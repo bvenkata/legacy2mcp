@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `--exclude`, and skips tests/migrations unless `--include-tests` is
   passed. It needs the new `legacy2mcp[analyze]` extra (`pathspec`). No
   existing command changes.
+- **`analyze` reads JavaScript and TypeScript (milestone 2)** via
+  tree-sitter. It finds Express routes, `router.route()` chains and
+  `app.use()` mounts, Next.js pages- and app-router API routes, node-cron
+  jobs, BullMQ workers, amqplib/kafkajs consumers and commander commands,
+  plus Prisma, Mongoose/Sequelize, raw SQL, Stripe, nodemailer/Resend,
+  axios/fetch and fs side effects. Entry points now record their middleware
+  and decorators. `analysis.json` gains a `graph` section: internal call
+  edges (including Celery `.delay()` as async edges), module dependencies,
+  and function-to-resource data-access edges. The `analyze` extra now also
+  installs `tree-sitter` with its JavaScript and TypeScript grammars. Without
+  them, JS/TS files are still counted and the run says so.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed

@@ -37,7 +37,8 @@
       ".gitignore",
       ".legacy2mcpignore"
     ],
-    "exclude_patterns": []
+    "exclude_patterns": [],
+    "notes": []
   },
   "modules": [
     {
@@ -50,6 +51,7 @@
         "db": "shop.models.db",
         "orders_bp": "shop.orders.bp"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "create_app",
@@ -80,6 +82,7 @@
         "Order": "shop.models.Order",
         "click": "click"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "cli",
@@ -140,6 +143,7 @@
       "imports": {
         "SQLAlchemy": "flask_sqlalchemy.SQLAlchemy"
       },
+      "exports": {},
       "functions": [],
       "classes": [
         {
@@ -168,6 +172,7 @@
         "send_receipt": "shop.services.notify.send_receipt",
         "sync_inventory": "shop.tasks.sync_inventory"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "list_orders",
@@ -379,6 +384,7 @@
       "name": "shop.services",
       "lines": 0,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -392,6 +398,7 @@
         "EmailMessage": "email.message.EmailMessage",
         "smtplib": "smtplib"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "send_receipt",
@@ -437,6 +444,7 @@
       "imports": {
         "stripe": "stripe"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "charge_card",
@@ -516,6 +524,7 @@
         "Celery": "celery.Celery",
         "requests": "requests"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "sync_inventory",
@@ -563,7 +572,8 @@
       "name": "cli export-orders",
       "method": null,
       "path": null,
-      "params": []
+      "params": [],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -581,7 +591,8 @@
           "required": false,
           "location": "query"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -592,7 +603,8 @@
       "name": "POST /api/orders/",
       "method": "POST",
       "path": "/api/orders/",
-      "params": []
+      "params": [],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -610,7 +622,8 @@
           "required": true,
           "location": "path"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -628,7 +641,8 @@
           "required": true,
           "location": "path"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -652,7 +666,8 @@
           "required": true,
           "location": "query"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "message_handler",
@@ -670,7 +685,202 @@
           "required": true,
           "location": null
         }
+      ],
+      "middleware": []
+    }
+  ],
+  "graph": {
+    "call_edges": [
+      {
+        "source": "shop/orders.py::checkout",
+        "target": "shop/services/notify.py::send_receipt",
+        "kind": "call"
+      },
+      {
+        "source": "shop/orders.py::checkout",
+        "target": "shop/services/payments.py::charge_card",
+        "kind": "call"
+      },
+      {
+        "source": "shop/orders.py::create_order",
+        "target": "shop/tasks.py::sync_inventory",
+        "kind": "async"
+      }
+    ],
+    "module_edges": [
+      {
+        "source": "shop/__init__.py",
+        "target": "shop/models.py",
+        "names": [
+          "db"
+        ]
+      },
+      {
+        "source": "shop/__init__.py",
+        "target": "shop/orders.py",
+        "names": [
+          "orders_bp"
+        ]
+      },
+      {
+        "source": "shop/cli.py",
+        "target": "shop/models.py",
+        "names": [
+          "Order"
+        ]
+      },
+      {
+        "source": "shop/orders.py",
+        "target": "shop/models.py",
+        "names": [
+          "Order",
+          "db"
+        ]
+      },
+      {
+        "source": "shop/orders.py",
+        "target": "shop/services/notify.py",
+        "names": [
+          "send_receipt"
+        ]
+      },
+      {
+        "source": "shop/orders.py",
+        "target": "shop/services/payments.py",
+        "names": [
+          "charge_card"
+        ]
+      },
+      {
+        "source": "shop/orders.py",
+        "target": "shop/tasks.py",
+        "names": [
+          "sync_inventory"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "id": "db",
+        "kind": "db",
+        "label": "database"
+      },
+      {
+        "id": "db:Order",
+        "kind": "db",
+        "label": "Order"
+      },
+      {
+        "id": "email",
+        "kind": "email",
+        "label": "email"
+      },
+      {
+        "id": "file:orders.csv",
+        "kind": "file",
+        "label": "orders.csv"
+      },
+      {
+        "id": "http:warehouse.internal",
+        "kind": "http_out",
+        "label": "warehouse.internal"
+      },
+      {
+        "id": "payment:stripe",
+        "kind": "payment",
+        "label": "stripe"
+      },
+      {
+        "id": "queue:sync_inventory",
+        "kind": "queue",
+        "label": "sync_inventory"
+      }
+    ],
+    "data_edges": [
+      {
+        "function": "shop/cli.py::export_orders",
+        "resource": "db:Order",
+        "op": "read"
+      },
+      {
+        "function": "shop/cli.py::export_orders",
+        "resource": "file:orders.csv",
+        "op": "write"
+      },
+      {
+        "function": "shop/orders.py::checkout",
+        "resource": "db",
+        "op": "write"
+      },
+      {
+        "function": "shop/orders.py::checkout",
+        "resource": "db:Order",
+        "op": "read"
+      },
+      {
+        "function": "shop/orders.py::create_order",
+        "resource": "db",
+        "op": "write"
+      },
+      {
+        "function": "shop/orders.py::create_order",
+        "resource": "queue:sync_inventory",
+        "op": "write"
+      },
+      {
+        "function": "shop/orders.py::delete_order",
+        "resource": "db",
+        "op": "write"
+      },
+      {
+        "function": "shop/orders.py::delete_order",
+        "resource": "db:Order",
+        "op": "read"
+      },
+      {
+        "function": "shop/orders.py::get_order",
+        "resource": "db:Order",
+        "op": "read"
+      },
+      {
+        "function": "shop/orders.py::list_orders",
+        "resource": "db:Order",
+        "op": "read"
+      },
+      {
+        "function": "shop/services/notify.py::send_receipt",
+        "resource": "email",
+        "op": "write"
+      },
+      {
+        "function": "shop/services/payments.py::charge_card",
+        "resource": "payment:stripe",
+        "op": "write"
+      },
+      {
+        "function": "shop/services/payments.py::refund",
+        "resource": "payment:stripe",
+        "op": "write"
+      },
+      {
+        "function": "shop/tasks.py::sync_inventory",
+        "resource": "http:warehouse.internal",
+        "op": "write"
+      }
+    ],
+    "stats": {
+      "internal_calls": 3,
+      "unresolved_calls": 27,
+      "external_packages": [
+        "celery",
+        "click",
+        "email",
+        "flask",
+        "flask_sqlalchemy",
+        "requests",
+        "smtplib",
+        "stripe"
       ]
     }
-  ]
+  }
 }

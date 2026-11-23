@@ -19,6 +19,7 @@ import ast
 import re
 
 from legacy2mcp.analysis.analyzers.base import FileResult, Mount
+from legacy2mcp.analysis.analyzers.common import sql_effect
 from legacy2mcp.analysis.model import Class, EntryPoint, Function, Module, Param, SideEffect
 from legacy2mcp.analysis.walk import SourceFile
 
@@ -49,7 +50,6 @@ _MONGO_WRITE = {
     "insert_one", "insert_many", "update_one", "update_many", "delete_one", "delete_many",
     "replace_one", "find_one_and_update", "find_one_and_delete",
 }
-_SQL_WRITE_VERBS = {"INSERT", "UPDATE", "DELETE", "MERGE", "DROP", "TRUNCATE", "ALTER", "CREATE", "REPLACE"}
 _FILE_WRITE_QUALIFIED = {"os.remove", "os.unlink", "os.rename", "os.makedirs", "shutil.rmtree", "shutil.move", "shutil.copy"}
 _FILE_WRITE_METHODS = {"write_text", "write_bytes", "unlink", "rmdir"}
 _REQUEST_CONTAINERS = {
@@ -150,8 +150,8 @@ def classify_call(call: ast.Call, name: str, imports: _Imports) -> SideEffect | 
     receiver = ".".join(segs[:-1])
     line = call.lineno
 
-    def effect(kind: str, op: str, detail: str = "") -> SideEffect:
-        return SideEffect(kind=kind, op=op, call=qualified, line=line, detail=detail)
+    def effect(kind: str, op: str, detail: str | None = "") -> SideEffect:
+        return SideEffect(kind=kind, op=op, call=qualified, line=line, detail=detail or "")
 
     if qualified.startswith(_PAYMENT_LIBS):
         return effect("payment", "read" if last in _PAYMENT_READ_VERBS else "write", segs[0])
@@ -196,15 +196,13 @@ def classify_call(call: ast.Call, name: str, imports: _Imports) -> SideEffect | 
         return effect("db", "write", segs[-2] if len(segs) > 1 else "")
     if last in {"execute", "executemany"} and _DB_RECEIVER_HINT.search(receiver):
         sql = _str_const(call.args[0]) if call.args else None
-        if sql:
-            verb = sql.strip().split(None, 1)[0].upper() if sql.strip() else ""
-            if verb in _SQL_WRITE_VERBS:
-                return effect("db", "write", verb)
-            if verb in {"SELECT", "WITH"}:
-                return effect("db", "read", verb)
+        parsed = sql_effect(sql) if sql else None
+        if parsed:
+            return effect("db", *parsed)
         return effect("db", "unknown")
     if last in {"save", "delete"} and receiver and call.args == [] and not receiver.startswith(("self", "os", "Path")):
-        return effect("db", "write", receiver.split(".")[-1])
+        owner = receiver.split(".")[-1]
+        return effect("db", "write", owner if owner[:1].isupper() else "")
 
     # Files
     if qualified == "open" or last == "open" and receiver in {"io", "builtins"}:
@@ -237,12 +235,16 @@ class _FunctionVisitor(ast.NodeVisitor):
         if name:
             self.calls.add(self.imports.qualify(name))
             # `Order.query.filter_by(...).all()`: tag only the outermost call of a
-            # chain, so one statement doesn't count as several side effects.
+            # chain that matches a rule, so one statement doesn't count as several
+            # side effects -- but fall through to inner calls when the outer one
+            # (`.first()` on `session.execute(...)`) matches nothing.
+            effect = None
             if id(node) not in self._chained:
                 effect = classify_call(node, name, self.imports)
                 if effect:
                     self.effects.append(effect)
-            inner = node.func.value if isinstance(node.func, ast.Attribute) else None
+            suppress_inner = effect is not None or id(node) in self._chained
+            inner = node.func.value if suppress_inner and isinstance(node.func, ast.Attribute) else None
             while isinstance(inner, (ast.Call, ast.Attribute, ast.Subscript)):
                 if isinstance(inner, ast.Call):
                     self._chained.add(id(inner))

@@ -17,7 +17,7 @@
     "entry_points": 6,
     "functions": 8,
     "side_effects": {
-      "db": 5,
+      "db": 8,
       "email": 3,
       "http_out": 1,
       "payment": 1
@@ -27,7 +27,8 @@
     "included_files": 8,
     "excluded": {},
     "ignore_files": [],
-    "exclude_patterns": []
+    "exclude_patterns": [],
+    "notes": []
   },
   "modules": [
     {
@@ -36,6 +37,7 @@
       "name": "app",
       "lines": 0,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -49,6 +51,7 @@
         "create_engine": "sqlalchemy.create_engine",
         "sessionmaker": "sqlalchemy.orm.sessionmaker"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "get_session",
@@ -78,6 +81,7 @@
         "SessionLocal": "app.db.SessionLocal",
         "send_email": "app.mailer.send_email"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "send_overdue_reminders",
@@ -92,6 +96,13 @@
             "session.execute().all"
           ],
           "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "session.execute",
+              "line": 8,
+              "detail": "invoices"
+            },
             {
               "kind": "email",
               "op": "write",
@@ -116,6 +127,7 @@
       "imports": {
         "smtplib": "smtplib"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "send_email",
@@ -181,6 +193,7 @@
         "invoices": "app.routers.invoices",
         "send_overdue_reminders": "app.jobs.send_overdue_reminders"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "health",
@@ -208,6 +221,7 @@
       "imports": {
         "BaseModel": "pydantic.BaseModel"
       },
+      "exports": {},
       "functions": [],
       "classes": [
         {
@@ -237,6 +251,7 @@
       "name": "app.routers",
       "lines": 0,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -255,6 +270,7 @@
         "httpx": "httpx",
         "stripe": "stripe"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "read_invoice",
@@ -275,7 +291,15 @@
             "session.execute",
             "session.execute().first"
           ],
-          "side_effects": [],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "session.execute",
+              "line": 14,
+              "detail": "invoices"
+            }
+          ],
           "docstring": "Return one invoice.",
           "is_async": false,
           "http_methods": []
@@ -346,7 +370,7 @@
               "op": "write",
               "call": "session.execute",
               "line": 25,
-              "detail": "INSERT"
+              "detail": "invoices"
             },
             {
               "kind": "db",
@@ -396,6 +420,13 @@
           ],
           "side_effects": [
             {
+              "kind": "db",
+              "op": "read",
+              "call": "session.execute",
+              "line": 34,
+              "detail": "invoices"
+            },
+            {
               "kind": "payment",
               "op": "write",
               "call": "stripe.Refund.create",
@@ -407,7 +438,7 @@
               "op": "write",
               "call": "session.execute",
               "line": 36,
-              "detail": "UPDATE"
+              "detail": "invoices"
             },
             {
               "kind": "db",
@@ -436,7 +467,8 @@
       "name": "GET /health",
       "method": "GET",
       "path": "/health",
-      "params": []
+      "params": [],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -460,7 +492,8 @@
           "required": false,
           "location": "query"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -478,7 +511,8 @@
           "required": true,
           "location": "body"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -496,7 +530,8 @@
           "required": true,
           "location": "path"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -520,7 +555,8 @@
           "required": true,
           "location": "body"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "scheduled_job",
@@ -531,7 +567,164 @@
       "name": "job send_overdue_reminders",
       "method": null,
       "path": null,
-      "params": []
+      "params": [],
+      "middleware": []
     }
-  ]
+  ],
+  "graph": {
+    "call_edges": [
+      {
+        "source": "app/jobs.py::send_overdue_reminders",
+        "target": "app/mailer.py::send_email",
+        "kind": "call"
+      }
+    ],
+    "module_edges": [
+      {
+        "source": "app/jobs.py",
+        "target": "app/db.py",
+        "names": [
+          "SessionLocal"
+        ]
+      },
+      {
+        "source": "app/jobs.py",
+        "target": "app/mailer.py",
+        "names": [
+          "send_email"
+        ]
+      },
+      {
+        "source": "app/main.py",
+        "target": "app/jobs.py",
+        "names": [
+          "send_overdue_reminders"
+        ]
+      },
+      {
+        "source": "app/main.py",
+        "target": "app/routers/invoices.py",
+        "names": [
+          "invoices"
+        ]
+      },
+      {
+        "source": "app/routers/invoices.py",
+        "target": "app/db.py",
+        "names": [
+          "get_session"
+        ]
+      },
+      {
+        "source": "app/routers/invoices.py",
+        "target": "app/models.py",
+        "names": [
+          "InvoiceIn",
+          "RefundIn"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "id": "db",
+        "kind": "db",
+        "label": "database"
+      },
+      {
+        "id": "db:invoices",
+        "kind": "db",
+        "label": "invoices"
+      },
+      {
+        "id": "email",
+        "kind": "email",
+        "label": "email"
+      },
+      {
+        "id": "http:tax.example.com",
+        "kind": "http_out",
+        "label": "tax.example.com"
+      },
+      {
+        "id": "payment:stripe",
+        "kind": "payment",
+        "label": "stripe"
+      }
+    ],
+    "data_edges": [
+      {
+        "function": "app/jobs.py::send_overdue_reminders",
+        "resource": "db:invoices",
+        "op": "read"
+      },
+      {
+        "function": "app/jobs.py::send_overdue_reminders",
+        "resource": "email",
+        "op": "write"
+      },
+      {
+        "function": "app/mailer.py::send_email",
+        "resource": "email",
+        "op": "write"
+      },
+      {
+        "function": "app/routers/invoices.py::create_invoice",
+        "resource": "db",
+        "op": "write"
+      },
+      {
+        "function": "app/routers/invoices.py::create_invoice",
+        "resource": "db:invoices",
+        "op": "write"
+      },
+      {
+        "function": "app/routers/invoices.py::create_invoice",
+        "resource": "http:tax.example.com",
+        "op": "write"
+      },
+      {
+        "function": "app/routers/invoices.py::read_invoice",
+        "resource": "db:invoices",
+        "op": "read"
+      },
+      {
+        "function": "app/routers/invoices.py::refund_invoice",
+        "resource": "db",
+        "op": "write"
+      },
+      {
+        "function": "app/routers/invoices.py::refund_invoice",
+        "resource": "db:invoices",
+        "op": "read"
+      },
+      {
+        "function": "app/routers/invoices.py::refund_invoice",
+        "resource": "db:invoices",
+        "op": "write"
+      },
+      {
+        "function": "app/routers/invoices.py::refund_invoice",
+        "resource": "payment:stripe",
+        "op": "write"
+      },
+      {
+        "function": "app/routers/invoices.py::search_invoices",
+        "resource": "db",
+        "op": "read"
+      }
+    ],
+    "stats": {
+      "internal_calls": 1,
+      "unresolved_calls": 20,
+      "external_packages": [
+        "apscheduler",
+        "fastapi",
+        "httpx",
+        "pydantic",
+        "smtplib",
+        "sqlalchemy",
+        "stripe"
+      ]
+    }
+  }
 }

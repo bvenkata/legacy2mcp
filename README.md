@@ -475,9 +475,11 @@ A few things worth knowing:
 
 `legacy2mcp analyze` builds a map of an entire local codebase rather than one
 interface: languages, frameworks, entry points (HTTP routes, CLI commands,
-scheduled jobs, message handlers), every function's calls, and the side
+scheduled jobs, message handlers), every function's calls, the side
 effects at each call site (database reads/writes, outbound HTTP, email,
-payments, queues, file writes, auth changes). It runs entirely on your
+payments, queues, file writes, auth changes), and three graphs built from
+them -- who calls whom, which module imports which, and which function
+touches which table, host, queue or payment provider. It runs entirely on your
 machine. Nothing in the scanned repo is imported or executed, and nothing is
 sent anywhere.
 
@@ -487,13 +489,19 @@ legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
 ```
 
 This writes `legacy2mcp-analysis/analysis.json`. Currently supported:
-Python with Flask, FastAPI and Django routes, click/typer commands, Celery
-tasks, APScheduler jobs and Django management commands. The scan respects
+
+- **Python** (standard-library `ast`): Flask, FastAPI and Django routes,
+  click/typer commands, Celery tasks, APScheduler jobs, Django management
+  commands.
+- **JavaScript / TypeScript** (tree-sitter): Express routes and
+  `app.use()` mounts, Next.js API routes (pages and app router), node-cron
+  jobs, BullMQ workers, amqplib/kafkajs consumers, commander commands.
+
+ The scan respects
 `.gitignore`, a `.legacy2mcpignore` file (same syntax) and `--exclude PATTERN`,
 and skips tests and migrations unless you pass `--include-tests`.
 
-Coming next: JavaScript/TypeScript (Express, Next.js API routes), call graphs,
-business-flow detection with risk labels, an interactive HTML report, optional
+Coming next: business-flow detection with risk labels, an interactive HTML report, optional
 bring-your-own-key AI enrichment, and `legacy2mcp generate`, which turns the
 flows you approve into an MCP server config. See
 [docs/v2-gap-analysis.md](docs/v2-gap-analysis.md) for the plan.

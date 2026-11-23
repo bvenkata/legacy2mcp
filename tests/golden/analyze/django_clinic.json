@@ -27,7 +27,8 @@
       "migrations": 1
     },
     "ignore_files": [],
-    "exclude_patterns": []
+    "exclude_patterns": [],
+    "notes": []
   },
   "modules": [
     {
@@ -36,6 +37,7 @@
       "name": "appointments",
       "lines": 0,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -46,6 +48,7 @@
       "name": "appointments.management",
       "lines": 0,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -56,6 +59,7 @@
       "name": "appointments.management.commands",
       "lines": 0,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -69,6 +73,7 @@
         "Appointment": "appointments.models.Appointment",
         "BaseCommand": "django.core.management.base.BaseCommand"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "Command.handle",
@@ -117,6 +122,7 @@
       "imports": {
         "models": "django.db.models"
       },
+      "exports": {},
       "functions": [],
       "classes": [
         {
@@ -141,6 +147,7 @@
         "re_path": "django.urls.re_path",
         "views": "appointments.views"
       },
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -158,6 +165,7 @@
         "require_POST": "django.views.decorators.http.require_POST",
         "send_mail": "django.core.mail.send_mail"
       },
+      "exports": {},
       "functions": [
         {
           "qualname": "AppointmentListView.get",
@@ -257,7 +265,7 @@
               "op": "write",
               "call": "appt.save",
               "line": 25,
-              "detail": "appt"
+              "detail": ""
             }
           ],
           "docstring": "",
@@ -390,6 +398,7 @@
       "name": "clinic",
       "lines": 0,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -400,6 +409,7 @@
       "name": "clinic.settings",
       "lines": 3,
       "imports": {},
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -413,6 +423,7 @@
         "include": "django.urls.include",
         "path": "django.urls.path"
       },
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -427,6 +438,7 @@
         "os": "os",
         "sys": "sys"
       },
+      "exports": {},
       "functions": [],
       "classes": [],
       "parse_error": null
@@ -442,7 +454,8 @@
       "name": "manage.py purge_old",
       "method": null,
       "path": null,
-      "params": []
+      "params": [],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -453,7 +466,8 @@
       "name": "GET /api/appointments/",
       "method": "GET",
       "path": "/api/appointments/",
-      "params": []
+      "params": [],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -477,7 +491,8 @@
           "required": true,
           "location": "form"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -495,7 +510,8 @@
           "required": true,
           "location": "path"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -519,7 +535,8 @@
           "required": true,
           "location": "form"
         }
-      ]
+      ],
+      "middleware": []
     },
     {
       "kind": "http_route",
@@ -537,6 +554,9 @@
           "required": true,
           "location": "path"
         }
+      ],
+      "middleware": [
+        "django.views.decorators.http.require_POST"
       ]
     },
     {
@@ -561,7 +581,120 @@
           "required": true,
           "location": "form"
         }
+      ],
+      "middleware": [
+        "django.views.decorators.http.require_POST"
       ]
     }
-  ]
+  ],
+  "graph": {
+    "call_edges": [],
+    "module_edges": [
+      {
+        "source": "appointments/management/commands/purge_old.py",
+        "target": "appointments/models.py",
+        "names": [
+          "Appointment"
+        ]
+      },
+      {
+        "source": "appointments/urls.py",
+        "target": "appointments/views.py",
+        "names": [
+          "views"
+        ]
+      },
+      {
+        "source": "appointments/views.py",
+        "target": "appointments/models.py",
+        "names": [
+          "Appointment"
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "id": "db",
+        "kind": "db",
+        "label": "database"
+      },
+      {
+        "id": "db:Appointment",
+        "kind": "db",
+        "label": "Appointment"
+      },
+      {
+        "id": "email",
+        "kind": "email",
+        "label": "email"
+      },
+      {
+        "id": "payment:braintree",
+        "kind": "payment",
+        "label": "braintree"
+      }
+    ],
+    "data_edges": [
+      {
+        "function": "appointments/management/commands/purge_old.py::Command.handle",
+        "resource": "db:Appointment",
+        "op": "write"
+      },
+      {
+        "function": "appointments/views.py::AppointmentListView.get",
+        "resource": "db:Appointment",
+        "op": "read"
+      },
+      {
+        "function": "appointments/views.py::AppointmentListView.post",
+        "resource": "db:Appointment",
+        "op": "write"
+      },
+      {
+        "function": "appointments/views.py::appointment_detail",
+        "resource": "db",
+        "op": "write"
+      },
+      {
+        "function": "appointments/views.py::appointment_detail",
+        "resource": "db:Appointment",
+        "op": "read"
+      },
+      {
+        "function": "appointments/views.py::cancel_appointment",
+        "resource": "db:Appointment",
+        "op": "write"
+      },
+      {
+        "function": "appointments/views.py::pay_deposit",
+        "resource": "db:Appointment",
+        "op": "read"
+      },
+      {
+        "function": "appointments/views.py::pay_deposit",
+        "resource": "db:Appointment",
+        "op": "write"
+      },
+      {
+        "function": "appointments/views.py::pay_deposit",
+        "resource": "email",
+        "op": "write"
+      },
+      {
+        "function": "appointments/views.py::pay_deposit",
+        "resource": "payment:braintree",
+        "op": "write"
+      }
+    ],
+    "stats": {
+      "internal_calls": 0,
+      "unresolved_calls": 20,
+      "external_packages": [
+        "braintree",
+        "django",
+        "os",
+        "sys"
+      ]
+    }
+  }
 }
