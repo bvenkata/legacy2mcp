@@ -1485,7 +1485,7 @@
           "where": "src/routes/auth.js:13"
         }
       ],
-      "authenticated": true,
+      "authenticated": null,
       "middleware": [],
       "truncated": false
     },

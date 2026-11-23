@@ -40,7 +40,49 @@
 
 ---
 
-## Quick start
+## Understand any codebase, then decide what to expose
+
+Point legacy2mcp at a local Python or JavaScript/TypeScript repo. It maps what
+the code does, traces every business flow, labels each one read-only,
+low-risk write or high-risk, and proposes the MCP tools, agent setup and
+phased roadmap. Then it generates the server for the flows you approve.
+It runs entirely on your machine with no API key; AI enrichment is optional and
+bring-your-own-key.
+
+```bash
+pip install "legacy2mcp[analyze]"
+legacy2mcp analyze ./my-app --no-ai
+```
+
+<p align="center">
+  <img src="assets/report-summary.png" alt="legacy2mcp report: executive summary with KPIs, recommended first steps and flow-risk breakdown" width="820">
+</p>
+
+**Five-minute quickstart**
+
+1. `legacy2mcp analyze ./my-app --no-ai` writes `legacy2mcp-analysis/report.html`
+   and `analysis.json`. Nothing is executed or uploaded.
+2. Open `report.html`. Read the executive summary, open the high-risk flows to see
+   why they're high-risk (each reason links to a file and line), and look at the proposed
+   agent topology and roadmap.
+3. In **Proposed MCP tools**, keep the read-only tools ticked (writes start
+   unticked) and click **Export selections.json**.
+4. `legacy2mcp generate legacy2mcp-analysis --selections selections.json --base-url https://staging.my-app.example`
+   writes `config.yaml`, with schema validation, audit logging and write tools hidden
+   unless you opt in.
+5. `legacy2mcp inspect --config config.yaml`, then add the printed snippet to
+   your MCP client.
+
+See the [sample report from a real open-source app](docs/sample-report/) and the
+[full `analyze` guide](docs/analyze.md).
+
+<p align="center">
+  <img src="assets/report-topology.png" alt="Proposed agent topology: a coordinator, specialist agents per domain, and approval gates in front of write tools" width="760">
+</p>
+
+---
+
+## Quick start: an existing SOAP service, database, REST API or website
 
 No API key, no cloning — pick whichever matches what you actually have,
 against live public demo targets:
@@ -84,7 +126,7 @@ demos (a local SOAP service, Docker, a WSDL served by raw URL) are listed in
 ## Contents
 
 - [Install](#install)
-- [Quick start](#quick-start)
+- [Quick start](#quick-start-an-existing-soap-service-database-rest-api-or-website)
 - [How it works](#how-it-works)
 - [Why not just write an adapter by hand?](#why-not-just-write-an-adapter-by-hand)
 - [Point it at your own WSDL](#point-it-at-your-own-wsdl)
@@ -92,7 +134,7 @@ demos (a local SOAP service, Docker, a WSDL served by raw URL) are listed in
 - [Point it at your own REST API](#point-it-at-your-own-rest-api)
 - [Generate a config automatically](#generate-a-config-automatically)
 - [Discover a legacy interface before generating a server](#discover-a-legacy-interface-before-generating-a-server)
-- [Analyze a whole codebase (preview)](#analyze-a-whole-codebase-preview)
+- [Understand any codebase](#understand-any-codebase-then-decide-what-to-expose) · [details](#analyze-a-whole-codebase)
 - [Teach your AI coding agent about legacy2mcp](#teach-your-ai-coding-agent-about-legacy2mcp)
 - [Common commands](#common-commands)
 - [Client support](#client-support)
@@ -471,7 +513,7 @@ A few things worth knowing:
   contract is embedded in the page (in a `<script type="application/json">`
   tag), not just summarized for reading.
 
-## Analyze a whole codebase (preview)
+## Analyze a whole codebase
 
 `legacy2mcp analyze` builds a map of an entire local codebase rather than one
 interface: languages, frameworks, entry points (HTTP routes, CLI commands,
@@ -944,7 +986,7 @@ Call the same generated, validated tools from your own code via any MCP client l
 | **v0.3.x** | `legacy2mcp discover` (Postman / OpenAPI file / HAR / stored-procs / queue / `--webpage-url`) → reviewable `contract.yaml`; `--webpage-url` crawls a whole site, not just one page; `describe_capabilities` meta-tool | ✅ shipped |
 | **v0.4.x** | `legacy2mcp demo` -- try a contract/config in a chat page with no separate `init` step; `discover --out contract.html` | ✅ shipped |
 | **v0.5.x** | `discover`/`init`/`demo` all auto-open the test chat and print a ready-to-paste MCP client connection snippet; `init --webpage-url` goes straight to a config | ✅ shipped |
-| **v0.6 (in progress)** | `legacy2mcp analyze` -- local whole-codebase analysis (Python first, then JS/TS) → flows, risk labels, interactive report, `generate` | 🚧 in progress |
+| **v0.6.0** | `legacy2mcp analyze` (Python + JS/TS: flows, risk, tools, agent topology, roadmap, offline HTML report, optional BYO-key AI) and `legacy2mcp generate` | ✅ ready to release |
 | planned | HTTP/SSE transport, role→tool authorization, OAuth2 for SOAP | planned |
 | ideas | Queue adapter (Kafka/RabbitMQ/SQS), workflow composition with approval gates, OpenTelemetry export | ideas |
 

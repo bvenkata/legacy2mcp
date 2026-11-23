@@ -47,7 +47,9 @@ def test_analysis_round_trips_through_json(project):
 
 def test_meta_has_no_effect_on_content():
     analysis = run_analysis(FIXTURES / "flask_shop")
-    assert set(analysis.meta) == {"legacy2mcp_version", "generated_at", "root", "ai"}
+    # No absolute local path: reports get shared, and a home directory names its user.
+    assert set(analysis.meta) == {"legacy2mcp_version", "generated_at", "ai"}
+    assert str(FIXTURES) not in analysis.to_json()
     assert analysis.meta["ai"] is False
 
 

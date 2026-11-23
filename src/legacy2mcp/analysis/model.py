@@ -8,8 +8,9 @@ re-scan the codebase.
 
 Output is deterministic on purpose: paths are repo-relative POSIX strings,
 lists are sorted, and the only run-specific values (timestamp, tool
-version, absolute root) live under `meta`, so golden-file tests can drop
-that one key and compare the rest byte for byte.
+version) live under `meta`, so golden-file tests can drop that one key and
+compare the rest byte for byte. No absolute local path is ever recorded:
+reports get shared, and a home directory names its user.
 """
 
 from __future__ import annotations

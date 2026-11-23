@@ -70,3 +70,15 @@ def test_orchestration_round_trips_and_ai_merge_is_contained():
                                            "notes": ""})
     added = a.multimodal[n_before:]
     assert [(m.kind, m.title, m.source) for m in added] == [("document", "Order PDFs", "ai")]
+
+
+def test_many_path_domains_fall_back_to_modules(tmp_path):
+    pkg = tmp_path / "app"
+    for blueprint, routes in {"auth": ["login", "logout", "register", "reset"], "main": ["explore", "search", "users", "user"],
+                              "api": ["tokens", "followers", "following"]}.items():
+        (pkg / blueprint).mkdir(parents=True)
+        body = "from flask import Blueprint\nbp = Blueprint('x', __name__)\n" + "".join(
+            f"\n@bp.get('/{r}')\ndef {r}_view():\n    return ''\n" for r in routes)
+        (pkg / blueprint / "routes.py").write_text(body)
+    agents = run_analysis(tmp_path).orchestration.agents
+    assert sorted(a.domain for a in agents) == ["api", "auth", "main"]

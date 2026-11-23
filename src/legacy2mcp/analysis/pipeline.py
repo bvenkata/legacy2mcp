@@ -87,7 +87,6 @@ def run_analysis(
         meta={
             "legacy2mcp_version": _version(),
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "root": str(root_path),
             "ai": False,
         },
     )

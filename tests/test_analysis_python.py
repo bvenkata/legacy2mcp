@@ -181,3 +181,36 @@ def test_non_literal_detail_is_empty_string():
     """)
     func = result.module.functions[0]
     assert [(e.kind, e.detail) for e in func.side_effects] == [("file", ""), ("db", "")]
+
+
+def test_flask_wtf_validate_on_submit_is_a_post_branch():
+    result = _analyze("views.py", """
+        from flask import Flask
+        app = Flask(__name__)
+
+        @app.route("/", methods=["GET", "POST"])
+        def index():
+            form = PostForm()
+            if form.validate_on_submit():
+                db.session.add(Post())
+                db.session.commit()
+            return render_template("index.html")
+    """)
+    func = result.module.functions[0]
+    assert [b.method for b in func.method_branches] == ["POST"]
+    assert "POST" in func.http_methods
+
+
+def test_rq_enqueue_and_fstring_urls():
+    result = _analyze("svc.py", """
+        import requests
+
+        def f(queue, lang):
+            queue.enqueue("app.tasks.export_posts", 1)
+            requests.post(f"https://api.translator.example.com/translate?to={lang}")
+            requests.get("https://api.example.org/v1?q={}".format(lang))
+    """)
+    assert [(e.kind, e.detail) for e in result.module.functions[0].side_effects] == [
+        ("queue", ""), ("http_out", "https://api.translator.example.com/translate?to={}"),
+        ("http_out", "https://api.example.org/v1?q={}"),
+    ]

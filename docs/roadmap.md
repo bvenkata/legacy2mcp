@@ -189,7 +189,8 @@ milestone by milestone in [v2-gap-analysis.md](v2-gap-analysis.md):
 - M7 -- `legacy2mcp generate`: approved flows → a `type: rest` config
   that inherits validation, audit logging and writes-off-by-default.
   ✅ on `feat/v2-analyze`
-- M8 -- docs, sample report, packaging and launch.
+- M8 -- docs, sample report, packaging and launch. ✅ on `feat/v2-analyze`
+  (version 0.6.0; publishing is the `v0.6.0` tag push, see docs/releasing.md)
 
 ## Unscheduled ideas
 

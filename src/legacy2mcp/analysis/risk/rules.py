@@ -26,6 +26,20 @@ _AUTH_MIDDLEWARE_RE = re.compile(
     re.IGNORECASE,
 )
 _HTTP_WRITE_METHODS = {"POST", "PUT", "PATCH"}
+# Routes that are public by design: asking them to require authentication is wrong advice.
+PUBLIC_AUTH_ROUTE_RE = re.compile(
+    r"/(login|logout|signin|sign-in|signup|sign-up|register|forgot[-_]?password|reset[-_]?password\w*|"
+    r"password[-_]?reset|oauth|callback|verify[-_]?email|confirm)(/|$|\{)", re.IGNORECASE)
+
+
+# Auth reads that verify the *caller* (a token or session), as opposed to a
+# credential check that is itself the login (check_password, bcrypt.compare).
+CALLER_AUTH_VERBS = {"verify", "decode", "get_jwt_identity", "verify_jwt_in_request", "getServerSession",
+                     "getSession", "auth", "currentUser", "requireAuth"}
+
+
+def verifies_caller(effect: SideEffect) -> bool:
+    return effect.kind == "auth" and effect.op == "read" and effect.verb in CALLER_AUTH_VERBS
 
 
 def max_level(*levels: str) -> str:
@@ -67,7 +81,7 @@ def classify_effect(effect: SideEffect, resource_label: str = "") -> tuple[str, 
         return LOW, f"enqueues background work ({target})"
     if kind == "file":
         if is_delete(effect):
-            return HIGH, "deletes files"
+            return LOW, "deletes local files"
         return LOW, f"writes files ({target})" if effect.detail else "writes files"
     return LOW, f"{kind} {op}"
 
@@ -87,11 +101,14 @@ def entry_reasons(entry: EntryPoint, level_so_far: str, handler_name: str) -> li
 
 
 def is_authenticated(entry: EntryPoint, auth_read_in_flow: bool) -> bool | None:
-    """True if middleware/decorators or an auth check inside the flow suggest
-    the caller is authenticated; False if neither is visible; None when the
-    question doesn't apply (CLI commands, jobs, message handlers)."""
+    """True if middleware/decorators or a token/session check inside the flow
+    suggest the caller is authenticated; False if neither is visible; None
+    when the question doesn't apply (CLI commands, jobs, message handlers,
+    and public sign-in/sign-up/password-reset routes)."""
     if entry.kind != "http_route":
         return None
     if any(_AUTH_MIDDLEWARE_RE.search(m) for m in entry.middleware) or auth_read_in_flow:
         return True
+    if PUBLIC_AUTH_ROUTE_RE.search(entry.path or ""):
+        return None  # sign-in / sign-up / reset endpoints are public by design
     return False

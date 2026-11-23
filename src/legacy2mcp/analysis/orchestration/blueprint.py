@@ -59,19 +59,54 @@ def _domain(flow: Flow, analysis: Analysis) -> str:
     return "general"
 
 
+MAX_SPECIALISTS = 8
+_GENERIC_STEMS = {"routes", "route", "views", "view", "urls", "controllers", "controller", "handlers", "handler",
+                  "index", "api", "endpoints", "resources", "app", "main", "server"}
+
+
+def _module_domain(flow: Flow) -> str:
+    """Domain from where the handler lives: app/auth/routes.py -> "auth",
+    src/controllers/orders.js -> "orders" (Flask blueprints, Express routers)."""
+    path = flow.handler.split("::", 1)[0]
+    parts = [p for p in path.split("/") if p]
+    if not parts:
+        return "general"
+    stem = parts[-1].rsplit(".", 1)[0]
+    if stem.lower() in _GENERIC_STEMS and len(parts) >= 2:
+        stem = parts[-2]
+    return re.sub(r"[^a-z0-9]+", "-", stem.lower()).strip("-") or "general"
+
+
+def _group(flows: list[Flow], analysis: Analysis) -> "OrderedDict[str, list[Flow]]":
+    """Group HTTP flows into at most MAX_SPECIALISTS domains: by first path
+    segment when that stays small, else by handler module, then fold the
+    smallest groups into "other"."""
+    by_path: OrderedDict[str, list[Flow]] = OrderedDict()
+    for f in flows:
+        by_path.setdefault(_domain(f, analysis), []).append(f)
+    groups = by_path
+    if len(by_path) > MAX_SPECIALISTS:
+        by_module: OrderedDict[str, list[Flow]] = OrderedDict()
+        for f in flows:
+            by_module.setdefault(_module_domain(f), []).append(f)
+        groups = by_module if len(by_module) < len(by_path) else by_path
+    if len(groups) > MAX_SPECIALISTS:
+        ranked = sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+        kept = OrderedDict(ranked[: MAX_SPECIALISTS - 1])
+        kept["other"] = [f for _, fs in ranked[MAX_SPECIALISTS - 1:] for f in fs]
+        groups = kept
+    return groups
+
+
 def _title(domain: str) -> str:
     return domain.replace("-", " ").capitalize()
 
 
 def build_orchestration(analysis: Analysis) -> Orchestration:
     tool_by_flow = {t.flow_id: t for t in analysis.tools}
-    domains: OrderedDict[str, list[Flow]] = OrderedDict()
-    background: list[Flow] = []
-    for flow in sorted(analysis.flows, key=lambda f: f.id):
-        if flow.entry_kind == "http_route":
-            domains.setdefault(_domain(flow, analysis), []).append(flow)
-        else:
-            background.append(flow)
+    ordered = sorted(analysis.flows, key=lambda f: f.id)
+    background = [f for f in ordered if f.entry_kind != "http_route"]
+    domains = _group([f for f in ordered if f.entry_kind == "http_route"], analysis)
 
     agents: list[Agent] = []
     approvals: list[ApprovalPoint] = []

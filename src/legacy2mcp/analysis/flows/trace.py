@@ -122,7 +122,7 @@ class _Tracer:
                     res = resource_for(eff)
                     resources[res.id] = max(resources.get(res.id, "read"), eff.op, key=lambda o: _OP_RANK.get(o, 0))
                     step_level, why = rules.classify_effect(eff, self.labels.get(res.id, ""))
-                    if eff.kind == "auth" and eff.op == "read":
+                    if rules.verifies_caller(eff):
                         auth_read = True
                     if why:
                         level = rules.max_level(level, step_level)

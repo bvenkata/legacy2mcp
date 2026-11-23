@@ -34,7 +34,7 @@ _PAYMENT_LIBS = ("stripe.", "braintree.", "paypalrestsdk.", "square.", "adyen.",
 _PAYMENT_READ_VERBS = {"retrieve", "list", "search", "find", "get"}
 _EMAIL_LIBS = ("smtplib.", "django.core.mail.", "sendgrid.", "flask_mail.", "yagmail.")
 _EMAIL_CALLS = {"send_mail", "sendmail", "send_email", "send_mass_mail", "send_templated_mail"}
-_QUEUE_CALLS = {"delay", "apply_async", "send_task", "basic_publish"}
+_QUEUE_CALLS = {"delay", "apply_async", "send_task", "basic_publish", "enqueue", "enqueue_call", "enqueue_in"}
 _AUTH_WRITE = {
     "set_password", "login_user", "logout_user", "create_access_token", "create_refresh_token",
     "grant_permission", "add_permission", "set_unusable_password",
@@ -90,6 +90,17 @@ def _str_const(node: ast.AST | None) -> str | None:
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value
     return None
+
+
+def _str_template(node: ast.AST | None) -> str | None:
+    """A string literal, or an f-string with each `{...}` part shown as `{}`
+    (keeps the scheme and host of f"https://api.example.com/{path}")."""
+    if isinstance(node, ast.JoinedStr):
+        return "".join(v.value if isinstance(v, ast.Constant) and isinstance(v.value, str) else "{}" for v in node.values)
+    # "https://host/path?x={}".format(...)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "format":
+        return _str_const(node.func.value)
+    return _str_const(node)
 
 
 def _first_doc_line(node: ast.AST) -> str:
@@ -164,7 +175,7 @@ def classify_call(call: ast.Call, name: str, imports: _Imports) -> SideEffect | 
         return effect("queue", "write", receiver.split(".")[-1] if last in {"delay", "apply_async"} else "")
 
     if qualified.startswith(_HTTP_LIBS):
-        url = _str_const(call.args[0]) if call.args else None
+        url = _str_template(call.args[0]) if call.args else None
         if last == "request" and call.args:
             verb = (_str_const(call.args[0]) or "").lower()
             url = _str_const(call.args[1]) if len(call.args) > 1 else None
@@ -280,7 +291,12 @@ class _FunctionVisitor(ast.NodeVisitor):
     def visit_If(self, node: ast.If) -> None:
         # `if request.method == "POST":` -> the body only runs for POST.
         test = node.test
-        if isinstance(test, ast.Compare) and dotted(test.left) == "request.method" and node.body \
+        # Flask-WTF: `if form.validate_on_submit():` only passes on a POST.
+        if isinstance(test, ast.Call) and (dotted(test.func) or "").endswith(".validate_on_submit") and node.body:
+            start, end = node.body[0].lineno, node.body[-1].end_lineno or node.body[-1].lineno
+            self.branches.append(MethodBranch(method="POST", start=start, end=end))
+            self.request_methods.add("POST")
+        elif isinstance(test, ast.Compare) and dotted(test.left) == "request.method" and node.body \
                 and len(test.ops) == 1 and isinstance(test.ops[0], (ast.Eq, ast.In)):
             comp = test.comparators[0]
             values = comp.elts if isinstance(comp, (ast.Tuple, ast.List, ast.Set)) else [comp]

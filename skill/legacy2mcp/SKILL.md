@@ -46,6 +46,7 @@ depends entirely on it:
 | A website with no API docs at all (forms, content pages) | `--webpage-url` -- crawls it, every operation lands low-confidence/needs-review |
 | A GitHub repo or local codebase (no live URL yet, or you want the schema derived from source) | `--github-url` / `--local-path` |
 | A database they want queried/read from | the GitHub/local-path path, scanning the ORM models, **or** hand-write the `db` adapter config directly if there's no ORM to scan |
+| A whole Python or JS/TS application and the question "what should agents be allowed to do?" | `legacy2mcp analyze <path> --no-ai`, not `init`. It writes an offline report of business flows, per-flow risk, proposed tools, agent topology and a phased roadmap. After the user reviews it and exports `selections.json`, run `legacy2mcp generate <out-dir> --selections selections.json --base-url <url>`. Write tools stay hidden unless `--allow-writes`. See [docs/analyze.md](https://github.com/OWASP/legacy2mcp/blob/main/docs/analyze.md) |
 
 Read `references/sources.md` before running `init` for the first time in a
 session -- it has the exact flags, what each path needs (or doesn't need) in

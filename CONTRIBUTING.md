@@ -28,6 +28,11 @@ issues, not this file -- but in short, the biggest gaps today are:
   starter config" path the way `--wsdl-url`/`--rest-url`/`--webpage-url`
   already have.
 - **HTTP/SSE transport** -- `stdio` only today.
+- **More `analyze` coverage** -- new frameworks (Koa, Hapi, NestJS,
+  Starlette, Litestar), new side-effect rules (more payment, email and queue
+  SDKs), and the first analyzer for another language. These are the best
+  first contributions: [docs/good-first-issues.md](docs/good-first-issues.md)
+  has a list of small, well-scoped ones with exact file pointers.
 
 Full version-by-version history: [docs/roadmap.md](docs/roadmap.md).
 
@@ -40,8 +45,10 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-`[dev]` pulls in `pytest`, `pytest-asyncio`, `flask`, and `lxml` -- enough to
-run the full suite with no external services. Tests run against an
+`[dev]` pulls in `pytest`, `pytest-asyncio`, `flask`, `lxml`, `pathspec`,
+the tree-sitter grammars and the `anthropic` SDK -- enough to run the full
+suite with no external services, network or API key (the AI tests use a
+mocked provider). Tests run against an
 in-process mock SOAP service (Flask), an in-process mock REST service
 (Flask), and an in-process SQLite stand-in for the DB adapter -- no network,
 no real Postgres/SQL Server/Oracle required. CI runs the suite on Python
@@ -49,6 +56,33 @@ no real Postgres/SQL Server/Oracle required. CI runs the suite on Python
 separate job ([`mcp-compatibility.yml`](.github/workflows/mcp-compatibility.yml))
 that drives a real MCP `tools/list` / `tools/call` against the bundled demo
 through MCP Inspector.
+
+## Working on `legacy2mcp analyze`
+
+The analysis pipeline lives in [`src/legacy2mcp/analysis/`](src/legacy2mcp/analysis/),
+one package per stage, each producing a section of one typed `Analysis`
+([`model.py`](src/legacy2mcp/analysis/model.py)):
+
+| You want to... | Edit | Test with |
+|---|---|---|
+| Detect a new framework's routes / jobs / handlers | `analyzers/python.py` (`_decorator_entry_points`, `_call_entry_points`) or `analyzers/javascript.py` (`_call_entry_points`) | a snippet test in `tests/test_analysis_python.py` / `test_analysis_javascript.py` |
+| Recognise a new side effect (an SDK call) | `classify_call` (Python) / `classify_js_call` (JS) | same files, `test_side_effects` |
+| Change a risk rule | `risk/rules.py` | `tests/test_analysis_flows.py` |
+| Add a language | a new `analyzers/<lang>.py` implementing the `Analyzer` protocol in `analyzers/base.py`, registered in `analyzers/__init__.py` | a fixture app under `tests/fixtures/analyze/` + golden file |
+| Change the report | `report/assets/report.js` / `report.css` (plain JS, no build step) | `tests/test_analysis_report.py`, and `pytest tests/smoke` with Playwright installed |
+
+Fixture apps under [`tests/fixtures/analyze/`](tests/fixtures/analyze/) each have a
+golden `analysis.json` in [`tests/golden/analyze/`](tests/golden/analyze/). After an
+intentional analyzer change, regenerate and **review the diff** like code:
+
+```bash
+UPDATE_GOLDEN=1 pytest tests/test_analysis_golden.py
+git diff tests/golden
+```
+
+The report must stay a single offline file: no CDN links, no `fetch`. The
+smoke test (`pip install playwright && python -m playwright install chromium`,
+then `pytest tests/smoke`) fails on any console error or network request.
 
 ## Adding an adapter
 

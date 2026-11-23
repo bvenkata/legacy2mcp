@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - not yet released (push tag `v0.6.0` to publish)
+
 ### Added
 
 - **`legacy2mcp analyze <path>` (preview, milestone 1 of the v2 plan)**: a
@@ -89,6 +91,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `--auth-token-env` configures bearer auth. It prints the MCP client
   connection snippet. `render_yaml()` gained an optional `generator` label;
   existing callers are unchanged.
+- **Docs and launch material (milestone 8)**: a README quickstart for the
+  new flow, the [`analyze` guide](docs/analyze.md), a
+  [sample report](docs/sample-report/) generated from the open-source
+  microblog app, docs-site pages and two blog posts (`docs/site/`), an
+  MCP-ready badge (`docs/badge.md`, with the snippet in the report
+  appendix), a VHS demo script (`demo/analyze.tape`), a launch kit, a
+  CONTRIBUTING section on the analyzer, and a list of good first issues.
+  `install-skill` now teaches assistants `analyze` and `generate`.
+
+### Changed (found by running `analyze` on a real codebase)
+
+- `form.validate_on_submit()` is treated as a POST-only branch (Flask-WTF),
+  so GET flows don't inherit form-submit writes.
+- A credential check (`check_password`, `bcrypt.compare`) no longer counts
+  as an authenticated caller; token/session verification does. Sign-in,
+  sign-up and password-reset routes are public by design and are not
+  flagged for missing auth.
+- RQ `enqueue()` is a queue write; f-string and `str.format()` URLs keep
+  their host; deleting local files is low-risk (deleting records stays high).
+- At most 8 specialist agents: when path segments give more domains, flows
+  are grouped by handler module (e.g. Flask blueprints).
+- `analysis.json`/`report.html` no longer record the absolute path of the
+  analyzed repo (`meta.root`), which exposed the local username when a
+  report was shared.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed

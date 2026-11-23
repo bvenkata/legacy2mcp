@@ -33,7 +33,7 @@ def _eff(kind, op, detail="", verb="x", call="lib.x"):
         (_eff("http_out", "unknown", "https://x.example.com"), rules.LOW),
         (_eff("queue", "write"), rules.LOW),
         (_eff("file", "write", "out.csv", "open"), rules.LOW),
-        (_eff("file", "write", "", "unlink"), rules.HIGH),
+        (_eff("file", "write", "", "unlink"), rules.LOW),
         (_eff("auth", "write"), rules.HIGH),
         (_eff("auth", "read"), rules.READ_ONLY),
     ],
@@ -144,3 +144,26 @@ def test_unresolved_handler_yields_empty_flow_with_note(tmp_path):
     (flow,) = run_analysis(tmp_path).flows
     assert flow.steps == [] and flow.handler == "thirdparty.views.webhook"
     assert flow.reasons[0].level == "info" and "could not be resolved" in flow.reasons[0].text
+
+
+def test_login_is_not_counted_as_authenticated_but_token_checks_are(tmp_path):
+    (tmp_path / "app.py").write_text(textwrap.dedent('''
+        import jwt
+        from flask import Flask, request
+        from flask_login import login_user
+        app = Flask(__name__)
+
+        @app.post("/login")
+        def login():
+            user = User.query.filter_by(name=request.form["name"]).first()
+            if user.check_password(request.form["password"]):
+                login_user(user)
+
+        @app.post("/api/things")
+        def make_thing():
+            claims = jwt.decode(request.headers["Authorization"], "k")
+            db.session.add(Thing())
+    '''))
+    flows = {f.id: f for f in run_analysis(tmp_path).flows}
+    assert flows["post-login"].authenticated is None  # public by design: not flagged
+    assert flows["post-api-things"].authenticated is True

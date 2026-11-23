@@ -1,5 +1,10 @@
 # v2 gap analysis: `legacy2mcp analyze`
 
+> **Status (2026-11-23):** all eight milestones are implemented on
+> `feat/v2-analyze`. This file is kept as the starting-point record; see
+> [analyze.md](analyze.md) for the shipped behavior and [roadmap.md](roadmap.md)
+> for status.
+
 This compares the repo as of `2d71934` (v0.5.1 plus unreleased changes)
 against the v2 build plan, which adds a codebase-understanding pipeline:
 analyze → flows → risk → report → generate.
