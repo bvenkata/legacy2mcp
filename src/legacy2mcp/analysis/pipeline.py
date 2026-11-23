@@ -18,6 +18,7 @@ from legacy2mcp.analysis.analyzers import Analyzer, FileResult, Mount, default_a
 from legacy2mcp.analysis.analyzers.python import join_route
 from legacy2mcp.analysis.flows import trace_flows
 from legacy2mcp.analysis.graph import Resolver, build_graph
+from legacy2mcp.analysis.tools import propose_tools
 from legacy2mcp.analysis.model import RISK_LEVELS, Analysis, EntryPoint, LanguageStats, Module, Param, ScanInfo, Summary
 from legacy2mcp.analysis.walk import walk
 
@@ -89,6 +90,7 @@ def run_analysis(
         },
     )
     analysis.flows = trace_flows(analysis)
+    analysis.tools = propose_tools(analysis)
     analysis.summary = summarize(analysis, frameworks)
     return analysis
 

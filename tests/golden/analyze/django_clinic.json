@@ -1239,5 +1239,178 @@
       ],
       "truncated": false
     }
+  ],
+  "tools": [
+    {
+      "name": "list_appointments",
+      "flow_id": "get-api-appointments",
+      "description": "GET /api/appointments/. Reads Appointment.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/appointments/",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "create_appointments",
+      "flow_id": "post-api-appointments",
+      "description": "POST /api/appointments/. Changes Appointment.",
+      "risk": "low_risk_write",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/appointments/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "description": "form field"
+          },
+          "email": {
+            "type": "string",
+            "description": "form field"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "at",
+          "email"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "get_appointments_by_pk",
+      "flow_id": "get-api-appointments-pk",
+      "description": "GET /api/appointments/{pk}/. Reads Appointment.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/appointments/{pk}/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pk": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "pk"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "replace_appointments_by_pk",
+      "flow_id": "put-api-appointments-pk",
+      "description": "PUT /api/appointments/{pk}/. Reads Appointment. Changes database.",
+      "risk": "low_risk_write",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "PUT",
+      "path": "/api/appointments/{pk}/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pk": {
+            "type": "string",
+            "description": "URL path parameter"
+          },
+          "at": {
+            "type": "string",
+            "description": "form field"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "pk",
+          "at"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "cancel_appointments_by_pk",
+      "flow_id": "post-api-appointments-pk-cancel",
+      "description": "POST /api/appointments/{pk}/cancel/. Changes Appointment.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/appointments/{pk}/cancel/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pk": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "pk"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "pay_appointments_by_pk",
+      "flow_id": "post-api-appointments-pk-pay",
+      "description": "Take a card deposit for an appointment. Changes Appointment, braintree, email.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/appointments/{pk}/pay/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pk": {
+            "type": "string",
+            "description": "URL path parameter"
+          },
+          "nonce": {
+            "type": "string",
+            "description": "form field"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "pk",
+          "nonce"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    }
   ]
 }

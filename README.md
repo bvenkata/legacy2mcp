@@ -493,7 +493,19 @@ pip install "legacy2mcp[analyze]"
 legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
 ```
 
-This writes `legacy2mcp-analysis/analysis.json`. Currently supported:
+This writes two files to `legacy2mcp-analysis/`:
+
+- **`report.html`** -- one self-contained, offline file (no CDN, no network
+  requests): an executive summary with recommended first steps, an
+  interactive codebase map, call-graph and data-flow views for any flow or
+  function, every business flow with its ordered steps and risk reasons, and
+  the proposed MCP tools with include toggles. Export your choices as
+  `selections.json` for `legacy2mcp generate`. Light and dark themes, search,
+  risk filters, and a print-to-PDF layout.
+- **`analysis.json`** -- the same data, versioned, for scripting and CI.
+  `legacy2mcp report legacy2mcp-analysis/` regenerates the HTML from it.
+
+Currently supported:
 
 - **Python** (standard-library `ast`): Flask, FastAPI and Django routes,
   click/typer commands, Celery tasks, APScheduler jobs, Django management
@@ -506,7 +518,7 @@ This writes `legacy2mcp-analysis/analysis.json`. Currently supported:
 `.gitignore`, a `.legacy2mcpignore` file (same syntax) and `--exclude PATTERN`,
 and skips tests and migrations unless you pass `--include-tests`.
 
-Coming next: an interactive HTML report, optional
+Coming next: optional
 bring-your-own-key AI enrichment, and `legacy2mcp generate`, which turns the
 flows you approve into an MCP server config. See
 [docs/v2-gap-analysis.md](docs/v2-gap-analysis.md) for the plan.

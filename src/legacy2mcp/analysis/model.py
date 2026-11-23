@@ -237,6 +237,24 @@ class Flow:
 
 
 @dataclass
+class ToolProposal:
+    """An MCP tool `generate` could expose for one flow."""
+
+    name: str  # MCP tool name: [a-z0-9_], <= 64 chars, unique
+    flow_id: str
+    description: str
+    risk: str
+    safe: bool  # read-only flow
+    include: bool  # default selection; writes start excluded
+    exposable: bool  # can `generate` wire it (an HTTP route with a concrete method)?
+    method: str | None = None
+    path: str | None = None
+    input_schema: dict[str, Any] = field(default_factory=dict)
+    notes: list[str] = field(default_factory=list)
+    source: str = "rules"  # "rules" | "ai"
+
+
+@dataclass
 class Analysis:
     project: str  # basename of the scanned root
     summary: Summary = field(default_factory=Summary)
@@ -245,6 +263,7 @@ class Analysis:
     entry_points: list[EntryPoint] = field(default_factory=list)
     graph: Graph = field(default_factory=Graph)
     flows: list[Flow] = field(default_factory=list)
+    tools: list[ToolProposal] = field(default_factory=list)
     meta: dict[str, Any] = field(default_factory=dict)
     schema_version: str = SCHEMA_VERSION
 
@@ -285,6 +304,7 @@ class Analysis:
             ],
             graph=_graph_from_dict(data.get("graph", {})),
             flows=[_flow_from_dict(f) for f in data.get("flows", [])],
+            tools=[ToolProposal(**t) for t in data.get("tools", [])],
             meta=dict(data.get("meta", {})),
             schema_version=version,
         )

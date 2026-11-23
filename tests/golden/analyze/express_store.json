@@ -2026,5 +2026,184 @@
       "middleware": [],
       "truncated": false
     }
+  ],
+  "tools": [
+    {
+      "name": "create_auth_login",
+      "flow_id": "post-api-auth-login",
+      "description": "POST /api/auth/login. Reads users. Changes auth / credentials.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/auth/login",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "request body field"
+          },
+          "password": {
+            "type": "string",
+            "description": "request body field"
+          }
+        },
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "list_orders",
+      "flow_id": "get-api-orders",
+      "description": "List orders, optionally filtered by status. Reads orders.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/orders",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "query-string parameter"
+          }
+        },
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "create_orders",
+      "flow_id": "post-api-orders",
+      "description": "Create an order and queue a confirmation email. Changes emailQueue, orders.",
+      "risk": "low_risk_write",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/orders",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "request body field"
+          },
+          "items": {
+            "type": "string",
+            "description": "request body field"
+          }
+        },
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "delete_orders_by_id",
+      "flow_id": "delete-api-orders-id",
+      "description": "DELETE /api/orders/{id}. Changes orders.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "DELETE",
+      "path": "/api/orders/{id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "get_orders_by_id",
+      "flow_id": "get-api-orders-id",
+      "description": "GET /api/orders/{id}. Reads orders.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "pay_orders_by_id",
+      "flow_id": "post-api-orders-id-pay",
+      "description": "POST /api/orders/{id}/pay. Changes orders, stripe, warehouse.example.com.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/orders/{id}/pay",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URL path parameter"
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "description": "request body field"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "get_health",
+      "flow_id": "get-health",
+      "description": "GET /health.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/health",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    }
   ]
 }

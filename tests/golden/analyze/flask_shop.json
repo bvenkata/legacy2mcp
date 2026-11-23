@@ -1586,5 +1586,137 @@
       "middleware": [],
       "truncated": false
     }
+  ],
+  "tools": [
+    {
+      "name": "list_orders",
+      "flow_id": "get-api-orders",
+      "description": "List recent orders. Reads Order.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/orders/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "query-string parameter"
+          }
+        },
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "create_orders",
+      "flow_id": "post-api-orders",
+      "description": "Create a pending order. Changes database, sync_inventory, warehouse.internal.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/orders/",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "delete_orders_by_order_id",
+      "flow_id": "delete-api-orders-order-id",
+      "description": "DELETE /api/orders/{order_id}. Reads Order. Changes database.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "DELETE",
+      "path": "/api/orders/{order_id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "integer",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "order_id"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "get_orders_by_order_id",
+      "flow_id": "get-api-orders-order-id",
+      "description": "Fetch one order by id. Reads Order.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/orders/{order_id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "integer",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "order_id"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "checkout_orders_by_order_id",
+      "flow_id": "post-api-orders-order-id-checkout",
+      "description": "Charge the customer's card and mark the order paid. Reads Order. Changes database, email, stripe.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/orders/{order_id}/checkout",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "integer",
+            "description": "URL path parameter"
+          },
+          "card_token": {
+            "type": "string",
+            "description": "query-string parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "order_id",
+          "card_token"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    }
   ]
 }

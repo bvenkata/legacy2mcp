@@ -40,6 +40,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   no visible authentication middleware or check. Handlers that branch on
   the request method (`if request.method == "POST"`, `switch (req.method)`)
   are traced per method, so a GET doesn't inherit its DELETE branch.
+- **Interactive HTML report (milestone 4)**: `analyze` now writes
+  `report.html` next to `analysis.json` (`--format html,json`, both by
+  default), and `legacy2mcp report <analysis.json|dir>` regenerates it. It
+  is a single self-contained file with Cytoscape.js 3.30.2 (MIT) vendored
+  inline and a Content-Security-Policy that blocks network access. It has
+  an executive summary, a codebase map, call-graph and data-flow views,
+  business flows, proposed MCP tools with include toggles and a
+  `selections.json` export, and a methodology appendix. It supports search,
+  risk filters, light/dark themes, print-to-PDF and `#flow=<id>` deep
+  links.
+- **Offline MCP tool proposals**: one per HTTP flow, with a name, a
+  description listing what the flow reads and changes, and a JSON Schema
+  built from path/query/body params. Read-only tools start included; writes
+  start excluded.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed

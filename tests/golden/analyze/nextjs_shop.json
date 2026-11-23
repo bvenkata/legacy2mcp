@@ -1265,5 +1265,169 @@
       "middleware": [],
       "truncated": false
     }
+  ],
+  "tools": [
+    {
+      "name": "refund_admin_orders_by_order_id",
+      "flow_id": "post-api-admin-orders-orderid-refund",
+      "description": "POST /api/admin/orders/{orderId}/refund. Changes order, stripe.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/admin/orders/{orderId}/refund",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "orderId"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "create_checkout",
+      "flow_id": "post-api-checkout",
+      "description": "Turn a cart into a paid order. Reads cart. Changes email, order, stripe.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/checkout",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "cartId": {
+            "type": "string",
+            "description": "request body field"
+          },
+          "email": {
+            "type": "string",
+            "description": "request body field"
+          }
+        },
+        "additionalProperties": false
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "list_products",
+      "flow_id": "get-api-products",
+      "description": "Search the product catalog. Reads product.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/products",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "query-string parameter"
+          }
+        },
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "delete_products_by_id",
+      "flow_id": "delete-api-products-id",
+      "description": "DELETE /api/products/{id}. Changes product.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "DELETE",
+      "path": "/api/products/{id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "get_products_by_id",
+      "flow_id": "get-api-products-id",
+      "description": "GET /api/products/{id}. Reads product.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/products/{id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "replace_products_by_id",
+      "flow_id": "put-api-products-id",
+      "description": "PUT /api/products/{id}. Changes product.",
+      "risk": "low_risk_write",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "PUT",
+      "path": "/api/products/{id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    }
   ]
 }

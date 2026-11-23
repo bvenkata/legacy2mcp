@@ -104,8 +104,6 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
     if not args.no_ai:
         print("note: AI enrichment isn't available in this version yet; running the offline scan (same as --no-ai).",
               file=sys.stderr)
-    if "html" in formats:
-        print("note: the HTML report isn't available in this version yet; writing analysis.json only.", file=sys.stderr)
 
     try:
         analysis = run_analysis(args.path, exclude=args.exclude or [], include_tests=args.include_tests)
@@ -113,7 +111,14 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    out = analysis_model.save(analysis, Path(args.out) / "analysis.json")
+    out_dir = Path(args.out)
+    written = []
+    if "json" in formats:
+        written.append(analysis_model.save(analysis, out_dir / "analysis.json"))
+    if "html" in formats:
+        from legacy2mcp.analysis.report import write_report
+
+        written.append(write_report(analysis, out_dir / "report.html"))
     s = analysis.summary
     langs = ", ".join(f"{k} ({v.files} files)" for k, v in s.languages.items()) or "none found"
     print(f"Analyzed {s.files} files, {s.lines} lines -- {langs}")
@@ -135,7 +140,27 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
     if parse_errors:
         print(f"warning: {len(parse_errors)} file(s) could not be parsed: {', '.join(parse_errors[:5])}"
               + (" ..." if len(parse_errors) > 5 else ""), file=sys.stderr)
-    print(f"Wrote {out}")
+    for path in written:
+        print(f"Wrote {path}")
+
+
+def _cmd_report(args: argparse.Namespace) -> None:
+    from legacy2mcp.analysis import model as analysis_model
+    from legacy2mcp.analysis.report import write_report
+
+    source = Path(args.path)
+    if source.is_dir():
+        source = source / "analysis.json"
+    if not source.is_file():
+        print(f"error: no analysis file at '{source}' (run `legacy2mcp analyze` first)", file=sys.stderr)
+        sys.exit(1)
+    try:
+        analysis = analysis_model.load(source)
+    except (ValueError, KeyError, TypeError) as exc:
+        print(f"error: '{source}' is not a readable analysis file: {exc}", file=sys.stderr)
+        sys.exit(1)
+    out = Path(args.out) if args.out else source.with_name("report.html")
+    print(f"Wrote {write_report(analysis, out)}")
 
 
 def _cmd_discover(args: argparse.Namespace) -> None:
@@ -804,9 +829,18 @@ def main() -> None:
         "--include-tests", action="store_true", help="Also analyze test files and test directories (skipped by default)."
     )
     analyze_parser.add_argument(
-        "--format", default="json", help="Comma-separated outputs: json, html (default: json)."
+        "--format", default="html,json",
+        help="Comma-separated outputs: html (report.html), json (analysis.json). Default: both.",
     )
     analyze_parser.set_defaults(func=_cmd_analyze)
+
+    report_parser = subparsers.add_parser(
+        "report",
+        help="Regenerate the self-contained HTML report from a saved analysis.json (or the directory holding it).",
+    )
+    report_parser.add_argument("path", help="analysis.json, or the `analyze --out` directory containing it.")
+    report_parser.add_argument("--out", help="Where to write the HTML (default: report.html next to analysis.json).")
+    report_parser.set_defaults(func=_cmd_report)
 
     demo_parser = subparsers.add_parser(
         "demo",

@@ -1258,5 +1258,139 @@
       "middleware": [],
       "truncated": false
     }
+  ],
+  "tools": [
+    {
+      "name": "get_health",
+      "flow_id": "get-health",
+      "description": "GET /health.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/health",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "list_invoices",
+      "flow_id": "get-invoices",
+      "description": "GET /invoices/. Reads database.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/invoices/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "integer",
+            "description": "query-string parameter"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "query-string parameter"
+          }
+        },
+        "additionalProperties": false
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "create_invoices",
+      "flow_id": "post-invoices",
+      "description": "Create an invoice and register it with the tax service. Changes database, invoices, tax.example.com.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/invoices/",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "description": "InvoiceIn (structure not inferred -- review); request body field"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "body"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "get_invoices_by_invoice_id",
+      "flow_id": "get-invoices-invoice-id",
+      "description": "Return one invoice. Reads invoices.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/invoices/{invoice_id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "integer",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "invoice_id"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "refund_invoices_by_invoice_id",
+      "flow_id": "post-invoices-invoice-id-refund",
+      "description": "Refund a paid invoice to the original card. Changes database, invoices, stripe.",
+      "risk": "high_risk",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/invoices/{invoice_id}/refund",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "invoice_id": {
+            "type": "integer",
+            "description": "URL path parameter"
+          },
+          "body": {
+            "type": "object",
+            "description": "RefundIn (structure not inferred -- review); request body field"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "invoice_id",
+          "body"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    }
   ]
 }
