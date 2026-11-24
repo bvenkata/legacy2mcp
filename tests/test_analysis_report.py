@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from html.parser import HTMLParser
 import shutil
 import subprocess
 import sys
@@ -22,30 +23,71 @@ def html() -> str:
     return render_html(run_analysis(FIXTURES / "express_store"))
 
 
+class _Scripts(HTMLParser):
+    """Collect every <script> element (any case) with its attributes and text."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.scripts: list[tuple[dict, str]] = []
+        self.links = 0
+        self._attrs: dict | None = None
+        self._buf: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "script":
+            self._attrs, self._buf = dict(attrs), []
+        elif tag == "link":
+            self.links += 1
+
+    def handle_data(self, data):
+        if self._attrs is not None:
+            self._buf.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._attrs is not None:
+            self.scripts.append((self._attrs, "".join(self._buf)))
+            self._attrs = None
+
+
+def _parse(html: str) -> _Scripts:
+    parser = _Scripts()
+    parser.feed(html)
+    return parser
+
+
 def _embedded(html: str) -> dict:
-    m = re.search(r'<script id="analysis-data" type="application/json">(.*?)</script>', html, re.S)
-    assert m
-    return json.loads(m.group(1))
+    (data,) = [text for attrs, text in _parse(html).scripts if attrs.get("id") == "analysis-data"]
+    return json.loads(data)
 
 
 def test_report_is_self_contained(html):
     # No external scripts, styles, fonts, images or fetches.
-    assert not re.search(r"<script[^>]+\bsrc=", html)
-    assert not re.search(r"<link\b", html)
+    parsed = _parse(html)
+    assert all("src" not in attrs for attrs, _ in parsed.scripts)
+    assert parsed.links == 0
     assert "@import" not in html
     assert not re.search(r"url\(\s*['\"]?https?:", html)
     assert "connect-src 'none'" in html
     assert re.search(r"fetch\(|XMLHttpRequest", _app_js(html)) is None
 
 
+def _inline_js(html: str) -> list[str]:
+    return [text for attrs, text in _parse(html).scripts if not attrs]
+
+
 def _app_js(html: str) -> str:
-    return html.rsplit("<script>", 1)[1].split("</script>", 1)[0]
+    return _inline_js(html)[-1]
 
 
 def test_embedded_analysis_round_trips(html):
     data = _embedded(html)
     assert Analysis.from_dict(data).project == "express_store"
     assert len(data["flows"]) == 10 and data["tools"]
+
+
+def _embedded_raw(html: str) -> str:
+    (data,) = [text for attrs, text in _parse(html).scripts if attrs.get("id") == "analysis-data"]
+    return data
 
 
 def test_hostile_strings_cannot_break_out_of_script(tmp_path):
@@ -55,7 +97,7 @@ def test_hostile_strings_cannot_break_out_of_script(tmp_path):
     )
     out = render_html(run_analysis(tmp_path))
     assert "<script>alert(1)" not in out
-    assert "</script><script>" not in out.split('id="analysis-data"', 1)[1].split("</script>", 1)[0]
+    assert "</script>" not in _embedded_raw(out)
     assert _embedded(out)["flows"][0]["name"].startswith("</script><script>alert(1)</script>")
 
 
@@ -69,7 +111,7 @@ def test_report_has_every_section_hook(html):
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
 def test_inline_scripts_parse(html, tmp_path):
-    scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
+    scripts = _inline_js(html)
     assert len(scripts) == 2  # cytoscape + app
     for i, js in enumerate(scripts):
         path = tmp_path / f"s{i}.js"

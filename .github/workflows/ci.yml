@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Every job only checks out code and runs tests.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
