@@ -27,7 +27,7 @@ Both demos need no credentials and no system of your own.
 **REST (public Swagger Petstore):**
 
 ```bash
-curl -O https://raw.githubusercontent.com/OWASP/legacy2mcp/main/examples/rest/config.petstore.yaml
+curl -O https://raw.githubusercontent.com/bvenkata/legacy2mcp/main/examples/rest/config.petstore.yaml
 ```
 
 Then use `/absolute/path/to/config.petstore.yaml` in any snippet below. Your client gets four
@@ -37,7 +37,7 @@ read tools (`petstore_find_pets_by_status`, `petstore_get_pet_by_id`, `petstore_
 **SOAP (sample Orders WSDL, runs locally):**
 
 ```bash
-git clone https://github.com/OWASP/legacy2mcp.git && cd legacy2mcp
+git clone https://github.com/bvenkata/legacy2mcp.git && cd legacy2mcp
 pip install -e ".[dev]"
 python examples/soap/mock_orders_service.py &     # http://127.0.0.1:8124/orders
 ```

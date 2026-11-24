@@ -4,7 +4,7 @@
   "title": "legacy2mcp",
   "description": "Analyze a codebase, or wrap SOAP, databases and REST APIs, as safe audit-logged MCP servers",
   "repository": {
-    "url": "https://github.com/OWASP/legacy2mcp",
+    "url": "https://github.com/bvenkata/legacy2mcp",
     "source": "github"
   },
   "version": "0.6.0",

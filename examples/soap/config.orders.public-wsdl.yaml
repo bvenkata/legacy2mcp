@@ -1,7 +1,7 @@
 # Zero-setup WSDL demo: point legacy2mcp at the sample WSDL hosted in this repo.
 # No clone and no local server. `inspect` only needs the WSDL itself.
 #
-#   curl -O https://raw.githubusercontent.com/OWASP/legacy2mcp/main/examples/soap/config.orders.public-wsdl.yaml
+#   curl -O https://raw.githubusercontent.com/bvenkata/legacy2mcp/main/examples/soap/config.orders.public-wsdl.yaml
 #   legacy2mcp inspect --config config.orders.public-wsdl.yaml
 #
 # This lists the generated tools but cannot call them, because the WSDL's
@@ -17,7 +17,7 @@ adapters:
     type: soap
     enabled: true
     config:
-      wsdl_url: "https://raw.githubusercontent.com/OWASP/legacy2mcp/main/examples/soap/orders.wsdl"
+      wsdl_url: "https://raw.githubusercontent.com/bvenkata/legacy2mcp/main/examples/soap/orders.wsdl"
       auth:
         type: none
       allow_write_operations: false

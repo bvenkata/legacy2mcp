@@ -673,7 +673,7 @@
           : h("p", { class: "secondary" }, "None: offline analysis only (0 tokens)."),
         h("h3", { style: "margin-top:16px" }, "Share: MCP-ready badge"),
         h("p", { class: "secondary" }, "Once you've reviewed this report and generated a config, add this to your README (edit the count to match what you expose):"),
-        h("pre", {}, `[![MCP-ready](https://img.shields.io/badge/MCP--ready-${A.tools.filter((t) => t.safe && t.exposable).length}%20read--only%20tools-6f42c1)](https://github.com/OWASP/legacy2mcp)`),
+        h("pre", {}, `[![MCP-ready](https://img.shields.io/badge/MCP--ready-${A.tools.filter((t) => t.safe && t.exposable).length}%20read--only%20tools-6f42c1)](https://github.com/bvenkata/legacy2mcp)`),
         h("h3", { style: "margin-top:16px" }, "Run"),
         h("dl", { class: "kv" },
           h("dt", {}, "legacy2mcp"), h("dd", {}, meta.legacy2mcp_version || "unknown"),

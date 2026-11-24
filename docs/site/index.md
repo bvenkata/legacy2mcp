@@ -18,9 +18,9 @@ pip install "legacy2mcp[analyze]"
 legacy2mcp analyze ./my-app --no-ai
 ```
 
-[See a sample report](https://github.com/OWASP/legacy2mcp/tree/main/docs/sample-report) ·
-[Read the guide](https://github.com/OWASP/legacy2mcp/blob/main/docs/analyze.md) ·
-[GitHub](https://github.com/OWASP/legacy2mcp)
+[See a sample report](https://github.com/bvenkata/legacy2mcp/tree/main/docs/sample-report) ·
+[Read the guide](https://github.com/bvenkata/legacy2mcp/blob/main/docs/analyze.md) ·
+[GitHub](https://github.com/bvenkata/legacy2mcp)
 
 ## What you get
 

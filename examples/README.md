@@ -42,7 +42,7 @@ GitHub URL instead of cloning. It can list tools but not call them, since
 the WSDL's bound address is local:
 
 ```bash
-curl -O https://raw.githubusercontent.com/OWASP/legacy2mcp/main/examples/soap/config.orders.public-wsdl.yaml
+curl -O https://raw.githubusercontent.com/bvenkata/legacy2mcp/main/examples/soap/config.orders.public-wsdl.yaml
 legacy2mcp inspect --config config.orders.public-wsdl.yaml
 ```
 

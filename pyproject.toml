@@ -67,9 +67,9 @@ db-oracle = ["oracledb>=2.0,<27"]
 ai = ["anthropic>=2.13,<3"]
 
 [project.urls]
-Homepage = "https://github.com/OWASP/legacy2mcp"
-Repository = "https://github.com/OWASP/legacy2mcp"
-Issues = "https://github.com/OWASP/legacy2mcp/issues"
+Homepage = "https://github.com/bvenkata/legacy2mcp"
+Repository = "https://github.com/bvenkata/legacy2mcp"
+Issues = "https://github.com/bvenkata/legacy2mcp/issues"
 "OWASP Project" = "https://owasp.org/projects/legacy2mcp"
 "MCP Registry" = "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp"
 
