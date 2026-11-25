@@ -1,6 +1,6 @@
 <!-- mcp-name: io.github.OWASP/legacy2mcp -->
 
-# legacy2mcp
+# OWASP legacy2mcp
 
 <div align="center">
 
@@ -1017,4 +1017,4 @@ To report a vulnerability in legacy2mcp itself, see [SECURITY.md](SECURITY.md). 
 
 [Apache 2.0](LICENSE)
 
-<div align="center"><sub>legacy2mcp · an <a href="https://owasp.org/projects/legacy2mcp">OWASP Foundation</a> project · <a href="https://github.com/OWASP/legacy2mcp">github.com/OWASP/legacy2mcp</a></sub></div>
+<div align="center"><sub>OWASP legacy2mcp · an <a href="https://owasp.org/projects/legacy2mcp">OWASP Foundation</a> project · <a href="https://github.com/OWASP/legacy2mcp">github.com/OWASP/legacy2mcp</a></sub></div>

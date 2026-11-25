@@ -51,12 +51,16 @@ officially representing the project in public spaces.
 
 ## Enforcement
 
+legacy2mcp is an [OWASP Foundation](https://owasp.org/projects/legacy2mcp)
+project, so participants are also expected to follow the OWASP Foundation's
+policies, including its Code of Conduct.
+
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by opening a GitHub issue, or by contacting the maintainer directly
-if the matter is sensitive enough that a public issue isn't appropriate (the
-same channel this project uses for [reporting a security
-vulnerability](docs/security.md#reporting-a-vulnerability)). All complaints
-will be reviewed and investigated promptly and fairly.
+reported privately to the OWASP Foundation through
+[owasp.org/contact](https://owasp.org/contact), or to the project leader at
+balaji.venkatasubramaniyar@owasp.org. Reports don't need to go through a
+public GitHub issue. All complaints will be reviewed and investigated promptly
+and fairly.
 
 All project maintainers are obligated to respect the privacy and security of
 the reporter of any incident.
