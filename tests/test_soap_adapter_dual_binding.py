@@ -105,7 +105,9 @@ def _create_app() -> Flask:
     def soap_call():
         from lxml import etree
 
-        root = etree.fromstring(request.get_data())
+        root = etree.fromstring(
+            request.get_data(), etree.XMLParser(resolve_entities=False, no_network=True)
+        )
         soap_ns = "http://schemas.xmlsoap.org/soap/envelope/"
         op_el = list(root.find(f"{{{soap_ns}}}Body"))[0]
         a = int(op_el.find(f"{{{NS}}}intA").text)
