@@ -36,7 +36,7 @@ analyze → flows → risk → report → generate.
 
 ## Corrections to the plan
 
-- **Repo and registry names.** The plan says `github.com/bvenkata/legacy2mcp`. The code stays at `github.com/bvenkata/legacy2mcp`; OWASP hosts the project page at https://owasp.org/projects/legacy2mcp (OWASP no longer keeps a placeholder repo). The registry name `io.github.bvenkata/legacy2mcp` stays.
+- **Repo and registry names.** The plan says `github.com/bvenkata/legacy2mcp`. The repo has moved to `github.com/OWASP/legacy2mcp` (old URLs redirect), and the MCP Registry name moves with it to `io.github.OWASP/legacy2mcp`, because GitHub OIDC from an OWASP-owned repo only authorizes the `io.github.OWASP/*` namespace.
 - **No `serve` command.** The existing commands are `run`, `inspect`, `init`, `discover`, `demo` and `install-skill`. All of them stay unchanged. `analyze`, `report` and `generate` are new names, so they don't collide with anything.
 - **"Scan command"** in the plan means `init --github-url/--local-path --scan-only`. It is not a separate command.
 - **Releases.** Pushing a `v*` tag publishes to PyPI and the MCP Registry. A tag per milestone means a public release per milestone.

@@ -62,4 +62,4 @@ Export your selection and run `legacy2mcp generate` to get a server whose
 write tools stay hidden until you enable them.
 
 *legacy2mcp is open source (Apache 2.0) and an OWASP Incubator Project:
-[github.com/bvenkata/legacy2mcp](https://github.com/bvenkata/legacy2mcp).*
+[github.com/OWASP/legacy2mcp](https://github.com/OWASP/legacy2mcp).*

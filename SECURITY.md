@@ -15,7 +15,7 @@ Please report security issues in legacy2mcp itself privately. Do not open a
 public GitHub issue for an undisclosed vulnerability.
 
 - Preferred: GitHub private vulnerability reporting. Open the
-  [Security advisories page](https://github.com/bvenkata/legacy2mcp/security/advisories)
+  [Security advisories page](https://github.com/OWASP/legacy2mcp/security/advisories)
   and click "Report a vulnerability".
 - Or email the project leader at balaji.venkatasubramaniyar@owasp.org.
 

@@ -1,9 +1,9 @@
 # Contributing
 
 New here? Start with an issue labeled
-[`good first issue`](https://github.com/bvenkata/legacy2mcp/labels/good%20first%20issue)
+[`good first issue`](https://github.com/OWASP/legacy2mcp/labels/good%20first%20issue)
 -- small, self-contained, scoped to one file or one function. Looking for
-something bigger? [`help wanted`](https://github.com/bvenkata/legacy2mcp/labels/help%20wanted)
+something bigger? [`help wanted`](https://github.com/OWASP/legacy2mcp/labels/help%20wanted)
 issues are real gaps that need more design/discussion, not busywork. Either
 way, comment on the issue before starting so two people don't duplicate
 work, and feel free to ask questions on it -- that's what it's there for.
@@ -11,8 +11,8 @@ work, and feel free to ask questions on it -- that's what it's there for.
 ## What's next (short version)
 
 The authoritative, up-to-date list is always the open
-[`good first issue`](https://github.com/bvenkata/legacy2mcp/labels/good%20first%20issue)/
-[`help wanted`](https://github.com/bvenkata/legacy2mcp/labels/help%20wanted)
+[`good first issue`](https://github.com/OWASP/legacy2mcp/labels/good%20first%20issue)/
+[`help wanted`](https://github.com/OWASP/legacy2mcp/labels/help%20wanted)
 issues, not this file -- but in short, the biggest gaps today are:
 
 - **Queue adapter** (`type: queue`) -- `discover --queue-config` already
@@ -39,7 +39,7 @@ Full version-by-version history: [docs/roadmap.md](docs/roadmap.md).
 ## Development setup
 
 ```bash
-git clone https://github.com/bvenkata/legacy2mcp.git
+git clone https://github.com/OWASP/legacy2mcp.git
 cd legacy2mcp
 pip install -e ".[dev]"
 pytest tests/ -v
@@ -139,7 +139,7 @@ otherwise trip over) rather than restating what a line already says.
 
 ## Reporting a bug or requesting a feature
 
-Open a [GitHub issue](https://github.com/bvenkata/legacy2mcp/issues). For a
+Open a [GitHub issue](https://github.com/OWASP/legacy2mcp/issues). For a
 security issue, see [Reporting a vulnerability](docs/security.md#reporting-a-vulnerability)
 instead of a public issue.
 

@@ -67,4 +67,4 @@ Every call is schema-validated and audit-logged, and write tools stay hidden
 until `allow_write_operations: true` is set explicitly.
 
 *Try it: `pip install "legacy2mcp[analyze]" && legacy2mcp analyze ./my-app --no-ai`.
-Source: [github.com/bvenkata/legacy2mcp](https://github.com/bvenkata/legacy2mcp).*
+Source: [github.com/OWASP/legacy2mcp](https://github.com/OWASP/legacy2mcp).*

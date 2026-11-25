@@ -21,11 +21,11 @@ git push
 One-time setup before the first tag:
 
 1. **PyPI Trusted Publisher** — at <https://pypi.org/manage/account/publishing/>
-   add a pending publisher: project `legacy2mcp`, owner `bvenkata`, repo
+   add a pending publisher: project `legacy2mcp`, owner `OWASP`, repo
    `legacy2mcp`, workflow `release.yml`, environment `pypi`.
 2. **GitHub environment** — create an environment named `pypi` in the repo
    settings (protect it to tags if you like).
-3. The MCP Registry `io.github.bvenkata/*` namespace needs no setup — OIDC from
+3. The MCP Registry `io.github.OWASP/*` namespace needs no setup — OIDC from
    this repo is authorized automatically.
 
 Then every release is:

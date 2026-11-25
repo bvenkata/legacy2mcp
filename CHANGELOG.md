@@ -100,6 +100,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   CONTRIBUTING section on the analyzer, and a list of good first issues.
   `install-skill` now teaches assistants `analyze` and `generate`.
 
+### Changed: project moved to the OWASP GitHub org
+
+- The repository moved from `bvenkata/legacy2mcp` to
+  [`OWASP/legacy2mcp`](https://github.com/OWASP/legacy2mcp). Old GitHub URLs
+  redirect.
+- **MCP Registry name changed** from `io.github.bvenkata/legacy2mcp` to
+  `io.github.OWASP/legacy2mcp`. Registry publishing uses GitHub OIDC, which
+  only authorizes the repo owner's namespace. The old entry stays listed at
+  0.5.1 and gets no further updates. The PyPI package name `legacy2mcp` is
+  unchanged.
+
 ### Changed (found by running `analyze` on a real codebase)
 
 - `form.validate_on_submit()` is treated as a POST-only branch (Flask-WTF),
@@ -429,12 +440,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - CLI: `legacy2mcp run --config ...` and `legacy2mcp inspect --config ...`.
 - `stdio` transport.
 
-[Unreleased]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.6...HEAD
-[0.2.6]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.5...v0.2.6
-[0.2.5]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.4...v0.2.5
-[0.2.4]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.3...v0.2.4
-[0.2.3]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/bvenkata/legacy2mcp/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/bvenkata/legacy2mcp/releases/tag/v0.1.0
+[Unreleased]: https://github.com/OWASP/legacy2mcp/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/OWASP/legacy2mcp/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/OWASP/legacy2mcp/compare/v0.2.4...v0.2.5
+[0.2.4]: https://github.com/OWASP/legacy2mcp/compare/v0.2.3...v0.2.4
+[0.2.3]: https://github.com/OWASP/legacy2mcp/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/OWASP/legacy2mcp/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/OWASP/legacy2mcp/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/OWASP/legacy2mcp/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/OWASP/legacy2mcp/releases/tag/v0.1.0

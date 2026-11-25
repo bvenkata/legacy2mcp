@@ -28,16 +28,16 @@ legacy2mcp run     --config config.yaml   # start the MCP server (stdio)
 
 ## Docs
 
-- [README](https://github.com/bvenkata/legacy2mcp/blob/main/README.md): install, quick start, full config reference for all three adapters, safety model
-- [Codebase analysis guide](https://github.com/bvenkata/legacy2mcp/blob/main/docs/analyze.md): analyze, report, generate, AI enrichment and privacy
-- [Sample report](https://github.com/bvenkata/legacy2mcp/tree/main/docs/sample-report): real output from an open-source Flask app
-- [Security model](https://github.com/bvenkata/legacy2mcp/blob/main/docs/security.md): exactly what's validated and audited today, and what isn't yet
-- [Roadmap](https://github.com/bvenkata/legacy2mcp/blob/main/docs/roadmap.md): shipped vs. planned
-- [Examples](https://github.com/bvenkata/legacy2mcp/blob/main/examples/README.md): runnable SOAP and REST demo configs
-- [Connecting MCP clients](https://github.com/bvenkata/legacy2mcp/blob/main/docs/clients.md): Claude Desktop, Claude Code, Cursor, VS Code
+- [README](https://github.com/OWASP/legacy2mcp/blob/main/README.md): install, quick start, full config reference for all three adapters, safety model
+- [Codebase analysis guide](https://github.com/OWASP/legacy2mcp/blob/main/docs/analyze.md): analyze, report, generate, AI enrichment and privacy
+- [Sample report](https://github.com/OWASP/legacy2mcp/tree/main/docs/sample-report): real output from an open-source Flask app
+- [Security model](https://github.com/OWASP/legacy2mcp/blob/main/docs/security.md): exactly what's validated and audited today, and what isn't yet
+- [Roadmap](https://github.com/OWASP/legacy2mcp/blob/main/docs/roadmap.md): shipped vs. planned
+- [Examples](https://github.com/OWASP/legacy2mcp/blob/main/examples/README.md): runnable SOAP and REST demo configs
+- [Connecting MCP clients](https://github.com/OWASP/legacy2mcp/blob/main/docs/clients.md): Claude Desktop, Claude Code, Cursor, VS Code
 
 ## Optional
 
 - [PyPI package](https://pypi.org/project/legacy2mcp/)
-- [MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp)
-- [Releasing guide](https://github.com/bvenkata/legacy2mcp/blob/main/docs/releasing.md)
+- [MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.OWASP/legacy2mcp)
+- [Releasing guide](https://github.com/OWASP/legacy2mcp/blob/main/docs/releasing.md)

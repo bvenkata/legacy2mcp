@@ -30,7 +30,7 @@ opt in. AI enrichment is optional and bring-your-own-key. It shows a preview of
 exactly what's sent (structure only by default, secrets redacted) and asks first.
 
 Sample report from Miguel Grinberg's microblog: <link to docs/sample-report or hosted copy>
-Repo: https://github.com/bvenkata/legacy2mcp
+Repo: https://github.com/OWASP/legacy2mcp
 
 It's static analysis, so dynamic dispatch and DI containers aren't followed.
 "Read-only" means "no write found". I'd love reports of what it misses on your code.
@@ -44,7 +44,7 @@ It's static analysis, so dynamic dispatch and DI containers aren't followed.
 
 ## Listings to update
 
-- **MCP Registry** (`io.github.bvenkata/legacy2mcp`): `server.json` description
+- **MCP Registry** (`io.github.OWASP/legacy2mcp`): `server.json` description
   once the release is tagged (the release workflow publishes it).
 - **Glama**: refresh the description and add the sample report link.
 - **awesome-mcp-servers / awesome-mcp lists**, one line:
@@ -54,7 +54,7 @@ It's static analysis, so dynamic dispatch and DI containers aren't followed.
 
 `docs/sample-report/index.html` is a single static file. Options once you
 decide: enable GitHub Pages for `/docs` (the report then lives at
-`https://bvenkata.github.io/legacy2mcp/sample-report/`), or upload it to
+`https://owasp.github.io/legacy2mcp/sample-report/`), or upload it to
 legacy2mcp.com.
 
 ## MCP-ready badge

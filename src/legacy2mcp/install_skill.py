@@ -65,7 +65,7 @@ To wire the generated server into an MCP client, add to its config (use an
 absolute path to config.yaml):
     {"mcpServers": {"<name>": {"command": "legacy2mcp", "args": ["run", "--config", "/absolute/path/to/config.yaml"]}}}
 
-Full docs: https://github.com/bvenkata/legacy2mcp
+Full docs: https://github.com/OWASP/legacy2mcp
 """
 
 # Heading used when appending into a shared instructions file, so re-running
