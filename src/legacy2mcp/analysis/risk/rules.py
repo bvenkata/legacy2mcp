@@ -25,6 +25,26 @@ _AUTH_MIDDLEWARE_RE = re.compile(
     r"(auth|login|jwt|token|permission|session|protect|guard|require_?user|verify|passport|current_user|admin)",
     re.IGNORECASE,
 )
+# Decorators/middleware that switch authentication *off* or aren't about it:
+# @login_not_required, @permission_classes([AllowAny]), @csrf_exempt, ...
+_NOT_AUTH_MIDDLEWARE_RE = re.compile(
+    r"(not_?required|exempt|allow_?any|public|anonymous|skip_?auth|no_?auth|optional|csrf)",
+    re.IGNORECASE,
+)
+
+
+def _middleware_name(qualified: str) -> str:
+    """The middleware's own name, without the module it came from: only that
+    part says what it does (`myapp.auth.cache_page` is not an auth check)."""
+    module, _, name = qualified.rpartition(".")
+    if name == "default" and module:  # JS default import: the module is the name
+        name = module.rsplit("/", 1)[-1]
+    return name
+
+
+def is_auth_middleware(qualified: str) -> bool:
+    name = _middleware_name(qualified)
+    return bool(_AUTH_MIDDLEWARE_RE.search(name)) and not _NOT_AUTH_MIDDLEWARE_RE.search(name)
 _HTTP_WRITE_METHODS = {"POST", "PUT", "PATCH"}
 # Routes that are public by design: asking them to require authentication is wrong advice.
 PUBLIC_AUTH_ROUTE_RE = re.compile(
@@ -107,7 +127,7 @@ def is_authenticated(entry: EntryPoint, auth_read_in_flow: bool) -> bool | None:
     and public sign-in/sign-up/password-reset routes)."""
     if entry.kind != "http_route":
         return None
-    if any(_AUTH_MIDDLEWARE_RE.search(m) for m in entry.middleware) or auth_read_in_flow:
+    if any(is_auth_middleware(m) for m in entry.middleware) or auth_read_in_flow:
         return True
     if PUBLIC_AUTH_ROUTE_RE.search(entry.path or ""):
         return None  # sign-in / sign-up / reset endpoints are public by design

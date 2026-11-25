@@ -43,7 +43,11 @@ def run_analysis(
     results: list[FileResult] = []
     unparsed: dict[str, int] = {}
     for source in walked.files:
-        text = source.path.read_text(encoding="utf-8", errors="replace")
+        try:
+            text = source.path.read_text(encoding="utf-8", errors="replace")
+        except OSError:  # permissions, or deleted since the walk: count it, don't abort
+            walked.excluded["unreadable"] = walked.excluded.get("unreadable", 0) + 1
+            continue
         analyzer = by_language.get(source.language)
         if analyzer is None:
             # Counted in the summary (size, languages) but not parsed.
@@ -75,7 +79,7 @@ def run_analysis(
     analysis = Analysis(
         project=root_path.name,
         scan=ScanInfo(
-            included_files=len(walked.files),
+            included_files=len(results),
             excluded=dict(sorted(walked.excluded.items())),
             ignore_files=walked.ignore_files,
             exclude_patterns=list(exclude or []),

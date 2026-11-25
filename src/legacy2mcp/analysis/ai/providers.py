@@ -29,7 +29,14 @@ _FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 
 class ProviderError(Exception):
-    """A provider call failed; callers keep the rule-based result."""
+    """A provider call failed; callers keep the rule-based result.
+
+    `usage` is set when the provider billed tokens before failing (refusal,
+    max_tokens, unparseable output), so budgets still count them."""
+
+    def __init__(self, message: str, usage: "Usage | None" = None):
+        super().__init__(message)
+        self.usage = usage
 
 
 @dataclass
@@ -94,14 +101,14 @@ class AnthropicProvider:
             raise ProviderError("could not reach the Anthropic API (network error)") from exc
         usage = Usage(response.usage.input_tokens or 0, response.usage.output_tokens or 0)
         if response.stop_reason == "refusal":
-            raise ProviderError("the model declined this request; keeping rule-based results")
+            raise ProviderError("the model declined this request; keeping rule-based results", usage)
         if response.stop_reason == "max_tokens":
-            raise ProviderError("response hit max_tokens before finishing; keeping rule-based results")
+            raise ProviderError("response hit max_tokens before finishing; keeping rule-based results", usage)
         text = next((b.text for b in response.content if b.type == "text"), "")
         try:
             return json.loads(text), usage
         except ValueError as exc:
-            raise ProviderError("model returned invalid JSON") from exc
+            raise ProviderError("model returned invalid JSON", usage) from exc
 
 
 class OpenAIProvider:
@@ -136,17 +143,19 @@ class OpenAIProvider:
             raise ProviderError(f"could not reach {self.base_url}: {type(exc).__name__}") from exc
         if response.status_code >= 400:
             raise ProviderError(f"OpenAI-compatible API returned HTTP {response.status_code}")
+        usage = None
         try:
             body = response.json()
+            raw_usage = body.get("usage") or {}
+            usage = Usage(raw_usage.get("prompt_tokens") or 0, raw_usage.get("completion_tokens") or 0)
             choice = body["choices"][0]
-            usage = Usage(body.get("usage", {}).get("prompt_tokens", 0), body.get("usage", {}).get("completion_tokens", 0))
             if choice.get("finish_reason") == "length":
-                raise ProviderError("response hit max_tokens before finishing; keeping rule-based results")
+                raise ProviderError("response hit max_tokens before finishing; keeping rule-based results", usage)
             return json.loads(choice["message"]["content"]), usage
         except ProviderError:
             raise
-        except (ValueError, KeyError, IndexError, TypeError) as exc:
-            raise ProviderError("OpenAI-compatible API returned an unexpected response") from exc
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+            raise ProviderError("OpenAI-compatible API returned an unexpected response", usage) from exc
 
 
 class MockProvider:

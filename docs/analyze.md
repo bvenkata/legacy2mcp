@@ -87,9 +87,9 @@ legacy2mcp analyze ./my-app                 # preview, confirm, send
 |---|---|
 | `--provider anthropic\|openai` | default: whichever key is set (`anthropic` also works with an `ant auth login` profile when named explicitly) |
 | `--model` | default `claude-opus-5-5` (Anthropic) / `gpt-4o-mini` (OpenAI) |
-| `--max-tokens-budget N` | hard cap on input+output tokens (default 200,000; 0 = none); requests that would exceed it are skipped |
+| `--max-tokens-budget N` | hard cap on input+output tokens (default 200,000; 0 = none); requests that would exceed it are skipped. Tokens billed by failed requests (refusal, truncation, bad JSON) count too |
 | `--ai-snippets` | also send up to 40 lines of each handler's source (redacted). Default: structure only |
-| `--ai-dry-run` | write the exact payloads to `<out>/ai-payload.json` and stop |
+| `--ai-dry-run` | write the payloads to `<out>/ai-payload.json` and stop (the orchestration request is shown with rule-based flow names; when sent, it carries the AI names from the earlier requests instead) |
 | `--yes` | don't ask before sending (non-interactive runs without it stay offline) |
 | `--api-key-env`, `--base-url` | custom key variable; OpenAI-compatible gateway |
 
@@ -101,7 +101,8 @@ Guarantees:
 - **Secret redaction.** Every payload is scanned for secrets by content (provider
   API keys, cloud/SaaS tokens, JWTs, bearer tokens, private keys,
   credentials in connection strings, `password = "..."`-style assignments)
-  and scrubbed before sending.
+  and scrubbed before sending. Each text field is scanned on its own before
+  the payload is encoded, then the encoded payload is scanned again.
 - **Rules win.** AI never changes a risk level, a tool's safe flag, or what's
   selected by default. Invented flow ids are ignored, and names are sanitized
   and capped.

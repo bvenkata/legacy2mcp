@@ -163,8 +163,12 @@ def walk(root: Path, exclude: list[str] | None = None, include_tests: bool = Fal
                 reason = "symlink"
             if reason is None and f.endswith(".d.ts"):
                 reason = "type_declarations"
-            if reason is None and full.stat().st_size > MAX_FILE_BYTES:
-                reason = "too_large"
+            if reason is None:
+                try:
+                    if full.stat().st_size > MAX_FILE_BYTES:
+                        reason = "too_large"
+                except OSError:  # vanished or unreadable mid-walk
+                    reason = "unreadable"
             if reason:
                 bump(reason)
                 continue

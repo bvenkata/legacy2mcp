@@ -133,6 +133,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- AI enrichment: secrets in double quotes inside handler snippets
+  (`SECRET_KEY = "..."`) were not redacted, because redaction ran on the
+  JSON-encoded payload, where the quotes are escaped. Fields are now redacted
+  before encoding, with a second pass over the encoded payload.
+- AI enrichment: tokens billed by failed requests now count against
+  `--max-tokens-budget`, and the orchestration request uses the AI flow names.
+- Risk: decorators that turn auth *off* (`@permission_classes([AllowAny])`,
+  `@login_not_required`, `@csrf_exempt`), or that just live in a module named
+  `auth`, no longer count as authentication.
+- `generate`: a `flow:<id>` selection wins over a stale tool name;
+  `--server-name` is used as given; REST endpoint settings are validated at
+  generate time.
+- Flow ids can no longer collide (`/a/b`, `/a-b` and `/a-b-2`); an unreadable
+  file is counted as excluded instead of aborting the analysis.
+
 - **Oracle `discover --stored-procs` finds procedures and functions inside
   a package**: they show up as `PACKAGE.ROUTINE` (with `#<overload>` when
   the package overloads the name), so the contract's `db_object` says which

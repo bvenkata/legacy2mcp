@@ -68,6 +68,30 @@ def module_name_for(rel: str) -> str:
     return ".".join(parts)
 
 
+_DRF_POLICY_DECORATORS = {"permission_classes", "authentication_classes"}
+
+
+def _decorator_names(node: ast.AST, imports) -> list[str]:
+    """Qualified decorator names. For DRF's @permission_classes([...]) /
+    @authentication_classes([...]) the listed classes are recorded instead,
+    because they, not the decorator, say whether the view is public
+    (`AllowAny`) or protected (`IsAuthenticated`)."""
+    names: list[str] = []
+    for dec in node.decorator_list:
+        target = dec.func if isinstance(dec, ast.Call) else dec
+        name = dotted(target)
+        if not name:
+            continue
+        if (isinstance(dec, ast.Call) and name.split(".")[-1] in _DRF_POLICY_DECORATORS and dec.args
+                and isinstance(dec.args[0], (ast.List, ast.Tuple))):
+            classes = [dotted(e) for e in dec.args[0].elts]
+            if classes and all(classes):
+                names.extend(imports.qualify(c) for c in classes)
+                continue
+        names.append(imports.qualify(name))
+    return names
+
+
 def dotted(node: ast.AST) -> str | None:
     """Render a call target as written: `a.b().c[]`. None for anything exotic."""
     if isinstance(node, ast.Name):
@@ -411,7 +435,7 @@ class PythonAnalyzer:
                     end_line=node.end_lineno or node.lineno,
                     params=_params(node) + [p for n, p in sorted(visitor.request_params.items())
                                             if n not in {a.arg for a in node.args.args + node.args.kwonlyargs}],
-                    decorators=[imports.qualify(d) for d in (dotted(dec.func if isinstance(dec, ast.Call) else dec) for dec in node.decorator_list) if d],
+                    decorators=_decorator_names(node, imports),
                     calls=sorted(visitor.calls),
                     side_effects=sorted(visitor.effects, key=lambda e: (e.line, e.kind, e.call)),
                     docstring=_first_doc_line(node),

@@ -170,13 +170,18 @@ class _Tracer:
 
 def trace_flows(analysis: Analysis) -> list[Flow]:
     tracer = _Tracer(analysis)
-    flows: list[Flow] = []
-    used: dict[str, int] = {}
-    for entry in analysis.entry_points:
-        flow = tracer.trace(entry)
-        n = used.get(flow.id, 0)
-        used[flow.id] = n + 1
-        if n:
-            flow.id = f"{flow.id}-{n + 1}"
-        flows.append(flow)
+    flows = [tracer.trace(entry) for entry in analysis.entry_points]
+    # Keep every natural slug as-is; give repeats the first free -2, -3, ...
+    # that no other flow uses (`GET /a/b`, `GET /a-b` and `GET /a-b-2` must
+    # not end up sharing an id).
+    taken = {f.id for f in flows}
+    seen: set[str] = set()
+    for flow in flows:
+        if flow.id in seen:
+            n = 2
+            while f"{flow.id}-{n}" in taken:
+                n += 1
+            flow.id = f"{flow.id}-{n}"
+            taken.add(flow.id)
+        seen.add(flow.id)
     return flows

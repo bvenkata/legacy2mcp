@@ -73,7 +73,13 @@ def _select(analysis: Analysis, flows: list[str] | None, selections: dict[str, b
             else:
                 skipped.append(f"{m}: no such flow id or tool name in this analysis")
     elif selections is not None:
-        chosen = [t for t in analysis.tools if selections.get(t.name, selections.get(f"flow:{t.flow_id}", False))]
+        # Flow ids are stable across re-runs; tool names are not (AI renames,
+        # _2 suffixes), so an exported flow id wins over a stale name.
+        def picked(t: ToolProposal) -> bool:
+            by_flow = selections.get(f"flow:{t.flow_id}")
+            return by_flow if by_flow is not None else selections.get(t.name, False)
+
+        chosen = [t for t in analysis.tools if picked(t)]
     else:
         chosen = [t for t in analysis.tools if t.include]
     out = []
@@ -157,7 +163,7 @@ def build_config(analysis: Analysis, flows: list[str] | None = None, selections:
 
     name = server_name or re.sub(r"[^a-z0-9-]+", "-", analysis.project.lower()).strip("-") or "legacy2mcp"
     config = {
-        "server": {"name": f"{name}-mcp"},
+        "server": {"name": server_name or f"{name}-mcp"},
         "adapters": [{
             "id": re.sub(r"[^a-z0-9_]+", "_", name.lower()).strip("_") or "app",
             "type": "rest",
@@ -172,5 +178,11 @@ def build_config(analysis: Analysis, flows: list[str] | None = None, selections:
         "security": {"audit": {"enabled": True, "path": "./legacy2mcp-audit.log"}},
     }
     # The runtime's own schema is the contract: fail here, not at `run` time.
-    Legacy2McpConfig.model_validate(config)
+    # Adapter configs are free-form dicts at the top level, so validate the
+    # REST settings explicitly too.
+    try:
+        for adapter in Legacy2McpConfig.model_validate(config).adapters:
+            adapter.rest_settings()
+    except ValueError as exc:  # pydantic.ValidationError is a ValueError
+        raise GenerateError(f"the generated config failed validation: {exc}") from exc
     return GenerateResult(config=config, todos=todos, selected=selected, skipped=skipped)

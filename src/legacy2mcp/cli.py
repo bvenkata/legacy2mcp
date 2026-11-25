@@ -212,7 +212,7 @@ def _load_analysis_arg(path_arg: str):
         sys.exit(1)
     try:
         return source, analysis_model.load(source)
-    except (ValueError, KeyError, TypeError) as exc:
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
         print(f"error: '{source}' is not a readable analysis file: {exc}", file=sys.stderr)
         sys.exit(1)
 
@@ -247,20 +247,9 @@ def _cmd_generate(args: argparse.Namespace) -> None:
 
 
 def _cmd_report(args: argparse.Namespace) -> None:
-    from legacy2mcp.analysis import model as analysis_model
     from legacy2mcp.analysis.report import write_report
 
-    source = Path(args.path)
-    if source.is_dir():
-        source = source / "analysis.json"
-    if not source.is_file():
-        print(f"error: no analysis file at '{source}' (run `legacy2mcp analyze` first)", file=sys.stderr)
-        sys.exit(1)
-    try:
-        analysis = analysis_model.load(source)
-    except (ValueError, KeyError, TypeError) as exc:
-        print(f"error: '{source}' is not a readable analysis file: {exc}", file=sys.stderr)
-        sys.exit(1)
+    source, analysis = _load_analysis_arg(args.path)
     out = Path(args.out) if args.out else source.with_name("report.html")
     print(f"Wrote {write_report(analysis, out)}")
 

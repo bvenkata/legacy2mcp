@@ -18,6 +18,7 @@ import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Callable
 
 from legacy2mcp.analysis.ai.providers import Provider, ProviderError, estimate_cost
 from legacy2mcp.analysis.ai.redact import redact
@@ -108,10 +109,42 @@ ORCHESTRATION_SCHEMA = {
 class AIRequest:
     task: str
     system: str
-    user: str  # redacted JSON payload, exactly what will be sent
+    user: str  # redacted JSON payload, as previewed (see `rebuild`)
     schema: dict
     max_tokens: int
     est_input_tokens: int
+    # Rebuilds `user` at send time from the analysis as it is then (e.g. with
+    # flow names from earlier answers). Returns (redacted payload, redactions).
+    rebuild: Callable[[Analysis], tuple[str, int]] | None = None
+
+
+def _redact_tree(value: Any) -> tuple[Any, int]:
+    """Redact every string inside a JSON-able value *before* encoding it, so
+    patterns see the raw text (json.dumps escapes the quotes they rely on)."""
+    if isinstance(value, str):
+        return redact(value)
+    if isinstance(value, dict):
+        out, total = {}, 0
+        for k, v in value.items():
+            out[k], n = _redact_tree(v)
+            total += n
+        return out, total
+    if isinstance(value, (list, tuple)):
+        items, total = [], 0
+        for v in value:
+            item, n = _redact_tree(v)
+            items.append(item)
+            total += n
+        return items, total
+    return value, 0
+
+
+def _encode(payload: dict) -> tuple[str, int]:
+    """Redact field by field, encode, then redact the encoded text once more
+    as a backstop. Returns (payload JSON, number of secrets removed)."""
+    clean, count = _redact_tree(payload)
+    text, extra = redact(json.dumps(clean, ensure_ascii=False))
+    return text, count + extra
 
 
 @dataclass
@@ -195,34 +228,42 @@ def plan_enrichment(analysis: Analysis, provider: str, model: str, snippets: boo
             "frameworks": analysis.summary.frameworks,
             "flows": [_flow_payload(f, analysis, entries, labels, root, snippets) for f in batch],
         }
-        user, count = redact(json.dumps(payload, ensure_ascii=False))
+        user, count = _encode(payload)
         plan.redactions += count
         plan.requests.append(AIRequest(
             task="name_flows", system=NAME_FLOWS_SYSTEM, user=user, schema=NAME_FLOWS_SCHEMA,
             max_tokens=max(1024, OUTPUT_TOKENS_PER_FLOW * len(batch) + 400),
             est_input_tokens=estimate_tokens(NAME_FLOWS_SYSTEM + user),
         ))
-    orch = analysis.orchestration
-    if orch.agents:
-        names = {f.id: f.name for f in flows}
-        risks = {f.id: f.risk for f in flows}
-        agents = ([orch.coordinator] if orch.coordinator else []) + orch.agents
-        payload = {
-            "task": "orchestration",
-            "project": analysis.project,
-            "agents": [{"id": a.id, "role": a.role, "domain": a.domain,
-                        "flows": [{"id": fid, "name": names.get(fid, fid), "risk": risks.get(fid)} for fid in a.flows][:25]}
-                       for a in agents],
-            "approvals": [{"flow": ap.flow_id, "level": ap.level, "reason": ap.reason} for ap in orch.approvals][:40],
-            "multimodal_found": [{"kind": m.kind, "flows": m.flows[:10], "evidence": m.evidence[:5]} for m in analysis.multimodal],
-        }
-        user, count = redact(json.dumps(payload, ensure_ascii=False))
+    if analysis.orchestration.agents:
+        user, count = _orchestration_payload(analysis)
         plan.redactions += count
         plan.requests.append(AIRequest(
             task="orchestration", system=ORCHESTRATION_SYSTEM, user=user, schema=ORCHESTRATION_SCHEMA,
             max_tokens=2000, est_input_tokens=estimate_tokens(ORCHESTRATION_SYSTEM + user),
+            rebuild=_orchestration_payload,
         ))
     return plan
+
+
+def _orchestration_payload(analysis: Analysis) -> tuple[str, int]:
+    """The orchestration request, built from the current flow names. Planned
+    with rule-based names for the preview; rebuilt at send time so it sees
+    the names the name_flows answers just produced."""
+    orch = analysis.orchestration
+    names = {f.id: f.name for f in analysis.flows}
+    risks = {f.id: f.risk for f in analysis.flows}
+    agents = ([orch.coordinator] if orch.coordinator else []) + orch.agents
+    payload = {
+        "task": "orchestration",
+        "project": analysis.project,
+        "agents": [{"id": a.id, "role": a.role, "domain": a.domain,
+                    "flows": [{"id": fid, "name": names.get(fid, fid), "risk": risks.get(fid)} for fid in a.flows][:25]}
+                   for a in agents],
+        "approvals": [{"flow": ap.flow_id, "level": ap.level, "reason": ap.reason} for ap in orch.approvals][:40],
+        "multimodal_found": [{"kind": m.kind, "flows": m.flows[:10], "evidence": m.evidence[:5]} for m in analysis.multimodal],
+    }
+    return _encode(payload)
 
 
 def apply_orchestration_results(analysis: Analysis, result: dict) -> int:
@@ -325,15 +366,22 @@ def run_plan(plan: AIPlan, provider: Provider, analysis: Analysis, budget: int |
     appliers = {"name_flows": apply_flow_results, "orchestration": apply_orchestration_results, **(appliers or {})}
     out = RunResult()
     for req in plan.requests:
+        user, est_input = req.user, req.est_input_tokens
+        if req.rebuild is not None:
+            user, _ = req.rebuild(analysis)
+            est_input = estimate_tokens(req.system + user)
         spent = out.input_tokens + out.output_tokens
-        if budget is not None and spent + req.est_input_tokens + req.max_tokens > budget:
+        if budget is not None and spent + est_input + req.max_tokens > budget:
             out.requests_skipped += 1
             continue
         try:
-            result, usage = provider.complete_json(req.system, req.user, req.schema, req.max_tokens)
+            result, usage = provider.complete_json(req.system, user, req.schema, req.max_tokens)
         except ProviderError as exc:
             out.errors.append(str(exc))
             out.requests_skipped += 1
+            if exc.usage is not None:  # billed even though it failed
+                out.input_tokens += exc.usage.input_tokens
+                out.output_tokens += exc.usage.output_tokens
             continue
         out.requests_sent += 1
         out.input_tokens += usage.input_tokens
