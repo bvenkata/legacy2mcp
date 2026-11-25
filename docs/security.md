@@ -181,6 +181,7 @@ load -- only what's in the page's static HTML.
 
 ## Reporting a vulnerability
 
-Please open a GitHub issue marked `security`, or contact the
-maintainer directly if the issue is sensitive enough that a public
-issue isn't appropriate.
+Report vulnerabilities privately, not in a public issue. Use GitHub private
+vulnerability reporting on the
+[security advisories page](https://github.com/OWASP/legacy2mcp/security/advisories/new),
+or see [SECURITY.md](../SECURITY.md) for other contacts.

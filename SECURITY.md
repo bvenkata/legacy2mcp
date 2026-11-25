@@ -1,6 +1,6 @@
 # Security Policy
 
-legacy2mcp is an [OWASP Incubator Project](https://owasp.org/projects/legacy2mcp).
+OWASP legacy2mcp is an [OWASP Incubator Project](https://owasp.org/projects/legacy2mcp).
 For what the tool validates and audit-logs today (and what it doesn't yet),
 see the [security model](docs/security.md).
 
@@ -15,8 +15,8 @@ Please report security issues in legacy2mcp itself privately. Do not open a
 public GitHub issue for an undisclosed vulnerability.
 
 - Preferred: GitHub private vulnerability reporting. Open the
-  [Security advisories page](https://github.com/OWASP/legacy2mcp/security/advisories)
-  and click "Report a vulnerability".
+  [Report a vulnerability](https://github.com/OWASP/legacy2mcp/security/advisories/new)
+  page (private vulnerability reporting is enabled for this repository).
 - Or email the project leader at balaji.venkatasubramaniyar@owasp.org.
 
 Please include a description of the issue, the affected version or commit,
