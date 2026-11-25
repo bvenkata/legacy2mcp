@@ -89,6 +89,171 @@ def _cmd_install_skill(args: argparse.Namespace) -> None:
     install_skill(args.project_root)
 
 
+def _cmd_analyze(args: argparse.Namespace) -> None:
+    # Imported lazily so the existing commands never pay for (or depend on)
+    # the analyze extra.
+    from legacy2mcp.analysis import model as analysis_model
+    from legacy2mcp.analysis.pipeline import run_analysis
+    from legacy2mcp.analysis.walk import WalkError
+
+    formats = {f.strip().lower() for f in args.format.split(",") if f.strip()}
+    unknown = formats - {"json", "html"}
+    if unknown:
+        print(f"error: unknown --format value(s): {', '.join(sorted(unknown))} (use json, html)", file=sys.stderr)
+        sys.exit(2)
+    try:
+        analysis = run_analysis(args.path, exclude=args.exclude or [], include_tests=args.include_tests)
+    except WalkError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if not args.no_ai:
+        _analyze_ai_step(args, analysis)
+
+    out_dir = Path(args.out)
+    written = []
+    if "json" in formats:
+        written.append(analysis_model.save(analysis, out_dir / "analysis.json"))
+    if "html" in formats:
+        from legacy2mcp.analysis.report import write_report
+
+        written.append(write_report(analysis, out_dir / "report.html"))
+    s = analysis.summary
+    langs = ", ".join(f"{k} ({v.files} files)" for k, v in s.languages.items()) or "none found"
+    print(f"Analyzed {s.files} files, {s.lines} lines -- {langs}")
+    print(f"Frameworks: {', '.join(s.frameworks) or 'none detected'}")
+    print(f"Entry points: {s.entry_points}   Functions: {s.functions}")
+    if s.side_effects:
+        print("Side effects: " + ", ".join(f"{k}={v}" for k, v in s.side_effects.items()))
+    risk = s.risk
+    print(f"Flows: {s.flows}  (read-only {risk.get('read_only', 0)}, low-risk write {risk.get('low_risk_write', 0)}, "
+          f"high-risk {risk.get('high_risk', 0)})")
+    g = analysis.graph
+    print(f"Graph: {len(g.call_edges)} internal call edges, {len(g.module_edges)} module dependencies, "
+          f"{len(g.resources)} data resources")
+    if analysis.scan.excluded:
+        print("Excluded: " + ", ".join(f"{k}={v}" for k, v in analysis.scan.excluded.items()))
+    for note in analysis.scan.notes:
+        print(f"note: {note}", file=sys.stderr)
+    parse_errors = [m.path for m in analysis.modules if m.parse_error]
+    if parse_errors:
+        print(f"warning: {len(parse_errors)} file(s) could not be parsed: {', '.join(parse_errors[:5])}"
+              + (" ..." if len(parse_errors) > 5 else ""), file=sys.stderr)
+    for path in written:
+        print(f"Wrote {path}")
+
+
+def _analyze_ai_step(args: argparse.Namespace, analysis) -> None:
+    """Optional AI enrichment: preview, ask, send within budget, merge.
+    Every failure path degrades to the offline result with a note."""
+    from legacy2mcp.analysis.ai import enrich, providers
+
+    def note(msg: str) -> None:
+        print(f"note: {msg}", file=sys.stderr)
+
+    name = args.provider or providers.available_provider()
+    if name is None:
+        note("no ANTHROPIC_API_KEY or OPENAI_API_KEY set, so AI enrichment was skipped (offline result written). "
+             "Pass --provider anthropic to use an `ant auth login` profile, or --no-ai to silence this.")
+        return
+    if not analysis.flows:
+        note("no flows found, so there is nothing for AI enrichment to do.")
+        return
+    try:
+        provider = providers.get_provider(name, model=args.model, api_key_env=args.api_key_env, base_url=args.base_url)
+    except providers.ProviderError as exc:
+        note(f"AI enrichment skipped: {exc}")
+        return
+
+    plan = enrich.plan_enrichment(analysis, provider.name, provider.model, snippets=args.ai_snippets,
+                                  root=Path(args.path).resolve())
+    cost = plan.est_cost_usd
+    print(f"AI enrichment plan: {len(plan.requests)} request(s) to {provider.name}/{provider.model}, "
+          f"~{plan.est_input_tokens:,} input + up to {plan.est_output_tokens:,} output tokens"
+          + (f" (~${cost:.2f})" if cost is not None else "") + ".")
+    print(f"  Sends: entry points, step labels, resources, risk reasons and params"
+          f"{' plus up to 40 lines of each handler' if args.ai_snippets else ' (no source code)'}; "
+          f"{plan.redactions} secret-looking value(s) redacted.")
+    budget = args.max_tokens_budget if args.max_tokens_budget and args.max_tokens_budget > 0 else None
+    if budget is not None and plan.est_input_tokens + plan.est_output_tokens > budget:
+        print(f"  Budget: {budget:,} tokens -- requests beyond it will be skipped.")
+
+    if args.ai_dry_run:
+        out = Path(args.out) / "ai-payload.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps([{"task": r.task, "system": r.system, "user": json.loads(r.user),
+                                    "max_tokens": r.max_tokens} for r in plan.requests], indent=2) + "\n")
+        print(f"  Dry run: wrote the exact payloads to {out}; nothing was sent.")
+        return
+    if not args.yes:
+        if not sys.stdin.isatty():
+            note("AI enrichment needs confirmation; re-run with --yes to send in a non-interactive shell.")
+            return
+        answer = input(f"Send to {provider.name}? Review with --ai-dry-run first if unsure. [y/N] ").strip().lower()
+        if answer not in ("y", "yes"):
+            print("  Skipped AI enrichment.")
+            return
+
+    result = enrich.run_plan(plan, provider, analysis, budget)
+    print(f"AI enrichment: {result.requests_sent} sent, {result.requests_skipped} skipped, "
+          f"{result.input_tokens:,} input + {result.output_tokens:,} output tokens used.")
+    for err in result.errors[:3]:
+        note(f"AI request failed: {err}")
+
+
+def _load_analysis_arg(path_arg: str):
+    from legacy2mcp.analysis import model as analysis_model
+
+    source = Path(path_arg)
+    if source.is_dir():
+        source = source / "analysis.json"
+    if not source.is_file():
+        print(f"error: no analysis file at '{source}' (run `legacy2mcp analyze` first)", file=sys.stderr)
+        sys.exit(1)
+    try:
+        return source, analysis_model.load(source)
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
+        print(f"error: '{source}' is not a readable analysis file: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _cmd_generate(args: argparse.Namespace) -> None:
+    from legacy2mcp.analysis.generate import GenerateError, build_config, load_selections
+
+    source, analysis = _load_analysis_arg(args.path)
+    flows = [f for f in (args.flows or "").split(",") if f.strip()] or None
+    try:
+        selections = load_selections(args.selections) if args.selections else None
+        result = build_config(analysis, flows=flows, selections=selections, base_url=args.base_url,
+                              allow_writes=args.allow_writes, token_env=args.auth_token_env, server_name=args.server_name)
+    except GenerateError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    text = generate.render_yaml(result.config, f"legacy2mcp analyze of {analysis.project} ({source})", result.todos,
+                                generator="legacy2mcp generate")
+    out = generate.write_config(args.out, text)
+    writes = sum(1 for t in result.selected if t.risk != "read_only")
+    print(f"Wrote {out}: {len(result.selected)} tool(s) ({len(result.selected) - writes} read-only, {writes} write"
+          f"{'' if args.allow_writes else ', hidden until allow_write_operations: true'}).")
+    for t in result.selected:
+        print(f"  - {t.name}  [{t.risk}]  {t.method} {t.path}")
+    for reason in result.skipped:
+        print(f"note: skipped {reason}", file=sys.stderr)
+    if result.todos:
+        print(f"Review the {len(result.todos)} TODO comment(s) at the top of {out} before running it.")
+    print(f"Next: legacy2mcp inspect --config {out}")
+    print()
+    print(client_snippet.render_client_snippets(out))
+
+
+def _cmd_report(args: argparse.Namespace) -> None:
+    from legacy2mcp.analysis.report import write_report
+
+    source, analysis = _load_analysis_arg(args.path)
+    out = Path(args.out) if args.out else source.with_name("report.html")
+    print(f"Wrote {write_report(analysis, out)}")
+
+
 def _cmd_discover(args: argparse.Namespace) -> None:
     """Discover a legacy interface's real shape -- operations, inputs,
     enums, error codes, confidence -- into a human-reviewable contract.yaml,
@@ -727,6 +892,85 @@ def main() -> None:
         "--no-open", action="store_true", help="Don't open chat.html in a browser automatically."
     )
     discover_parser.set_defaults(func=_cmd_discover)
+
+    analyze_parser = subparsers.add_parser(
+        "analyze",
+        help=(
+            "Statically analyze a local Python or JavaScript/TypeScript codebase into "
+            "analysis.json: languages, frameworks, entry points (routes, CLI commands, "
+            "jobs, message handlers), functions, side effects, and call / module / "
+            "data-access graphs. "
+            "Runs entirely on this machine; nothing is executed or sent anywhere."
+        ),
+    )
+    analyze_parser.add_argument("path", help="Root directory of the codebase to analyze.")
+    analyze_parser.add_argument(
+        "--out", default="./legacy2mcp-analysis", help="Output directory (default: ./legacy2mcp-analysis)."
+    )
+    analyze_parser.add_argument(
+        "--no-ai", action="store_true", help="Offline scan only: no LLM calls, no API key needed."
+    )
+    analyze_parser.add_argument(
+        "--provider", choices=["anthropic", "openai"],
+        help="LLM for optional enrichment (default: whichever of ANTHROPIC_API_KEY / OPENAI_API_KEY is set).",
+    )
+    analyze_parser.add_argument("--model", help="Model id (default: claude-opus-5-5 for anthropic, gpt-4o-mini for openai).")
+    analyze_parser.add_argument(
+        "--max-tokens-budget", type=int, default=200_000,
+        help="Hard cap on input+output tokens for AI enrichment; requests that would exceed it are skipped (default 200000, 0 = no cap).",
+    )
+    analyze_parser.add_argument("--api-key-env", help="Env var holding the API key (instead of the provider's default).")
+    analyze_parser.add_argument("--base-url", help="OpenAI-compatible endpoint base URL (--provider openai only).")
+    analyze_parser.add_argument(
+        "--ai-snippets", action="store_true",
+        help="Also send up to 40 lines of each flow's handler source (redacted). Default: structure only, no source code.",
+    )
+    analyze_parser.add_argument(
+        "--ai-dry-run", action="store_true", help="Write the exact AI payloads to <out>/ai-payload.json and send nothing."
+    )
+    analyze_parser.add_argument("--yes", "-y", action="store_true", help="Send AI requests without asking for confirmation.")
+    analyze_parser.add_argument(
+        "--exclude",
+        action="append",
+        metavar="PATTERN",
+        help="Gitignore-style pattern to leave out, in addition to .gitignore and .legacy2mcpignore. Repeatable.",
+    )
+    analyze_parser.add_argument(
+        "--include-tests", action="store_true", help="Also analyze test files and test directories (skipped by default)."
+    )
+    analyze_parser.add_argument(
+        "--format", default="html,json",
+        help="Comma-separated outputs: html (report.html), json (analysis.json). Default: both.",
+    )
+    analyze_parser.set_defaults(func=_cmd_analyze)
+
+    report_parser = subparsers.add_parser(
+        "report",
+        help="Regenerate the self-contained HTML report from a saved analysis.json (or the directory holding it).",
+    )
+    report_parser.add_argument("path", help="analysis.json, or the `analyze --out` directory containing it.")
+    report_parser.add_argument("--out", help="Where to write the HTML (default: report.html next to analysis.json).")
+    report_parser.set_defaults(func=_cmd_report)
+
+    generate_parser = subparsers.add_parser(
+        "generate",
+        help=(
+            "Turn approved tools from an analysis into a runnable MCP server config (type: rest), with the same "
+            "schema validation, audit logging and writes-off-by-default as every other legacy2mcp server."
+        ),
+    )
+    generate_parser.add_argument("path", help="analysis.json, or the `analyze --out` directory containing it.")
+    generate_parser.add_argument("--flows", help="Comma-separated flow ids or tool names to expose (overrides --selections).")
+    generate_parser.add_argument("--selections", help="selections.json exported from the HTML report.")
+    generate_parser.add_argument("--out", default="./config.yaml", help="Where to write the config (default: ./config.yaml).")
+    generate_parser.add_argument("--base-url", help="Where the analyzed app is running, e.g. https://staging.example.com.")
+    generate_parser.add_argument(
+        "--allow-writes", action="store_true",
+        help="Set allow_write_operations: true so selected write tools are exposed. Off by default.",
+    )
+    generate_parser.add_argument("--auth-token-env", help="Env var holding a bearer token the server sends to the app.")
+    generate_parser.add_argument("--server-name", help="MCP server name (default: derived from the project name).")
+    generate_parser.set_defaults(func=_cmd_generate)
 
     demo_parser = subparsers.add_parser(
         "demo",

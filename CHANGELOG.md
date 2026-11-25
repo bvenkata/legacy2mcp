@@ -7,13 +7,146 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - not yet released (push tag `v0.6.0` to publish)
+
 ### Added
+
+- **`legacy2mcp analyze <path>` (preview, milestone 1 of the v2 plan)**: a
+  local, static, whole-codebase scan written to `analysis.json`. It records
+  languages, frameworks, entry points (Flask/FastAPI/Django routes,
+  click/typer and Django management commands, Celery tasks,
+  APScheduler/`schedule` jobs, pika consumers), and every function's calls
+  and side effects (db, http_out, email, payment, queue, file, auth). The
+  scan respects nested `.gitignore` files, `.legacy2mcpignore` and
+  `--exclude`, and skips tests/migrations unless `--include-tests` is
+  passed. It needs the new `legacy2mcp[analyze]` extra (`pathspec`). No
+  existing command changes.
+- **`analyze` reads JavaScript and TypeScript (milestone 2)** via
+  tree-sitter. It finds Express routes, `router.route()` chains and
+  `app.use()` mounts, Next.js pages- and app-router API routes, node-cron
+  jobs, BullMQ workers, amqplib/kafkajs consumers and commander commands,
+  plus Prisma, Mongoose/Sequelize, raw SQL, Stripe, nodemailer/Resend,
+  axios/fetch and fs side effects. Entry points now record their middleware
+  and decorators. `analysis.json` gains a `graph` section: internal call
+  edges (including Celery `.delay()` as async edges), module dependencies,
+  and function-to-resource data-access edges. The `analyze` extra now also
+  installs `tree-sitter` with its JavaScript and TypeScript grammars. Without
+  them, JS/TS files are still counted and the run says so.
+- **`analyze` traces business flows and labels their risk (milestone 3)**.
+  Every entry point becomes a flow: its handler, each internal call
+  (depth-first, in source order, including Celery/queue hand-offs marked as
+  background), and every side effect along the way. Rules label each step
+  and flow read-only, low-risk write or high-risk (payments, deletes,
+  external HTTP sends, email, credential/token changes, HTTP DELETE), and
+  record each reason with its file and line. A flow notes when a write has
+  no visible authentication middleware or check. Handlers that branch on
+  the request method (`if request.method == "POST"`, `switch (req.method)`)
+  are traced per method, so a GET doesn't inherit its DELETE branch.
+- **Interactive HTML report (milestone 4)**: `analyze` now writes
+  `report.html` next to `analysis.json` (`--format html,json`, both by
+  default), and `legacy2mcp report <analysis.json|dir>` regenerates it. It
+  is a single self-contained file with Cytoscape.js 3.30.2 (MIT) vendored
+  inline and a Content-Security-Policy that blocks network access. It has
+  an executive summary, a codebase map, call-graph and data-flow views,
+  business flows, proposed MCP tools with include toggles and a
+  `selections.json` export, and a methodology appendix. It supports search,
+  risk filters, light/dark themes, print-to-PDF and `#flow=<id>` deep
+  links.
+- **Offline MCP tool proposals**: one per HTTP flow, with a name, a
+  description listing what the flow reads and changes, and a JSON Schema
+  built from path/query/body params. Read-only tools start included; writes
+  start excluded.
+- **Optional AI enrichment for `analyze` (milestone 5)**, bring your own
+  key. It sits behind a provider interface: `anthropic` (official SDK, in the
+  `legacy2mcp[ai]` extra; `claude-opus-5-5` by default, structured JSON output,
+  server-side refusal fallbacks) and `openai` (any OpenAI-compatible
+  endpoint over `requests`). Before sending, it shows the request count,
+  estimated tokens and cost, and the redaction count, and asks to confirm
+  (`--yes`, `--ai-dry-run` writes the exact payloads). It sends structure
+  only by default; source code only with `--ai-snippets`. Every payload is
+  scanned for secrets by content (API keys, tokens, JWTs, private keys,
+  credentials in connection strings, secret assignments) and redacted.
+  `--max-tokens-budget` is enforced per request. AI may rename and describe
+  flows and tools and add review notes, but never changes risk levels or
+  selections. Any failure falls back to the offline result.
+- **Orchestration blueprint, multimodal opportunities and roadmap
+  (milestone 6)**. Rules build a coordinator with one specialist agent per
+  business domain and an operations agent for background flows, and put an
+  approval point on every write tool (human for high-risk, policy for
+  low-risk). Document, image and voice opportunities are inferred from code
+  names, each with its evidence. A three-phase roadmap (read-only tools →
+  low-risk writes with approval → orchestration) gives effort (S/M/L, days),
+  risk, prerequisites and exit criteria per phase. The report gains agent
+  topology, multimodal and roadmap sections. With AI enabled, an extra
+  request names and describes agents, adds evidence-tied multimodal ideas
+  and writes orchestration notes.
+- **`legacy2mcp generate <analysis>` (milestone 7)** turns approved tools
+  into a runnable `type: rest` config for the existing server. Selection
+  comes from `--flows` (flow ids or tool names), `--selections` (the
+  report's export) or each tool's default (read-only only). The config is
+  validated against the runtime schema before it's written. Write tools are
+  included but hidden until `allow_write_operations: true`
+  (`--allow-writes`); high-risk tools are labelled. TODOs cover structured
+  bodies, form fields, missing auth, base URL and the approval step.
+  `--auth-token-env` configures bearer auth. It prints the MCP client
+  connection snippet. `render_yaml()` gained an optional `generator` label;
+  existing callers are unchanged.
+- **Docs and launch material (milestone 8)**: a README quickstart for the
+  new flow, the [`analyze` guide](docs/analyze.md), a
+  [sample report](docs/sample-report/) generated from the open-source
+  microblog app, docs-site pages and two blog posts (`docs/site/`), an
+  MCP-ready badge (`docs/badge.md`, with the snippet in the report
+  appendix), a VHS demo script (`demo/analyze.tape`), a launch kit, a
+  CONTRIBUTING section on the analyzer, and a list of good first issues.
+  `install-skill` now teaches assistants `analyze` and `generate`.
+
+### Changed: project moved to the OWASP GitHub org
+
+- The repository moved from `bvenkata/legacy2mcp` to
+  [`OWASP/legacy2mcp`](https://github.com/OWASP/legacy2mcp). Old GitHub URLs
+  redirect.
+- **MCP Registry name changed** from `io.github.bvenkata/legacy2mcp` to
+  `io.github.OWASP/legacy2mcp`. Registry publishing uses GitHub OIDC, which
+  only authorizes the repo owner's namespace. The old entry stays listed at
+  0.5.1 and gets no further updates. The PyPI package name `legacy2mcp` is
+  unchanged.
+
+### Changed (found by running `analyze` on a real codebase)
+
+- `form.validate_on_submit()` is treated as a POST-only branch (Flask-WTF),
+  so GET flows don't inherit form-submit writes.
+- A credential check (`check_password`, `bcrypt.compare`) no longer counts
+  as an authenticated caller; token/session verification does. Sign-in,
+  sign-up and password-reset routes are public by design and are not
+  flagged for missing auth.
+- RQ `enqueue()` is a queue write; f-string and `str.format()` URLs keep
+  their host; deleting local files is low-risk (deleting records stays high).
+- At most 8 specialist agents: when path segments give more domains, flows
+  are grouped by handler module (e.g. Flask blueprints).
+- `analysis.json`/`report.html` no longer record the absolute path of the
+  analyzed repo (`meta.root`), which exposed the local username when a
+  report was shared.
 
 - **`legacy2mcp --version` / `-V`**: prints the installed package version and
   exits without needing a subcommand. The version comes from the installed
   distribution metadata, so it can't drift from `pyproject.toml`.
 
 ### Fixed
+
+- AI enrichment: secrets in double quotes inside handler snippets
+  (`SECRET_KEY = "..."`) were not redacted, because redaction ran on the
+  JSON-encoded payload, where the quotes are escaped. Fields are now redacted
+  before encoding, with a second pass over the encoded payload.
+- AI enrichment: tokens billed by failed requests now count against
+  `--max-tokens-budget`, and the orchestration request uses the AI flow names.
+- Risk: decorators that turn auth *off* (`@permission_classes([AllowAny])`,
+  `@login_not_required`, `@csrf_exempt`), or that just live in a module named
+  `auth`, no longer count as authentication.
+- `generate`: a `flow:<id>` selection wins over a stale tool name;
+  `--server-name` is used as given; REST endpoint settings are validated at
+  generate time.
+- Flow ids can no longer collide (`/a/b`, `/a-b` and `/a-b-2`); an unreadable
+  file is counted as excluded instead of aborting the analysis.
 
 - **Oracle `discover --stored-procs` finds procedures and functions inside
   a package**: they show up as `PACKAGE.ROUTINE` (with `#<overload>` when
@@ -322,12 +455,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - CLI: `legacy2mcp run --config ...` and `legacy2mcp inspect --config ...`.
 - `stdio` transport.
 
-[Unreleased]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.6...HEAD
-[0.2.6]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.5...v0.2.6
-[0.2.5]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.4...v0.2.5
-[0.2.4]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.3...v0.2.4
-[0.2.3]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/bvenkata/legacy2mcp/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/bvenkata/legacy2mcp/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/bvenkata/legacy2mcp/releases/tag/v0.1.0
+[Unreleased]: https://github.com/OWASP/legacy2mcp/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/OWASP/legacy2mcp/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/OWASP/legacy2mcp/compare/v0.2.4...v0.2.5
+[0.2.4]: https://github.com/OWASP/legacy2mcp/compare/v0.2.3...v0.2.4
+[0.2.3]: https://github.com/OWASP/legacy2mcp/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/OWASP/legacy2mcp/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/OWASP/legacy2mcp/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/OWASP/legacy2mcp/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/OWASP/legacy2mcp/releases/tag/v0.1.0

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legacy2mcp"
-version = "0.5.1"
-description = "Turn legacy SOAP/WSDL services, databases, and REST APIs into safe, typed, audit-logged MCP servers for AI agents."
+version = "0.6.0"
+description = "Understand any Python or JS/TS codebase and turn its business flows, SOAP/WSDL services, databases, and REST APIs into safe, typed, audit-logged MCP servers for AI agents."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
@@ -41,24 +41,37 @@ dev = [
     "pytest-asyncio>=0.23",
     "flask>=3.0",
     "lxml>=5.0",
+    "pathspec>=0.12,<2",
+    "tree-sitter>=0.23,<1",
+    "tree-sitter-javascript>=0.23,<1",
+    "tree-sitter-typescript>=0.23,<1",
+    "anthropic>=2.13,<3",
+]
+# `legacy2mcp analyze` (whole-codebase analysis). Kept out of the core install
+# so the SOAP/DB/REST server path stays as light as it is today. Python is
+# parsed with the standard library; tree-sitter is only for JS/TS.
+analyze = [
+    "pathspec>=0.12,<2",
+    "tree-sitter>=0.23,<1",
+    "tree-sitter-javascript>=0.23,<1",
+    "tree-sitter-typescript>=0.23,<1",
 ]
 # DB adapter drivers -- install only the one(s) you need. Core install has
 # no DB driver dependency; the adapter imports these lazily per dialect.
 db-postgres = ["psycopg[binary]>=3.1,<4"]
 db-mssql = ["pyodbc>=5.0,<6"]
 db-oracle = ["oracledb>=2.0,<27"]
-# `legacy2mcp init`'s AI-assisted analysis is a plain HTTP call via
-# `requests`, already a core dependency -- there's nothing extra to
-# install. This extra is intentionally empty: it exists so the install
-# story has a stable `pip install "legacy2mcp[ai]"` name, identical to
-# the plain install today, with somewhere to grow into if that changes.
-ai = []
+# `legacy2mcp init`'s AI assist and `analyze --provider openai` are plain
+# HTTP calls via `requests` (already core). `analyze --provider anthropic`
+# uses the official Anthropic SDK, installed only with this extra.
+ai = ["anthropic>=2.13,<3"]
 
 [project.urls]
-Homepage = "https://github.com/bvenkata/legacy2mcp"
-Repository = "https://github.com/bvenkata/legacy2mcp"
-Issues = "https://github.com/bvenkata/legacy2mcp/issues"
-"MCP Registry" = "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp"
+Homepage = "https://github.com/OWASP/legacy2mcp"
+Repository = "https://github.com/OWASP/legacy2mcp"
+Issues = "https://github.com/OWASP/legacy2mcp/issues"
+"OWASP Project" = "https://owasp.org/projects/legacy2mcp"
+"MCP Registry" = "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.OWASP/legacy2mcp"
 
 [project.scripts]
 legacy2mcp = "legacy2mcp.cli:main"
@@ -67,4 +80,8 @@ legacy2mcp = "legacy2mcp.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-legacy2mcp = ["py.typed"]
+legacy2mcp = [
+    "py.typed",
+    "analysis/report/assets/*",
+    "analysis/report/vendor/*",
+]

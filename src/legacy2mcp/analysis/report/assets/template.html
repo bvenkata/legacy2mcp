@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="legacy2mcp __VERSION__">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'">
+<title>__TITLE__</title>
+<style>
+__CSS__
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark" aria-hidden="true">&#9670;</span> legacy2mcp <span class="muted">codebase report</span></div>
+  <label class="search"><span class="sr-only">Search the report</span>
+    <input id="search" type="search" placeholder="Search flows, tools, modules&hellip;" autocomplete="off">
+  </label>
+  <div class="actions">
+    <button id="theme-toggle" type="button" class="btn ghost" aria-label="Switch color theme">Theme</button>
+    <button id="print" type="button" class="btn ghost">Print / PDF</button>
+  </div>
+</header>
+<div class="layout">
+  <nav class="toc" aria-label="Report sections">
+    <ol id="toc"></ol>
+  </nav>
+  <main id="main" tabindex="-1">
+    <noscript><p class="callout">This report needs JavaScript to render. Everything it shows is also in the analysis.json embedded in this file.</p></noscript>
+    <div id="app"></div>
+  </main>
+</div>
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script id="analysis-data" type="application/json">__DATA__</script>
+<script>
+__CYTOSCAPE__
+</script>
+<script>
+__APP_JS__
+</script>
+</body>
+</html>

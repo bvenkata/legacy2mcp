@@ -1,4 +1,4 @@
-<!-- mcp-name: io.github.bvenkata/legacy2mcp -->
+<!-- mcp-name: io.github.OWASP/legacy2mcp -->
 
 # legacy2mcp
 
@@ -7,19 +7,20 @@
 <img src="assets/banner.svg" alt="legacy2mcp — legacy SOAP/WSDL, database, REST API, or website turned into safe, typed MCP tools" width="820">
 
 <p>
-  <a href="https://github.com/bvenkata/legacy2mcp/actions/workflows/ci.yml"><img src="https://github.com/bvenkata/legacy2mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://owasp.org/projects/legacy2mcp"><img src="https://img.shields.io/badge/OWASP-Incubator%20Project-48A646?logo=owasp" alt="OWASP Incubator Project"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml"><img src="https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/v/legacy2mcp?color=3775A9&logo=pypi&logoColor=white" alt="PyPI"></a>
   <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/pyversions/legacy2mcp?color=3776AB&logo=python&logoColor=white" alt="Python versions"></a>
-  <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp"><img src="https://img.shields.io/badge/MCP_Registry-io.github.bvenkata%2Flegacy2mcp-6f42c1" alt="MCP Registry"></a>
+  <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.OWASP/legacy2mcp"><img src="https://img.shields.io/badge/MCP_Registry-io.github.OWASP%2Flegacy2mcp-6f42c1" alt="MCP Registry"></a>
   <a href="https://glama.ai/mcp/servers/bvenkata/legacy2mcp"><img src="https://glama.ai/mcp/servers/bvenkata/legacy2mcp/badges/score.svg" alt="Glama score"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
 </p>
 
 <p>
-  <a href="https://github.com/bvenkata/legacy2mcp/stargazers"><img src="https://img.shields.io/github/stars/bvenkata/legacy2mcp?color=blue&label=Stars" alt="Stars"></a>
-  <a href="https://github.com/bvenkata/legacy2mcp/network/members"><img src="https://img.shields.io/github/forks/bvenkata/legacy2mcp?color=blue&label=Forks" alt="Forks"></a>
-  <a href="https://github.com/bvenkata/legacy2mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/bvenkata/legacy2mcp?color=blue&label=Contributors" alt="Contributors"></a>
-  <a href="https://github.com/bvenkata/legacy2mcp/commits/main/"><img src="https://img.shields.io/github/last-commit/bvenkata/legacy2mcp?color=blue&label=Last%20commit" alt="Last commit"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/stargazers"><img src="https://img.shields.io/github/stars/OWASP/legacy2mcp?color=blue&label=Stars" alt="Stars"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/network/members"><img src="https://img.shields.io/github/forks/OWASP/legacy2mcp?color=blue&label=Forks" alt="Forks"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/OWASP/legacy2mcp?color=blue&label=Contributors" alt="Contributors"></a>
+  <a href="https://github.com/OWASP/legacy2mcp/commits/main/"><img src="https://img.shields.io/github/last-commit/OWASP/legacy2mcp?color=blue&label=Last%20commit" alt="Last commit"></a>
   <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/dm/legacy2mcp?color=blue&label=PyPI%20downloads" alt="PyPI downloads"></a>
 </p>
 
@@ -33,11 +34,55 @@
 
 ## Convert anything to MCP in 60 seconds. Read-only by default, with every call audit-logged.
 
+**An [OWASP Incubator Project](https://owasp.org/projects/legacy2mcp)**
+
 </div>
 
 ---
 
-## Quick start
+## Understand any codebase, then decide what to expose
+
+Point legacy2mcp at a local Python or JavaScript/TypeScript repo. It maps what
+the code does, traces every business flow, labels each one read-only,
+low-risk write or high-risk, and proposes the MCP tools, agent setup and
+phased roadmap. Then it generates the server for the flows you approve.
+It runs entirely on your machine with no API key; AI enrichment is optional and
+bring-your-own-key.
+
+```bash
+pip install "legacy2mcp[analyze]"
+legacy2mcp analyze ./my-app --no-ai
+```
+
+<p align="center">
+  <img src="assets/report-summary.png" alt="legacy2mcp report: executive summary with KPIs, recommended first steps and flow-risk breakdown" width="820">
+</p>
+
+**Five-minute quickstart**
+
+1. `legacy2mcp analyze ./my-app --no-ai` writes `legacy2mcp-analysis/report.html`
+   and `analysis.json`. Nothing is executed or uploaded.
+2. Open `report.html`. Read the executive summary, open the high-risk flows to see
+   why they're high-risk (each reason links to a file and line), and look at the proposed
+   agent topology and roadmap.
+3. In **Proposed MCP tools**, keep the read-only tools ticked (writes start
+   unticked) and click **Export selections.json**.
+4. `legacy2mcp generate legacy2mcp-analysis --selections selections.json --base-url https://staging.my-app.example`
+   writes `config.yaml`, with schema validation, audit logging and write tools hidden
+   unless you opt in.
+5. `legacy2mcp inspect --config config.yaml`, then add the printed snippet to
+   your MCP client.
+
+See the [sample report from a real open-source app](docs/sample-report/) and the
+[full `analyze` guide](docs/analyze.md).
+
+<p align="center">
+  <img src="assets/report-topology.png" alt="Proposed agent topology: a coordinator, specialist agents per domain, and approval gates in front of write tools" width="760">
+</p>
+
+---
+
+## Quick start: an existing SOAP service, database, REST API or website
 
 No API key, no cloning — pick whichever matches what you actually have,
 against live public demo targets:
@@ -81,7 +126,7 @@ demos (a local SOAP service, Docker, a WSDL served by raw URL) are listed in
 ## Contents
 
 - [Install](#install)
-- [Quick start](#quick-start)
+- [Quick start](#quick-start-an-existing-soap-service-database-rest-api-or-website)
 - [How it works](#how-it-works)
 - [Why not just write an adapter by hand?](#why-not-just-write-an-adapter-by-hand)
 - [Point it at your own WSDL](#point-it-at-your-own-wsdl)
@@ -89,6 +134,7 @@ demos (a local SOAP service, Docker, a WSDL served by raw URL) are listed in
 - [Point it at your own REST API](#point-it-at-your-own-rest-api)
 - [Generate a config automatically](#generate-a-config-automatically)
 - [Discover a legacy interface before generating a server](#discover-a-legacy-interface-before-generating-a-server)
+- [Understand any codebase](#understand-any-codebase-then-decide-what-to-expose) · [details](#analyze-a-whole-codebase)
 - [Teach your AI coding agent about legacy2mcp](#teach-your-ai-coding-agent-about-legacy2mcp)
 - [Common commands](#common-commands)
 - [Client support](#client-support)
@@ -115,7 +161,7 @@ pip install legacy2mcp
 # or:  uv tool install legacy2mcp   ·   pipx install legacy2mcp
 ```
 
-Also published to the **[MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp)** as `io.github.bvenkata/legacy2mcp`, so registry-aware MCP clients can discover it directly.
+Also published to the **[MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.OWASP/legacy2mcp)** as `io.github.OWASP/legacy2mcp`, so registry-aware MCP clients can discover it directly.
 
 ## How it works
 
@@ -467,6 +513,106 @@ A few things worth knowing:
   contract is embedded in the page (in a `<script type="application/json">`
   tag), not just summarized for reading.
 
+## Analyze a whole codebase
+
+`legacy2mcp analyze` builds a map of an entire local codebase rather than one
+interface: languages, frameworks, entry points (HTTP routes, CLI commands,
+scheduled jobs, message handlers), every function's calls, the side
+effects at each call site (database reads/writes, outbound HTTP, email,
+payments, queues, file writes, auth changes), and three graphs built from
+them -- who calls whom, which module imports which, and which function
+touches which table, host, queue or payment provider. From every entry point
+it traces a **business flow** -- the ordered steps and side effects that run
+when it fires, including background work it enqueues -- and labels each flow
+**read-only**, **low-risk write** or **high-risk** (payments, deletes, external
+sends, auth changes), with the reasons and source locations behind each label
+and a flag on writes with no visible authentication. It runs entirely on your
+machine. Nothing in the scanned repo is imported or executed, and nothing is
+sent anywhere.
+
+```bash
+pip install "legacy2mcp[analyze]"
+legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
+```
+
+This writes two files to `legacy2mcp-analysis/`:
+
+- **`report.html`** -- one self-contained, offline file (no CDN, no network
+  requests): an executive summary with recommended first steps, an
+  interactive codebase map, call-graph and data-flow views for any flow or
+  function, every business flow with its ordered steps and risk reasons, and
+  the proposed MCP tools with include toggles. Export your choices as
+  `selections.json` for `legacy2mcp generate`. It also proposes an **agent
+  topology** (a coordinator, one specialist agent per business domain, an
+  approval gate on every write tool), **multimodal opportunities** (where
+  documents, images or voice fit, each with the evidence found), and a
+  **phased roadmap** (read-only tools, then low-risk writes with approval,
+  then full orchestration) with effort and risk per phase. Light and dark
+  themes, search, risk filters, and a print-to-PDF layout.
+- **`analysis.json`** -- the same data, versioned, for scripting and CI.
+  `legacy2mcp report legacy2mcp-analysis/` regenerates the HTML from it.
+
+Currently supported:
+
+- **Python** (standard-library `ast`): Flask, FastAPI and Django routes,
+  click/typer commands, Celery tasks, APScheduler jobs, Django management
+  commands.
+- **JavaScript / TypeScript** (tree-sitter): Express routes and
+  `app.use()` mounts, Next.js API routes (pages and app router), node-cron
+  jobs, BullMQ workers, amqplib/kafkajs consumers, commander commands.
+
+ The scan respects
+`.gitignore`, a `.legacy2mcpignore` file (same syntax) and `--exclude PATTERN`,
+and skips tests and migrations unless you pass `--include-tests`.
+
+### Optional AI enrichment (bring your own key)
+
+The offline report is complete on its own. With an API key set, `analyze`
+can also ask an LLM to name and describe each flow in plain English, add a
+review note to risky flows, and write MCP tool names and descriptions:
+
+```bash
+pip install "legacy2mcp[analyze,ai]"
+export ANTHROPIC_API_KEY=...          # or OPENAI_API_KEY with --provider openai
+legacy2mcp analyze ./path/to/repo --ai-dry-run   # see exactly what would be sent
+legacy2mcp analyze ./path/to/repo                # preview, confirm, send
+```
+
+Before anything is sent you see the number of requests, an estimated
+token count and cost, and how many secret-looking values were redacted,
+and you're asked to confirm (`--yes` skips the prompt; non-interactive
+runs without `--yes` stay offline). By default only structure is sent:
+entry points, step labels, resources, risk reasons and parameter names. No
+source code is sent unless you pass `--ai-snippets` (up to 40 redacted lines
+per handler). `--max-tokens-budget` caps total tokens (default 200,000).
+AI never changes a risk level or which tools are selected.
+Anthropic calls use the official SDK with `claude-opus-5-5` by default
+(`--model` to change it) and server-side refusal fallbacks. OpenAI-compatible
+endpoints work with `--provider openai --base-url ...`.
+
+### Generate an MCP server from the flows you approve
+
+```bash
+# read-only tools only (the default selection)
+legacy2mcp generate ./legacy2mcp-analysis --base-url https://staging.example.com --out config.yaml
+# or exactly what you ticked in the report
+legacy2mcp generate ./legacy2mcp-analysis --selections selections.json --base-url https://staging.example.com
+# or by flow id / tool name
+legacy2mcp generate ./legacy2mcp-analysis --flows get-api-orders,post-api-orders --base-url https://staging.example.com
+
+legacy2mcp inspect --config config.yaml
+legacy2mcp run --config config.yaml
+```
+
+`generate` writes a `type: rest` config for the server legacy2mcp already
+runs, so every tool gets JSON-Schema validation, audit logging, and the
+same safety default: selected write tools are in the config but stay hidden
+until `allow_write_operations: true` (`--allow-writes` sets it explicitly).
+High-risk tools are marked in their descriptions, and the config's `# TODO`
+header lists what static analysis couldn't settle: structured bodies to
+spell out, missing auth, and the human-approval step your MCP client
+should enforce.
+
 ## Teach your AI coding agent about legacy2mcp
 
 The sections above are about the MCP servers `legacy2mcp` *produces*. This
@@ -527,6 +673,12 @@ legacy2mcp discover --postman-file my-collection.json --out contract.yaml
 legacy2mcp demo --from-contract contract.yaml
 legacy2mcp demo --config config.yaml
 
+# Map a whole local codebase (entry points, flows, risk, report) -- offline
+legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
+
+# Turn the approved flows into a runnable MCP server config
+legacy2mcp generate ./legacy2mcp-analysis --selections selections.json --base-url https://staging.example.com
+
 # Review the tools a config generates -- no server started
 legacy2mcp inspect --config config.yaml
 
@@ -551,7 +703,7 @@ legacy2mcp install-skill
 [![Verified: VS Code](https://img.shields.io/badge/Verified-VS%20Code-007ACC)](#client-vs-code)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-D97706)](#client-claude-code)
 [![Tested with MCP Inspector](https://img.shields.io/badge/Tested%20with-MCP%20Inspector-22C55E)](#client-mcp-inspector)
-[![MCP compatibility](https://github.com/bvenkata/legacy2mcp/actions/workflows/mcp-compatibility.yml/badge.svg)](https://github.com/bvenkata/legacy2mcp/actions/workflows/mcp-compatibility.yml)
+[![MCP compatibility](https://github.com/OWASP/legacy2mcp/actions/workflows/mcp-compatibility.yml/badge.svg)](https://github.com/OWASP/legacy2mcp/actions/workflows/mcp-compatibility.yml)
 
 "Verified" here means a specific, narrow thing: the exact command + config
 shape shown below was actually spawned and completed a real MCP
@@ -834,6 +986,7 @@ Call the same generated, validated tools from your own code via any MCP client l
 | **v0.3.x** | `legacy2mcp discover` (Postman / OpenAPI file / HAR / stored-procs / queue / `--webpage-url`) → reviewable `contract.yaml`; `--webpage-url` crawls a whole site, not just one page; `describe_capabilities` meta-tool | ✅ shipped |
 | **v0.4.x** | `legacy2mcp demo` -- try a contract/config in a chat page with no separate `init` step; `discover --out contract.html` | ✅ shipped |
 | **v0.5.x** | `discover`/`init`/`demo` all auto-open the test chat and print a ready-to-paste MCP client connection snippet; `init --webpage-url` goes straight to a config | ✅ shipped |
+| **v0.6.0** | `legacy2mcp analyze` (Python + JS/TS: flows, risk, tools, agent topology, roadmap, offline HTML report, optional BYO-key AI) and `legacy2mcp generate` | ✅ ready to release |
 | planned | HTTP/SSE transport, role→tool authorization, OAuth2 for SOAP | planned |
 | ideas | Queue adapter (Kafka/RabbitMQ/SQS), workflow composition with approval gates, OpenTelemetry export | ideas |
 
@@ -858,8 +1011,10 @@ CI runs the suite on Python 3.10–3.12 ([`ci.yml`](.github/workflows/ci.yml)). 
 
 Adapters for new legacy systems are the highest-value contribution — implement `BaseAdapter` and the core handles the rest. See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, how adapters are structured, and PR expectations. This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Issues and PRs welcome.
 
+To report a vulnerability in legacy2mcp itself, see [SECURITY.md](SECURITY.md). Questions and discussion: [OWASP Slack](https://owasp.org/slack/invite) (`#project-legacy2mcp`).
+
 ## License
 
 [Apache 2.0](LICENSE)
 
-<div align="center"><sub>legacy2mcp · <a href="https://github.com/bvenkata/legacy2mcp">github.com/bvenkata/legacy2mcp</a></sub></div>
+<div align="center"><sub>legacy2mcp · an <a href="https://owasp.org/projects/legacy2mcp">OWASP Foundation</a> project · <a href="https://github.com/OWASP/legacy2mcp">github.com/OWASP/legacy2mcp</a></sub></div>

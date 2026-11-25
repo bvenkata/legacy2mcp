@@ -8,7 +8,7 @@ formats change.
 
 | Where | State | Notes |
 |---|---|---|
-| Official MCP Registry | Published (`io.github.bvenkata/legacy2mcp`) | Automatic on tagged release via `release.yml`; see [releasing.md](releasing.md). |
+| Official MCP Registry | Published (`io.github.OWASP/legacy2mcp`) | Automatic on tagged release via `release.yml`; see [releasing.md](releasing.md). |
 | PyPI | Published | `pip install legacy2mcp` |
 | Glama | Listed (`glama.json` present, badge in README) | Claim and complete the listing on glama.ai so the score badge stays accurate. |
 | PulseMCP and other aggregators | Usually ingest the official registry | Search for the listing a few days after a release; claim it if it exists. |
@@ -47,7 +47,7 @@ uvx legacy2mcp run --config config.yaml
 Match the live README's exact format (emoji legend, link style, alphabetical order). Draft:
 
 ```markdown
-- [bvenkata/legacy2mcp](https://github.com/bvenkata/legacy2mcp) - Turn a legacy SOAP/WSDL service, database, or REST API into a safe, typed, audit-logged MCP server. Schema-validated inputs, read-only by default.
+- [OWASP/legacy2mcp](https://github.com/OWASP/legacy2mcp) - Turn a legacy SOAP/WSDL service, database, or REST API into a safe, typed, audit-logged MCP server. Schema-validated inputs, read-only by default.
 ```
 
 Likely categories: a developer-tools or "other tools and integrations" section, or a databases

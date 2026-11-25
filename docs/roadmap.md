@@ -167,6 +167,31 @@
   the review. `discover --webpage-url` is still there for anyone who
   wants to review the contract before anything gets built.
 
+## v0.6 -- `legacy2mcp analyze` (in progress)
+
+Whole-codebase understanding, local first and bring-your-own-key, tracked
+milestone by milestone in [v2-gap-analysis.md](v2-gap-analysis.md):
+
+- M1 -- discovery (gitignore/.legacy2mcpignore aware), Python analyzer
+  (Flask, FastAPI, Django, click/typer, Celery, APScheduler), versioned
+  `analysis.json`, `legacy2mcp analyze --no-ai`. ✅ on `feat/v2-analyze`
+- M2 -- JavaScript/TypeScript analyzer (Express, Next.js API routes) via
+  tree-sitter, call graph, module graph and data-access graph. ✅ on
+  `feat/v2-analyze`
+- M3 -- flow detection from entry points, rule-based risk classification.
+  ✅ on `feat/v2-analyze`
+- M4 -- interactive single-file HTML report (`legacy2mcp report`).
+  ✅ on `feat/v2-analyze`
+- M5 -- AI provider interface (Anthropic, OpenAI), secret redaction,
+  token budget, enrichment. ✅ on `feat/v2-analyze`
+- M6 -- orchestration blueprint, multimodal suggestions, roadmap.
+  ✅ on `feat/v2-analyze`
+- M7 -- `legacy2mcp generate`: approved flows → a `type: rest` config
+  that inherits validation, audit logging and writes-off-by-default.
+  ✅ on `feat/v2-analyze`
+- M8 -- docs, sample report, packaging and launch. ✅ on `feat/v2-analyze`
+  (version 0.6.0; publishing is the `v0.6.0` tag push, see docs/releasing.md)
+
 ## Unscheduled ideas
 
 - **Queue adapter** (`type: queue`): publish/subscribe tools for
@@ -188,8 +213,8 @@
 
 Contributions on any of the above are welcome -- see
 [CONTRIBUTING.md](../CONTRIBUTING.md), browse issues labeled
-[`good first issue`](https://github.com/bvenkata/legacy2mcp/labels/good%20first%20issue)
-or [`help wanted`](https://github.com/bvenkata/legacy2mcp/labels/help%20wanted),
+[`good first issue`](https://github.com/OWASP/legacy2mcp/labels/good%20first%20issue)
+or [`help wanted`](https://github.com/OWASP/legacy2mcp/labels/help%20wanted),
 or open an issue describing the adapter you want to add. The
 `BaseAdapter` interface in `src/legacy2mcp/adapters/base.py` is the
 extension point: implement `discover_tools()` and `invoke()`, and the

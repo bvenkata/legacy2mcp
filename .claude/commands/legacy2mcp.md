@@ -14,6 +14,13 @@ Common commands:
 - Point at a website with no API docs at all (crawls it for forms/content;
   every operation lands confidence=low/needs_review=true -- review before trusting):
     legacy2mcp init --webpage-url "https://your-legacy-app.example.com/some-page" --out config.yaml
+- Understand a whole local Python or JS/TS codebase first -- business flows,
+  risk per flow, proposed MCP tools, agent topology, roadmap -- in one
+  offline report (no API key; nothing executed or uploaded):
+    legacy2mcp analyze ./path/to/repo --no-ai --out ./legacy2mcp-analysis
+  then turn the flows the user approved into a server config (writes stay
+  hidden unless --allow-writes):
+    legacy2mcp generate ./legacy2mcp-analysis --selections selections.json --base-url "https://staging.example.com" --out config.yaml
 - Scan a GitHub repo or local codebase for a SOAP client / ORM model / routes:
     legacy2mcp init --github-url https://github.com/you/your-api --scan-only --out config.yaml
     legacy2mcp init --local-path ./path/to/repo --scan-only --out config.yaml
@@ -35,5 +42,5 @@ To wire the generated server into an MCP client, add to its config (use an
 absolute path to config.yaml):
     {"mcpServers": {"<name>": {"command": "legacy2mcp", "args": ["run", "--config", "/absolute/path/to/config.yaml"]}}}
 
-Full docs: https://github.com/bvenkata/legacy2mcp
+Full docs: https://github.com/OWASP/legacy2mcp
 

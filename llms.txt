@@ -1,8 +1,11 @@
 # legacy2mcp
 
-> legacy2mcp turns a legacy SOAP/WSDL service, a database (Postgres, SQL Server, or Oracle), or a REST API into a typed, schema-validated, audit-logged MCP (Model Context Protocol) server, with no hand-written adapter code.
+> legacy2mcp analyzes a local Python or JavaScript/TypeScript codebase (business flows, per-flow risk, proposed MCP tools, agent topology, roadmap) and turns approved flows, a legacy SOAP/WSDL service, a database (Postgres, SQL Server, or Oracle), or a REST API into a typed, schema-validated, audit-logged MCP (Model Context Protocol) server, with no hand-written adapter code.
 
 ## Core capabilities
+
+- Codebase analysis (`legacy2mcp analyze`): static, local, no API key. Parses Python (stdlib ast) and JS/TS (tree-sitter); finds Flask/FastAPI/Django/Express/Next.js routes, CLI commands, jobs and queue consumers; traces each business flow through the call graph; labels it read-only, low-risk write or high-risk (payments, deletes, external sends, auth changes) with file:line reasons; writes one offline HTML report plus analysis.json. Optional bring-your-own-key AI enrichment (Anthropic or OpenAI) sends redacted structure only, after a preview and confirmation.
+- `legacy2mcp generate`: turns tools approved in the report into a runnable `type: rest` server config; write tools stay hidden unless explicitly allowed.
 
 - SOAP: introspects a live WSDL with `zeep` and builds a JSON Schema per operation; every call is validated against it before it reaches the SOAP endpoint.
 - Database: introspects a live Postgres/SQL Server/Oracle schema and exposes `select_<table>` / `insert_<table>` tools for an explicit table allowlist, plus named parameterized queries. There is no path from the LLM to arbitrary SQL, ever.
@@ -13,6 +16,10 @@
 ## Install and run
 
 ```bash
+pip install "legacy2mcp[analyze]"
+legacy2mcp analyze ./my-app --no-ai          # offline report: flows, risk, tools, roadmap
+legacy2mcp generate legacy2mcp-analysis --selections selections.json --base-url https://staging.example.com
+
 pip install legacy2mcp
 legacy2mcp init --rest-url "https://your-api.example.com" --out config.yaml   # or --wsdl-url / --github-url
 legacy2mcp inspect --config config.yaml   # review the generated tools
@@ -21,14 +28,16 @@ legacy2mcp run     --config config.yaml   # start the MCP server (stdio)
 
 ## Docs
 
-- [README](https://github.com/bvenkata/legacy2mcp/blob/main/README.md): install, quick start, full config reference for all three adapters, safety model
-- [Security model](https://github.com/bvenkata/legacy2mcp/blob/main/docs/security.md): exactly what's validated and audited today, and what isn't yet
-- [Roadmap](https://github.com/bvenkata/legacy2mcp/blob/main/docs/roadmap.md): shipped vs. planned
-- [Examples](https://github.com/bvenkata/legacy2mcp/blob/main/examples/README.md): runnable SOAP and REST demo configs
-- [Connecting MCP clients](https://github.com/bvenkata/legacy2mcp/blob/main/docs/clients.md): Claude Desktop, Claude Code, Cursor, VS Code
+- [README](https://github.com/OWASP/legacy2mcp/blob/main/README.md): install, quick start, full config reference for all three adapters, safety model
+- [Codebase analysis guide](https://github.com/OWASP/legacy2mcp/blob/main/docs/analyze.md): analyze, report, generate, AI enrichment and privacy
+- [Sample report](https://github.com/OWASP/legacy2mcp/tree/main/docs/sample-report): real output from an open-source Flask app
+- [Security model](https://github.com/OWASP/legacy2mcp/blob/main/docs/security.md): exactly what's validated and audited today, and what isn't yet
+- [Roadmap](https://github.com/OWASP/legacy2mcp/blob/main/docs/roadmap.md): shipped vs. planned
+- [Examples](https://github.com/OWASP/legacy2mcp/blob/main/examples/README.md): runnable SOAP and REST demo configs
+- [Connecting MCP clients](https://github.com/OWASP/legacy2mcp/blob/main/docs/clients.md): Claude Desktop, Claude Code, Cursor, VS Code
 
 ## Optional
 
 - [PyPI package](https://pypi.org/project/legacy2mcp/)
-- [MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.bvenkata/legacy2mcp)
-- [Releasing guide](https://github.com/bvenkata/legacy2mcp/blob/main/docs/releasing.md)
+- [MCP Registry entry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.OWASP/legacy2mcp)
+- [Releasing guide](https://github.com/OWASP/legacy2mcp/blob/main/docs/releasing.md)
