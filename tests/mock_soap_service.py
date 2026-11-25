@@ -178,7 +178,9 @@ def create_app(endpoint_url: str = "http://127.0.0.1:8123/calculator") -> Flask:
         from lxml import etree
 
         body = request.get_data()
-        root = etree.fromstring(body)
+        root = etree.fromstring(
+            body, etree.XMLParser(resolve_entities=False, no_network=True)
+        )
         soap_ns = "http://schemas.xmlsoap.org/soap/envelope/"
         body_el = root.find(f"{{{soap_ns}}}Body")
         op_el = list(body_el)[0]

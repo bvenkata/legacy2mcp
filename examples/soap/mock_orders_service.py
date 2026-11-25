@@ -90,7 +90,9 @@ def create_app() -> Flask:
 
     @app.post("/orders")
     def call():
-        root = etree.fromstring(request.get_data())
+        root = etree.fromstring(
+            request.get_data(), etree.XMLParser(resolve_entities=False, no_network=True)
+        )
         op_el = list(root.find(f"{{{SOAP_NS}}}Body"))[0]
         op = etree.QName(op_el.tag).localname
 
