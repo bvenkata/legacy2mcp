@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://owasp.org/projects/legacy2mcp">
-    <img src="assets/banner.svg" alt="OWASP legacy2mcp: legacy SOAP/WSDL, database, REST API, or website turned into safe, typed MCP tools" width="100%" />
+    <img src="assets/banner.svg" alt="OWASP legacy2mcp" width="100%" />
   </a>
 </p>
 
@@ -10,8 +10,8 @@
 
 # OWASP legacy2mcp
 
-**Turn legacy systems into safe, typed, audit-logged MCP servers.**<br/>
-SOAP/WSDL services, databases, REST APIs, websites with no API docs, and whole Python or JS/TS codebases.
+**Understand any codebase, then turn the flows you approve into a safe MCP server.**<br/>
+Python and JavaScript/TypeScript. Offline, no API key, nothing executed or uploaded.
 
 [![CI](https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/legacy2mcp.svg)](https://pypi.org/project/legacy2mcp/)
@@ -22,56 +22,7 @@ SOAP/WSDL services, databases, REST APIs, websites with no API docs, and whole P
 
 </div>
 
-## Why legacy2mcp
-
-- **No adapter code.** Tool schemas are built from the live WSDL, database
-  schema or OpenAPI spec, so they can't drift from the real system.
-- **Read-only by default.** Write operations stay hidden until you set
-  `allow_write_operations: true`.
-- **Every call is checked and logged.** Arguments are schema-validated before
-  they reach your backend, and each call is written to an audit log.
-- **No arbitrary SQL.** Database access is an explicit table and column allowlist.
-- **Runs locally.** No API key, no telemetry.
-
 ## Quick start
-
-```bash
-pip install legacy2mcp
-
-legacy2mcp init --rest-url "https://petstore3.swagger.io/api/v3"            # REST API
-legacy2mcp init --wsdl-url "http://www.dneonline.com/calculator.asmx?WSDL"  # SOAP service
-legacy2mcp init --webpage-url "https://legacy2mcp.com/"                     # website, no API docs
-```
-
-`init` writes `config.yaml` and a plain-English `config.html` report, opens a
-local test-chat page to try the tools, and prints a snippet to paste into your
-MCP client. Review the `# TODO` comments in `config.yaml`, then check the tools:
-
-```bash
-legacy2mcp inspect --config config.yaml
-```
-
-Add the server to your MCP client (Claude Desktop, Cursor, VS Code, Claude Code):
-
-```json
-{
-  "mcpServers": {
-    "legacy2mcp": {
-      "command": "legacy2mcp",
-      "args": ["run", "--config", "/absolute/path/to/config.yaml"]
-    }
-  }
-}
-```
-
-Per-client setup: [docs/clients.md](docs/clients.md).
-
-## Analyze a whole codebase
-
-Point legacy2mcp at a local Python or JavaScript/TypeScript repo. It traces
-every business flow, labels each one read-only, low-risk write or high-risk,
-and proposes MCP tools, an agent setup and a roadmap, all in one offline
-report. Nothing is executed or uploaded.
 
 ```bash
 pip install "legacy2mcp[analyze]"
@@ -84,35 +35,75 @@ legacy2mcp generate ./legacy2mcp-analysis --selections selections.json \
   <img src="assets/report-summary.png" alt="legacy2mcp report: executive summary with KPIs, recommended first steps and flow-risk breakdown" width="820">
 </p>
 
-See the [sample report](docs/sample-report/) and the [analyze guide](docs/analyze.md).
+See a [sample report from a real open-source app](docs/sample-report/).
 
-## What it connects to
+## How it works
 
-| Source | Command | Details |
-|---|---|---|
-| SOAP / WSDL service | `init --wsdl-url` | [configuration](docs/configuration.md#point-it-at-your-own-wsdl) |
-| Database (Postgres, SQL Server, Oracle) | hand-written config | [configuration](docs/configuration.md#point-it-at-your-own-database) |
-| REST API | `init --rest-url` | [configuration](docs/configuration.md#point-it-at-your-own-rest-api) |
-| Website with no API docs | `init --webpage-url` | [CLI guide](docs/cli.md#generate-a-config-automatically) |
-| GitHub repo or local source | `init --github-url` / `--local-path` | [CLI guide](docs/cli.md#generate-a-config-automatically) |
-| Postman, OpenAPI file, HAR, stored procedures, queues | `discover` | [CLI guide](docs/cli.md#discover-a-legacy-interface-before-generating-a-server) |
-| Whole Python or JS/TS codebase | `analyze` + `generate` | [analyze guide](docs/analyze.md) |
+1. **Analyze.** `legacy2mcp analyze` maps the codebase: entry points (HTTP
+   routes, CLI commands, scheduled jobs, queue consumers), what each one
+   calls, and every side effect (database writes, outbound HTTP, email,
+   payments, queues, auth changes). It traces one business flow per entry
+   point and labels it **read-only**, **low-risk write** or **high-risk**,
+   with the `file:line` behind each reason.
+2. **Review.** Open `legacy2mcp-analysis/report.html`. It shows the flows and
+   their risk, the proposed MCP tools, an agent setup with approval points on
+   every write, and a phased roadmap. Keep the tools you want (writes start
+   unticked) and click **Export selections.json**.
+3. **Generate.** `legacy2mcp generate` turns those selections into
+   `config.yaml`. Every tool gets schema validation and audit logging, and
+   write tools stay hidden unless you pass `--allow-writes`.
+4. **Run.** Check the tools, then add the server to your MCP client:
 
-> [!WARNING]
-> Write detection for SOAP operations is a name heuristic. For any system where
-> a wrong call matters, list operations explicitly with `include_operations`.
-> The MCP server has no authentication of its own yet, so don't expose it to
-> untrusted callers. See [docs/security.md](docs/security.md).
+```bash
+legacy2mcp inspect --config config.yaml
+```
+
+```json
+{
+  "mcpServers": {
+    "legacy2mcp": {
+      "command": "legacy2mcp",
+      "args": ["run", "--config", "/absolute/path/to/config.yaml"]
+    }
+  }
+}
+```
+
+<p align="center">
+  <img src="assets/report-topology.png" alt="Proposed agent topology: a coordinator, specialist agents per domain, and approval gates in front of write tools" width="760">
+</p>
+
+## Supported frameworks
+
+- **Python:** Flask, FastAPI, Django, click/typer, Celery, APScheduler
+- **JavaScript / TypeScript:** Express, Next.js API routes, commander,
+  node-cron, BullMQ, amqplib, kafkajs
+
+Full list, AI enrichment (optional, bring your own key) and every flag:
+[analyze guide](docs/analyze.md).
+
+## Safe by default
+
+- Nothing in the scanned repo is imported, executed or sent anywhere.
+- Generated servers are read-only unless you opt in to writes.
+- Every tool call is schema-validated before it reaches your backend and
+  written to an audit log.
+- AI enrichment is off unless you provide a key; it never changes a risk
+  level or which tools are selected.
+
+See the [security model](docs/security.md).
+
+> [!TIP]
+> Already have a SOAP service, database, REST API or website instead of a
+> codebase? `legacy2mcp init` connects to it directly. See the
+> [CLI guide](docs/cli.md).
 
 ## Documentation
 
-- [CLI guide](docs/cli.md): `init`, `discover`, `demo`, `inspect`, CI usage
-- [Configuration](docs/configuration.md): adapter examples and every config key
-- [How it works](docs/how-it-works.md): architecture, coverage, use cases
-- [Analyze guide](docs/analyze.md): codebase analysis and `generate`
-- [Clients](docs/clients.md): connecting each MCP client
-- [Security model](docs/security.md): what's protected, data flow, known limits
-- [Roadmap](docs/roadmap.md) · [Examples](examples/README.md) · [Changelog](CHANGELOG.md)
+- [Analyze guide](docs/analyze.md) · [CLI guide](docs/cli.md) ·
+  [Configuration](docs/configuration.md) · [How it works](docs/how-it-works.md)
+- [Clients](docs/clients.md) · [Security model](docs/security.md) ·
+  [Roadmap](docs/roadmap.md) · [Changelog](CHANGELOG.md)
 
 ## Community and contributing
 
