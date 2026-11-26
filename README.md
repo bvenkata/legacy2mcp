@@ -194,12 +194,17 @@ See the [security model](docs/security.md).
   [Configuration](docs/configuration.md) · [How it works](docs/how-it-works.md)
 - [Clients](docs/clients.md) · [Security model](docs/security.md) ·
   [Roadmap](docs/roadmap.md) · [Changelog](CHANGELOG.md)
+- [Adding an adapter](docs/adding-an-adapter.md) · [Adding an analyzer](docs/adding-an-analyzer.md)
 
 ## Community and contributing
 
 - **OWASP Slack:** [`#project-legacy2mcp`](https://owasp.org/slack/invite)
 - **Issues:** https://github.com/OWASP/legacy2mcp/issues ·
   good starting points are labeled [`good first issue`](https://github.com/OWASP/legacy2mcp/labels/good%20first%20issue)
+- **Add a legacy technology:** help legacy2mcp reach more systems with a new
+  [adapter](docs/adding-an-adapter.md) (mainframe, IBM i, LDAP, MQ, …) or a new
+  [language analyzer](docs/adding-an-analyzer.md) (Java, C#, PHP, …). See the
+  [`legacy-tech`](https://github.com/OWASP/legacy2mcp/labels/legacy-tech) issues.
 - **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md)
 - **Security issues:** report privately per the [security policy](SECURITY.md)
 

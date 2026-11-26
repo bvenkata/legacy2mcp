@@ -59,6 +59,9 @@ through MCP Inspector.
 
 ## Working on `legacy2mcp analyze`
 
+**Adding a language or framework? See [docs/adding-an-analyzer.md](docs/adding-an-analyzer.md)**
+and open a [New language or framework](https://github.com/OWASP/legacy2mcp/issues/new?template=new-analyzer.yml) issue.
+
 The analysis pipeline lives in [`src/legacy2mcp/analysis/`](src/legacy2mcp/analysis/),
 one package per stage, each producing a section of one typed `Analysis`
 ([`model.py`](src/legacy2mcp/analysis/model.py)):
@@ -85,6 +88,9 @@ smoke test (`pip install playwright && python -m playwright install chromium`,
 then `pytest tests/smoke`) fails on any console error or network request.
 
 ## Adding an adapter
+
+**Step-by-step guide: [docs/adding-an-adapter.md](docs/adding-an-adapter.md).** Start by
+opening a [New legacy technology](https://github.com/OWASP/legacy2mcp/issues/new?template=new-legacy-technology.yml) issue.
 
 New adapters for other legacy protocols (mainframe RPC, SAP RFC, message
 queues, ...) are the highest-value contribution. The extension point is
