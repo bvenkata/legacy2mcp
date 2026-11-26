@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="288" viewBox="0 0 1040 288" role="img" aria-label="legacy2mcp — legacy SOAP/WSDL, database, REST API, or website turned into safe, typed MCP tools">
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="288" viewBox="0 0 1040 288" role="img" aria-label="OWASP legacy2mcp: analyze a codebase, label every business flow by risk, and turn the approved flows into safe MCP tools">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#0b1220"/>
@@ -22,36 +22,50 @@
     <circle cx="946" cy="228" r="2"/><circle cx="975" cy="228" r="2"/><circle cx="1004" cy="228" r="2"/>
   </g>
 
-  <!-- glyph: SOAP / DB / REST / WEB  ->  MCP hex -->
+  <!-- glyph: codebase -> flows labelled by risk -> MCP hex -->
   <g transform="translate(40,40)" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-    <rect x="0" y="4" width="58" height="38" rx="9" fill="none" stroke="#4b5675" stroke-width="2.5"/>
-    <text x="29" y="28" text-anchor="middle" fill="#8b93a7" font-size="12.5" font-weight="700" letter-spacing="0.5">SOAP</text>
+    <!-- source file -->
+    <path d="M4 62 h38 l16 16 v68 a6 6 0 0 1 -6 6 h-48 a6 6 0 0 1 -6 -6 v-78 a6 6 0 0 1 6 -6 z" fill="none" stroke="#4b5675" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M42 62 v16 h16" fill="none" stroke="#4b5675" stroke-width="2.5" stroke-linejoin="round"/>
+    <text x="27" y="112" text-anchor="middle" fill="#8b93a7" font-size="14" font-weight="700">&lt;/&gt;</text>
+    <g stroke="#4b5675" stroke-width="2.5" stroke-linecap="round">
+      <line x1="12" y1="126" x2="42" y2="126"/>
+      <line x1="12" y1="137" x2="34" y2="137"/>
+    </g>
 
-    <rect x="0" y="61" width="58" height="38" rx="9" fill="none" stroke="#4b5675" stroke-width="2.5"/>
-    <text x="29" y="85" text-anchor="middle" fill="#8b93a7" font-size="12.5" font-weight="700" letter-spacing="0.5">DB</text>
+    <!-- file -> flows -->
+    <g fill="none" stroke="#4b5675" stroke-width="2" stroke-linecap="round">
+      <path d="M62 107 Q78 107 94 54"/>
+      <path d="M62 107 L94 107"/>
+      <path d="M62 107 Q78 107 94 160"/>
+    </g>
 
-    <rect x="0" y="118" width="58" height="38" rx="9" fill="none" stroke="#4b5675" stroke-width="2.5"/>
-    <text x="29" y="142" text-anchor="middle" fill="#8b93a7" font-size="12.5" font-weight="700" letter-spacing="0.5">REST</text>
+    <!-- flows, colored by risk -->
+    <g font-size="10" font-weight="700" letter-spacing="0.6" text-anchor="middle">
+      <rect x="94" y="40" width="48" height="28" rx="14" fill="none" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="118" y="58" fill="#3fb950">READ</text>
+      <rect x="94" y="93" width="48" height="28" rx="14" fill="none" stroke="#d29922" stroke-width="2.5"/>
+      <text x="118" y="111" fill="#d29922">WRITE</text>
+      <rect x="94" y="146" width="48" height="28" rx="14" fill="none" stroke="#f85149" stroke-width="2.5"/>
+      <text x="118" y="164" fill="#f85149">RISK</text>
+    </g>
 
-    <rect x="0" y="175" width="58" height="38" rx="9" fill="none" stroke="#4b5675" stroke-width="2.5"/>
-    <text x="29" y="199" text-anchor="middle" fill="#8b93a7" font-size="12.5" font-weight="700" letter-spacing="0.5">WEB</text>
-
-    <path d="M58 23 Q100 23 128 108" fill="none" stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
-    <path d="M58 80 Q100 80 128 108" fill="none" stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
-    <path d="M58 137 Q100 137 128 108" fill="none" stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
-    <path d="M58 194 Q100 194 128 108" fill="none" stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
-    <path d="M128 98 L142 108 L128 118" fill="none" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- flows -> MCP -->
+    <path d="M142 54 Q160 54 166 98" fill="none" stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+    <path d="M142 107 L166 107" fill="none" stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+    <path d="M142 160 Q160 160 166 116" fill="none" stroke="#4b5675" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 5"/>
 
     <g filter="url(#glow)">
-      <path d="M186 73 l30 17 v36 l-30 17 -30 -17 v-36 z" fill="none" stroke="url(#accent)" stroke-width="3.5"/>
+      <path d="M196 72 l30 17 v36 l-30 17 -30 -17 v-36 z" fill="none" stroke="url(#accent)" stroke-width="3.5"/>
     </g>
-    <text x="186" y="113" text-anchor="middle" fill="#c9b8f5" font-size="13" font-weight="700" letter-spacing="1">MCP</text>
+    <text x="196" y="112" text-anchor="middle" fill="#c9b8f5" font-size="13" font-weight="700" letter-spacing="1">MCP</text>
   </g>
 
   <!-- wordmark -->
   <g font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-    <text x="300" y="129" fill="#eef1f8" font-size="52" font-weight="800" letter-spacing="-1">legacy<tspan fill="#a371f7">2</tspan>mcp</text>
-    <text x="302" y="164" fill="#9aa4bd" font-size="18.5" font-weight="500">WSDL, database, REST API, or website &#8594; safe, typed MCP tools</text>
-    <text x="302" y="196" fill="#5b657f" font-size="12.5" font-weight="600" letter-spacing="0.4">SCHEMA-VALIDATED &#183; READ-ONLY BY DEFAULT &#183; AUDIT-LOGGED</text>
+    <text x="302" y="88" fill="#48a646" font-size="13" font-weight="800" letter-spacing="3">OWASP</text>
+    <text x="300" y="138" fill="#eef1f8" font-size="52" font-weight="800" letter-spacing="-1">legacy<tspan fill="#a371f7">2</tspan>mcp</text>
+    <text x="302" y="173" fill="#9aa4bd" font-size="18.5" font-weight="500">Understand any codebase &#8594; approve flows &#8594; safe MCP tools</text>
+    <text x="302" y="205" fill="#5b657f" font-size="12.5" font-weight="600" letter-spacing="0.4">OFFLINE ANALYSIS &#183; RISK PER FLOW &#183; READ-ONLY BY DEFAULT &#183; AUDIT-LOGGED</text>
   </g>
 </svg>
