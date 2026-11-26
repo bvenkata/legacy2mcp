@@ -24,35 +24,48 @@ Python and JavaScript/TypeScript. Offline, no API key, nothing executed or uploa
 
 ## Quick start
 
+You need Python 3.10+ and a local Python or JavaScript/TypeScript project.
+No API key. Nothing in your project is run or uploaded.
+
+**1. Install**
+
 ```bash
 pip install "legacy2mcp[analyze]"
-legacy2mcp analyze ./my-app --no-ai          # writes legacy2mcp-analysis/report.html
-legacy2mcp generate ./legacy2mcp-analysis --selections selections.json \
-  --base-url https://staging.my-app.example  # config for the flows you approved
 ```
 
-<p align="center">
-  <img src="assets/report-summary.png" alt="legacy2mcp report: executive summary with KPIs, recommended first steps and flow-risk breakdown" width="820">
-</p>
+**2. Analyze your project**
 
-See a [sample report from a real open-source app](docs/sample-report/).
+```bash
+legacy2mcp analyze ./my-app --no-ai
+```
 
-## How it works
+This creates a `legacy2mcp-analysis/` folder with `report.html` in it.
 
-1. **Analyze.** `legacy2mcp analyze` maps the codebase: entry points (HTTP
-   routes, CLI commands, scheduled jobs, queue consumers), what each one
-   calls, and every side effect (database writes, outbound HTTP, email,
-   payments, queues, auth changes). It traces one business flow per entry
-   point and labels it **read-only**, **low-risk write** or **high-risk**,
-   with the `file:line` behind each reason.
-2. **Review.** Open `legacy2mcp-analysis/report.html`. It shows the flows and
-   their risk, the proposed MCP tools, an agent setup with approval points on
-   every write, and a phased roadmap. Keep the tools you want (writes start
-   unticked) and click **Export selections.json**.
-3. **Generate.** `legacy2mcp generate` turns those selections into
-   `config.yaml`. Every tool gets schema validation and audit logging, and
-   write tools stay hidden unless you pass `--allow-writes`.
-4. **Run.** Check the tools, then add the server to your MCP client:
+**3. Review the report**
+
+Open `legacy2mcp-analysis/report.html` in your browser. Every business flow is
+labelled **read-only**, **low-risk write** or **high-risk**, with the file and
+line behind each label. Under **Proposed MCP tools**, tick the tools you want
+(read-only tools are ticked for you) and click **Export selections.json**.
+
+**4. Generate the server config**
+
+```bash
+legacy2mcp generate ./legacy2mcp-analysis \
+  --selections ~/Downloads/selections.json \
+  --base-url https://staging.my-app.example
+```
+
+- `--selections`: the file you exported in step 3. Leave it out to use the
+  read-only tools only.
+- `--base-url`: where your app is running, so the tools can call it.
+
+This writes `config.yaml`. Write tools stay hidden unless you add `--allow-writes`.
+
+**5. Connect it to your AI client**
+
+Check the tools, then add this to your MCP client's config (Claude Desktop,
+Cursor, VS Code, Claude Code):
 
 ```bash
 legacy2mcp inspect --config config.yaml
@@ -69,9 +82,26 @@ legacy2mcp inspect --config config.yaml
 }
 ```
 
+Per-client setup: [docs/clients.md](docs/clients.md).
+
+## What the report shows
+
+<p align="center">
+  <img src="assets/report-summary.png" alt="legacy2mcp report: executive summary with KPIs, recommended first steps and flow-risk breakdown" width="820">
+</p>
+
+- Every entry point (HTTP routes, CLI commands, scheduled jobs, queue
+  consumers), what it calls, and its side effects: database writes, outbound
+  HTTP, email, payments, queues, auth changes.
+- A risk label and reasons for every flow, linked to the source line.
+- The proposed MCP tools, an agent setup with approval points on every
+  write, and a phased roadmap.
+
 <p align="center">
   <img src="assets/report-topology.png" alt="Proposed agent topology: a coordinator, specialist agents per domain, and approval gates in front of write tools" width="760">
 </p>
+
+See a [sample report from a real open-source app](docs/sample-report/).
 
 ## Supported frameworks
 
