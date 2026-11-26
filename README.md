@@ -49,6 +49,52 @@ Python and JavaScript/TypeScript. Offline, no API key, nothing executed or uploa
 
 </div>
 
+## What is legacy2mcp?
+
+legacy2mcp is an **OWASP Incubator Project** that helps teams give AI agents
+safe access to existing applications. It reads a Python or JavaScript/TypeScript
+codebase, works out what each part of it actually does, and turns the parts you
+approve into an **MCP server with guardrails built in**.
+
+Instead of hand-writing an MCP adapter for every endpoint and hoping nothing
+dangerous slips through, legacy2mcp:
+
+- **Maps** every entry point (HTTP routes, CLI commands, scheduled jobs, queue
+  consumers) and the business flow behind it.
+- **Labels** each flow read-only, low-risk write or high-risk, with the file
+  and line behind every reason.
+- **Proposes** the MCP tools, an agent setup with approval points, and a
+  phased roadmap in one report.
+- **Generates** a server for just the flows you approve: read-only by default,
+  every call schema-validated and audit-logged.
+
+> [!NOTE]
+> **Everything runs locally.** Your code is parsed, never imported or executed,
+> and nothing is uploaded. Optional AI enrichment is off unless you provide a
+> key; it sends flow structure (source code only if you opt in), with secrets
+> redacted, and only after you confirm. See
+> [Data flow and privacy](docs/security.md#data-flow-and-privacy) and the
+> [analyze guide](docs/analyze.md).
+
+## How it works
+
+```mermaid
+flowchart LR
+  A["Your codebase<br/>Python · JS/TS"] --> B["analyze<br/>entry points, flows,<br/>side effects"]
+  B --> C{"Risk per flow"}
+  C -->|read-only| D["report.html<br/>you tick the tools"]
+  C -->|low-risk write| D
+  C -->|high-risk| D
+  D -->|selections.json| E["generate<br/>config.yaml"]
+  E --> F["MCP server<br/>schema-validated,<br/>audit-logged"]
+  F --> G["AI agent /<br/>MCP client"]
+```
+
+1. **Analyze**: parse the code and trace one business flow per entry point.
+2. **Review**: read the risk of each flow in `report.html` and tick the tools to expose.
+3. **Generate**: write `config.yaml` for the approved tools; writes stay hidden unless you opt in.
+4. **Connect**: your MCP client launches the server, which validates and logs every call.
+
 ## Quick start
 
 You need Python 3.10+ and a local Python or JavaScript/TypeScript project.
