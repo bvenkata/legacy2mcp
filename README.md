@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://owasp.org/projects/legacy2mcp">
-    <img src="assets/banner.svg" alt="OWASP legacy2mcp: analyze a codebase, label every business flow by risk, and turn the approved flows into safe MCP tools" width="100%" />
+    <img src="assets/banner-analyze.svg" alt="OWASP legacy2mcp: analyze a codebase, label every business flow by risk, and turn the approved flows into safe MCP tools" width="100%" />
   </a>
 </p>
 
