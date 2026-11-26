@@ -13,12 +13,39 @@
 **Understand any codebase, then turn the flows you approve into a safe MCP server.**<br/>
 Python and JavaScript/TypeScript. Offline, no API key, nothing executed or uploaded.
 
-[![CI](https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/legacy2mcp.svg)](https://pypi.org/project/legacy2mcp/)
-[![Python versions](https://img.shields.io/pypi/pyversions/legacy2mcp.svg)](https://pypi.org/project/legacy2mcp/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![OWASP Incubator](https://img.shields.io/badge/OWASP-Incubator-48A646.svg?logo=owasp)](https://owasp.org/projects/legacy2mcp)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.OWASP%2Flegacy2mcp-6f42c1)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.OWASP/legacy2mcp)
+<p>
+  <a href="https://owasp.org/projects/legacy2mcp"><img src="https://img.shields.io/badge/level-incubator-2f80ed?style=for-the-badge" alt="Level: Incubator" /></a>
+  <a href="https://owasp.org/projects/legacy2mcp"><img src="https://img.shields.io/badge/type-code-2f80ed?style=for-the-badge" alt="Type: Code" /></a>
+  <a href="https://owasp.org/slack/invite"><img src="https://img.shields.io/badge/slack-%23project--legacy2mcp-2f80ed?style=for-the-badge" alt="Slack: #project-legacy2mcp" /></a>
+  <a href="https://github.com/OWASP/legacy2mcp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/OWASP/legacy2mcp/ci.yml?branch=main&label=build&style=for-the-badge" alt="Build status" /></a>
+</p>
+
+<p>
+  <a href="https://github.com/OWASP/legacy2mcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/OWASP/legacy2mcp?color=2f80ed&style=for-the-badge" alt="License" /></a>
+  <a href="https://github.com/OWASP/legacy2mcp/commits/main"><img src="https://img.shields.io/github/last-commit/OWASP/legacy2mcp?color=2f80ed&style=for-the-badge" alt="Last commit" /></a>
+  <a href="https://github.com/OWASP/legacy2mcp/graphs/contributors"><img src="https://img.shields.io/github/contributors/OWASP/legacy2mcp?color=2f80ed&style=for-the-badge" alt="Contributors" /></a>
+</p>
+
+<p>
+  <a href="https://github.com/OWASP/legacy2mcp/fork"><img src="https://img.shields.io/github/forks/OWASP/legacy2mcp?color=2f80ed&label=forks&style=for-the-badge" alt="Forks" /></a>
+  <a href="https://github.com/OWASP/legacy2mcp/stargazers"><img src="https://img.shields.io/github/stars/OWASP/legacy2mcp?color=2f80ed&label=stars&style=for-the-badge" alt="Stars" /></a>
+  <a href="https://pepy.tech/project/legacy2mcp"><img src="https://img.shields.io/pepy/dt/legacy2mcp?color=2f80ed&label=downloads&style=for-the-badge" alt="Downloads" /></a>
+</p>
+
+<p>
+  <a href="https://github.com/OWASP/legacy2mcp/issues"><img src="https://img.shields.io/github/issues/OWASP/legacy2mcp?color=2f80ed&label=issues&style=for-the-badge" alt="Issues" /></a>
+  <a href="https://github.com/OWASP/legacy2mcp/pulls"><img src="https://img.shields.io/github/issues-pr/OWASP/legacy2mcp?color=2f80ed&label=pull%20requests&style=for-the-badge" alt="Pull requests" /></a>
+</p>
+
+<p>
+  <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/v/legacy2mcp?color=2f80ed&label=pypi&style=for-the-badge" alt="PyPI version" /></a>
+  <a href="https://pypi.org/project/legacy2mcp/"><img src="https://img.shields.io/pypi/pyversions/legacy2mcp?color=2f80ed&label=python&style=for-the-badge" alt="Python versions" /></a>
+  <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.OWASP/legacy2mcp"><img src="https://img.shields.io/badge/mcp%20registry-io.github.OWASP%2Flegacy2mcp-2f80ed?style=for-the-badge" alt="MCP Registry" /></a>
+</p>
+
+<p>
+  <a href="https://github.com/OWASP/legacy2mcp"><img src="https://img.shields.io/badge/created-sep%2C%202026-2f80ed?style=for-the-badge" alt="Created: Sep 2026" /></a>
+</p>
 
 </div>
 
