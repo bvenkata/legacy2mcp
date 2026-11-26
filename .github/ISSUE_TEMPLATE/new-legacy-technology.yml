@@ -1,0 +1,50 @@
+name: New legacy technology (adapter)
+description: Propose or volunteer to build support for a backend legacy2mcp can't talk to yet.
+title: "Adapter: <technology>"
+labels: ["adapter", "legacy-tech", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping legacy2mcp reach more legacy systems. The guide is
+        [docs/adding-an-adapter.md](https://github.com/OWASP/legacy2mcp/blob/main/docs/adding-an-adapter.md).
+        Please check the [open adapter issues](https://github.com/OWASP/legacy2mcp/issues?q=is%3Aopen+label%3Aadapter) first.
+  - type: input
+    id: technology
+    attributes:
+      label: Technology
+      description: Name and versions, e.g. "IBM CICS 5.x", "OpenLDAP", "IBM MQ 9".
+    validations:
+      required: true
+  - type: textarea
+    id: access
+    attributes:
+      label: How do clients talk to it?
+      description: Protocol, client library or SDK, and how auth works.
+    validations:
+      required: true
+  - type: textarea
+    id: discovery
+    attributes:
+      label: Can operations and their types be discovered?
+      description: Is there a catalog, schema, copybook or metadata API the adapter could read, so tool schemas aren't hand-typed?
+  - type: textarea
+    id: reads-writes
+    attributes:
+      label: Read vs write operations
+      description: Which operations only read, and which change data? How can the adapter tell them apart?
+  - type: textarea
+    id: test-target
+    attributes:
+      label: How can it be tested offline?
+      description: A Docker image, emulator, mock library or public sandbox CI could use.
+  - type: dropdown
+    id: volunteer
+    attributes:
+      label: Would you like to build it?
+      options:
+        - "Yes, please assign it to me"
+        - "Yes, with help from a maintainer"
+        - "No, just requesting it"
+    validations:
+      required: true

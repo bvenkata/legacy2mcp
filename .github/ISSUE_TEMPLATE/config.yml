@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ask a question or share an idea
+    url: https://github.com/OWASP/legacy2mcp/discussions
+    about: Questions, ideas and show-and-tell.
+  - name: Report a security vulnerability
+    url: https://github.com/OWASP/legacy2mcp/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.

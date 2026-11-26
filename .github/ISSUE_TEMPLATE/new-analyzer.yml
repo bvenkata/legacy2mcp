@@ -1,0 +1,50 @@
+name: New language or framework (analyze)
+description: Propose or volunteer to teach `legacy2mcp analyze` a new language or framework.
+title: "Analyzer: <language or framework>"
+labels: ["analyzer", "legacy-tech", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The guide is [docs/adding-an-analyzer.md](https://github.com/OWASP/legacy2mcp/blob/main/docs/adding-an-analyzer.md).
+        Please check the [open analyzer issues](https://github.com/OWASP/legacy2mcp/issues?q=is%3Aopen+label%3Aanalyzer) first.
+  - type: input
+    id: target
+    attributes:
+      label: Language and framework(s)
+      description: e.g. "Java / Spring MVC", "PHP / Laravel", "C# / ASP.NET Web Forms".
+    validations:
+      required: true
+  - type: textarea
+    id: entry-points
+    attributes:
+      label: What do entry points look like?
+      description: A short code snippet of a route, job or message handler in this framework.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: side-effects
+    attributes:
+      label: Common side effects
+      description: The ORMs, HTTP clients, mail, payment or queue libraries the analyzer should recognise.
+  - type: input
+    id: parser
+    attributes:
+      label: Parser
+      description: A parser that works without running the code, e.g. a tree-sitter grammar.
+  - type: input
+    id: sample-app
+    attributes:
+      label: Open-source sample app
+      description: A public repo that could become a test fixture or sample report.
+  - type: dropdown
+    id: volunteer
+    attributes:
+      label: Would you like to build it?
+      options:
+        - "Yes, please assign it to me"
+        - "Yes, with help from a maintainer"
+        - "No, just requesting it"
+    validations:
+      required: true
