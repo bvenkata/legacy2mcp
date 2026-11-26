@@ -179,6 +179,17 @@ load -- only what's in the page's static HTML.
   permissions, and don't point it at a WSDL whose arguments contain
   secrets you don't want written to disk.
 
+## Data flow and privacy
+
+- **No telemetry.** legacy2mcp collects no usage data and phones home to nothing. Every network call it makes is one you configured it to make — verified by checking every outbound HTTP call site in the source before writing this sentence.
+- **Adapter calls go exactly where you pointed them, nowhere else.** SOAP calls go to your `wsdl_url`, DB calls go to your `dsn_env` connection, REST calls go to your `base_url`.
+- **`legacy2mcp init`'s discovery calls are scoped to what you gave it.** The WSDL path only contacts the URL you passed. The REST path probes the usual OpenAPI/Swagger locations under that URL. `--webpage-url` crawls same-site pages from the URL you passed, bounded by `--max-pages` and `--max-depth`. Both follow HTTP redirects, so a server that redirects can send a request to another host. The GitHub/source-code path clones the repo you specify and parses it locally with `ast` — nothing from it is ever executed.
+- **The optional LLM-assist step sends only already-detected, ambiguous fragments — never your repo.** It only runs on the GitHub/source-code path of `legacy2mcp init`, only if you provide an API key, and only sends the specific route names/paths/params the static scan already flagged as ambiguous, not a dump of your source. Skip it entirely with `--scan-only`.
+- **`legacy2mcp discover` reads local files, except `--stored-procs` and `--webpage-url`.** Postman, OpenAPI, HAR, and queue sources never touch the network — they read a file you passed. `--stored-procs` connects to the DSN in the env var you named, the same way the `db` adapter does, only to read the procedure/function catalog. `--webpage-url` fetches the URL you passed and same-site pages linked from it, following HTTP redirects. No raw secret or sampled value is ever written into the resulting `contract.yaml` — see [docs/security.md](security.md).
+- **Secrets never live in `config.yaml`.** Passwords, DSNs, and API tokens are all referenced by environment-variable name (`password_env`, `dsn_env`, `token_env`) and read at runtime — the YAML stays safe to commit.
+- **The audit log stays local and is not encrypted at rest.** Every tool call is appended as one JSON line to `security.audit.path`. Arguments are logged as-is — there's no PII redaction; see [docs/security.md](security.md) for the full list of what the audit log does and doesn't do.
+
+
 ## Reporting a vulnerability
 
 Report vulnerabilities privately, not in a public issue. Use GitHub private
