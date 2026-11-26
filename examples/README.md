@@ -77,5 +77,5 @@ legacy2mcp init --rest-url https://api.example.com --out config.yaml
 legacy2mcp inspect --config config.yaml
 ```
 
-See [the root README](../README.md#generate-a-config-automatically) for the
+See [the CLI guide](../docs/cli.md#generate-a-config-automatically) for the
 full `legacy2mcp init` flags.

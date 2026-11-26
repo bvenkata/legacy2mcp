@@ -8,7 +8,7 @@ exactly).
 Every client here talks to legacy2mcp the same way: spawn `legacy2mcp run
 --config <path>` over stdio. The JSON differs only in which key wraps the
 server list (`mcpServers` vs `servers`) and whether a `type` field is
-needed -- see README.md#client-support for the maintained source of truth
+needed -- see docs/clients.md for the maintained source of truth
 this is kept in sync with.
 """
 

@@ -140,3 +140,34 @@ the Claude Desktop example) or in your shell before launching the client.
 | No tools appear | Run `legacy2mcp inspect --config config.yaml`. Write-like operations are hidden unless `allow_write_operations: true`. |
 | `uvx: command not found` | Install [uv](https://docs.astral.sh/uv/), or use `legacy2mcp` from `pip`/`pipx` and give the client its full path (`which legacy2mcp`). |
 | Works in terminal, fails in the client | Use an absolute `--config` path, and put required env vars in the client's `env` block. |
+
+## Verification status
+
+[![Verified: Claude Desktop](https://img.shields.io/badge/Verified-Claude%20Desktop-7C3AED)](#claude-desktop)
+[![Verified: Cursor](https://img.shields.io/badge/Verified-Cursor-000000)](#cursor)
+[![Verified: VS Code](https://img.shields.io/badge/Verified-VS%20Code-007ACC)](#vs-code)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-D97706)](#claude-code)
+[![Tested with MCP Inspector](https://img.shields.io/badge/Tested%20with-MCP%20Inspector-22C55E)](#mcp-inspector)
+[![MCP compatibility](https://github.com/OWASP/legacy2mcp/actions/workflows/mcp-compatibility.yml/badge.svg)](https://github.com/OWASP/legacy2mcp/actions/workflows/mcp-compatibility.yml)
+
+"Verified" here means a specific, narrow thing: the exact command + config
+shape shown below was actually spawned and completed a real MCP
+`initialize` handshake over stdio -- not just "MCP should be compatible."
+For MCP Inspector, the loop was driven further: a real `tools/list`, a real
+`tools/call`, and the resulting [audit log](security.md) entry, all
+headlessly via the Inspector's own `--cli` mode. The last badge is what
+keeps that claim honest over time rather than a one-time snapshot: a CI job
+([`mcp-compatibility.yml`](../.github/workflows/mcp-compatibility.yml)) re-runs
+that same `tools/list` / `tools/call` / audit-log loop on every push and
+fails the build if the server can't start or exposes the wrong tools. Every
+client below talks to `legacy2mcp` over **stdio only** -- there's no
+HTTP/SSE transport yet (it's on the [roadmap](roadmap.md), not
+shipped), so an `http://localhost:...` MCP URL won't work here.
+
+| Client | Status | How it was verified |
+|---|---|---|
+| Claude Desktop | Verified | Spawned the exact `claude_desktop_config.json` command, completed a real `initialize` handshake, confirmed tools listed |
+| Cursor | Verified | Same, via `.cursor/mcp.json`'s exact command |
+| VS Code | Verified | Same, via `.vscode/mcp.json`'s exact command |
+| Claude Code | Documented | Uses the identical launch command verified above via `claude mcp add`; that command itself wasn't independently re-run in this environment |
+| MCP Inspector | Tested | Full CLI loop -- `tools/list`, `tools/call`, and the audit log entry it produced |
