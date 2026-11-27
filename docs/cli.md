@@ -40,6 +40,11 @@ Choice [1-4]:
 | **Website** | Crawls same-site pages starting there (`--max-pages`/`--max-depth` bound it, default 25/2) the same way `legacy2mcp discover --webpage-url` does, then goes straight to a config instead of stopping at a `contract.yaml`. Every operation still lands at `confidence: low` / `needs_review: true` in the generated TODOs -- going through `init` skips a file, not the review. | No |
 | **GitHub repo / local path** | Clones (or reads) the repo and statically scans its Python source (AST only, never executed) for a `zeep.Client(...)` call, a SQLAlchemy/Flask-SQLAlchemy model, or Flask/FastAPI routes -- picking `soap`/`db`/`rest` accordingly. | Optional |
 
+A live database has a flag of its own (no menu entry): `--db-dialect`
+(`postgres`, `mssql` or `oracle`) with `--db-dsn-env`, the environment
+variable that holds the DSN -- see
+[A live database](#a-live-database---db-dialect) below.
+
 Each also works non-interactively via a flag -- `--wsdl-url`, `--rest-url`,
 `--webpage-url`, `--github-url`, or `--local-path` -- for scripting or CI.
 Only the GitHub/source-code path can use an LLM, and only to refine what
@@ -195,6 +200,37 @@ A few things worth knowing:
   contract is embedded in the page (in a `<script type="application/json">`
   tag), not just summarized for reading.
 
+### A live database (`--db-dialect`)
+
+```bash
+export LEGACY_DB_DSN="postgresql://reader@db.internal/legacy"
+legacy2mcp init --db-dialect postgres --db-dsn-env LEGACY_DB_DSN --db-schema sales --out config.yaml
+```
+
+`init --db-dialect` reads the schema's base tables and their columns from
+the database's system catalog (`information_schema.tables` on Postgres and
+SQL Server, `user_tables` / `all_tables` on Oracle) and writes a starter
+`type: db` config: every table `operations: [select]`, with
+`allow_write_operations: false`. No row of any table is selected, and
+nothing is written to the database.
+
+- `--db-dsn-env` names the environment variable that holds the DSN. The
+  DSN is read from it once and never written: the config's `dsn_env` is
+  that variable's name, and a connection error names the variable, not the
+  DSN.
+- `--db-schema` picks the schema (Oracle: the owner); the default is
+  `public` on Postgres, `dbo` on SQL Server and your own schema on Oracle.
+  Each table in the config gets that `schema`.
+- `--db-tables a,b` takes only the tables named (matched without case);
+  a name that isn't a base table of the schema is an error. Views are
+  never listed.
+- Without `--db-tables`, a schema with more than `--db-max-tables` (25)
+  base tables is refused, with the first names, rather than exposing a
+  whole large schema to an agent by default.
+
+The config's TODOs ask you to review the table list and each table's
+columns: reading a table is not a decision that it's safe to expose.
+
 ## Common commands
 
 ```bash
@@ -209,6 +245,9 @@ legacy2mcp init --wsdl-url "https://service.example.com/Legacy?wsdl" --out confi
 
 # Generate a config from a website with no API docs at all -- crawls it
 legacy2mcp init --webpage-url "https://your-legacy-app.example.com" --out config.yaml
+
+# Generate a read-only config from a live database's tables (the DSN stays in the env var)
+legacy2mcp init --db-dialect postgres --db-dsn-env LEGACY_DB_DSN --db-schema sales --out config.yaml
 
 # Generate a config by statically scanning a GitHub repo (no AI, no API key)
 legacy2mcp init --github-url https://github.com/you/your-api --scan-only --out config.yaml

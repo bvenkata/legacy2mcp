@@ -12,7 +12,20 @@ from pathlib import Path
 
 from legacy2mcp import client_snippet, webui
 from legacy2mcp.config import ConfigError, Legacy2McpConfig, load_config
-from legacy2mcp.discovery import classify, generate, har, openapi, postman, queue_contract, repo, report, scan, storedproc, webpage
+from legacy2mcp.discovery import (
+    classify,
+    dbtables,
+    generate,
+    har,
+    openapi,
+    postman,
+    queue_contract,
+    repo,
+    report,
+    scan,
+    storedproc,
+    webpage,
+)
 from legacy2mcp.discovery.contract import ContractError, load_contract
 from legacy2mcp.discovery.llm import DEFAULT_BASE_URL, DEFAULT_MODEL, OpenAiLlmClient
 from legacy2mcp.discovery.repo import RepoError
@@ -416,14 +429,36 @@ def _serve_demo(
         app.close()
 
 
+def _dsn_from_env(name: str | None) -> str:
+    """The DSN in the environment variable `name`. The value is only ever
+    read here; the config records the variable's name."""
+    if not name:
+        print("--db-dialect needs --db-dsn-env, the environment variable that holds the DSN.", file=sys.stderr)
+        sys.exit(1)
+    dsn = os.environ.get(name, "").strip()
+    if not dsn:
+        print(f"Environment variable '{name}' is not set.", file=sys.stderr)
+        sys.exit(1)
+    return dsn
+
+
+def _split_names(value: str | None) -> list[str] | None:
+    """`a, b,c` as ["a", "b", "c"]; None when no names were given."""
+    names = [n.strip() for n in (value or "").split(",") if n.strip()]
+    return names or None
+
+
 def _resolve_source(args: argparse.Namespace, interactive: bool) -> tuple[str, str]:
-    """Return (kind, value): kind is "wsdl" / "rest" / "webpage" / "github_url" / "local_path" / "from_contract"."""
+    """Return (kind, value): kind is "wsdl" / "rest" / "webpage" / "db" / "github_url" / "local_path" /
+    "from_contract"."""
     if args.wsdl_url:
         return "wsdl", args.wsdl_url
     if args.rest_url:
         return "rest", args.rest_url
     if args.webpage_url:
         return "webpage", args.webpage_url
+    if args.db_dialect:
+        return "db", args.db_dialect
     if args.github_url:
         return "github_url", args.github_url
     if args.local_path:
@@ -433,8 +468,8 @@ def _resolve_source(args: argparse.Namespace, interactive: bool) -> tuple[str, s
 
     if not interactive:
         print(
-            "Pass one of --wsdl-url, --rest-url, --webpage-url, --github-url, --local-path, "
-            "or --from-contract.",
+            "Pass one of --wsdl-url, --rest-url, --webpage-url, --db-dialect, --github-url, "
+            "--local-path, or --from-contract.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -636,6 +671,18 @@ def _cmd_init(args: argparse.Namespace) -> None:
             source_label = value
             contract = webpage.contract_from_webpage(value, max_pages=args.max_pages, max_depth=args.max_depth)
             config, todos = classify.build_config_from_contract(contract)
+
+        elif kind == "db":
+            finding = dbtables.discover_db_tables(
+                value,
+                _dsn_from_env(args.db_dsn_env),
+                args.db_dsn_env,
+                db_schema=args.db_schema,
+                tables=_split_names(args.db_tables),
+                max_tables=args.db_max_tables,
+            )
+            source_label = f"{value} database" + (f" (schema {args.db_schema})" if args.db_schema else "")
+            config, todos = classify.build_config(ScanResult(db=finding))
 
         elif kind == "from_contract":
             source_label = value
@@ -1020,6 +1067,15 @@ def main() -> None:
             "skips a file, not the review."
         ),
     )
+    source_group.add_argument(
+        "--db-dialect",
+        choices=["postgres", "mssql", "oracle"],
+        help=(
+            "A live database: read its tables and columns from the system catalog and write a "
+            "starter `type: db` config, every table select-only with writes off. Needs "
+            "--db-dsn-env; nothing is selected from any table."
+        ),
+    )
     source_group.add_argument("--github-url", help="Repo to clone and statically scan for a SOAP client / DB model / routes.")
     source_group.add_argument("--local-path", help="Already-checked-out repo to scan (skips cloning).")
     source_group.add_argument(
@@ -1031,6 +1087,26 @@ def main() -> None:
     )
     init_parser.add_argument(
         "--max-depth", type=int, default=2, help="Max link depth to follow for --webpage-url (default: 2)."
+    )
+    init_parser.add_argument(
+        "--db-dsn-env",
+        help="Env var holding the DB connection string (required with --db-dialect). Only its name is written.",
+    )
+    init_parser.add_argument(
+        "--db-schema", help="Schema/owner to read (--db-dialect only; default: public / dbo / your own)."
+    )
+    init_parser.add_argument(
+        "--db-tables",
+        help="Comma-separated tables to include (--db-dialect only); default: every base table of the schema.",
+    )
+    init_parser.add_argument(
+        "--db-max-tables",
+        type=int,
+        default=dbtables.DEFAULT_MAX_TABLES,
+        help=(
+            "Without --db-tables, refuse a schema with more base tables than this "
+            f"(default: {dbtables.DEFAULT_MAX_TABLES})."
+        ),
     )
     init_parser.add_argument(
         "--github-token-env", help="Env var holding a GitHub token, for private repos (--github-url only)."

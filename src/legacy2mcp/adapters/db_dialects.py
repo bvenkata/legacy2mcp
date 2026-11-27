@@ -5,7 +5,8 @@ Three things differ across Postgres / SQL Server / Oracle and are
 isolated here so db_adapter.py stays dialect-agnostic:
   1. Connecting (driver-specific; imported lazily so installing
      legacy2mcp doesn't require all three DB-API drivers).
-  2. Introspecting a table's columns (different system catalogs).
+  2. Introspecting a schema's tables and a table's columns (different
+     system catalogs).
   3. Executing SQL written with our own dialect-neutral `:name`
      placeholder convention and a dict of params -- each dialect
      translates that to whatever its driver actually accepts
@@ -62,6 +63,13 @@ class DbDialect(ABC):
     @abstractmethod
     def connect(self, dsn: str, timeout_seconds: float) -> Any:
         """Open a DB-API connection. Raises on failure."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_tables(self, conn: Any, db_schema: str | None) -> list[str]:
+        """The base tables (no views) of `db_schema`, or of the dialect's
+        default schema when it is None, sorted by name. A catalog read for
+        `legacy2mcp init --db-dialect`; nothing is selected from a table."""
         raise NotImplementedError
 
     @abstractmethod
@@ -124,6 +132,16 @@ class PostgresDialect(DbDialect):
 
         return psycopg.connect(dsn, connect_timeout=timeout_seconds)
 
+    def list_tables(self, conn: Any, db_schema: str | None) -> list[str]:
+        sql = (
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = %(schema)s AND table_type = 'BASE TABLE' "
+            "ORDER BY table_name"
+        )
+        with conn.cursor() as cur:
+            cur.execute(sql, {"schema": db_schema or "public"})
+            return [r[0] for r in cur.fetchall()]
+
     def introspect_columns(self, conn: Any, table: str, db_schema: str | None) -> list[ColumnInfo]:
         sql = (
             "SELECT column_name, data_type, is_nullable, column_default "
@@ -169,6 +187,16 @@ class SqlServerDialect(DbDialect):
         import pyodbc
 
         return pyodbc.connect(dsn, timeout=int(timeout_seconds))
+
+    def list_tables(self, conn: Any, db_schema: str | None) -> list[str]:
+        sql = (
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = ? AND table_type = 'BASE TABLE' "
+            "ORDER BY table_name"
+        )
+        cur = conn.cursor()
+        cur.execute(sql, (db_schema or "dbo",))
+        return [r[0] for r in cur.fetchall()]
 
     def introspect_columns(self, conn: Any, table: str, db_schema: str | None) -> list[ColumnInfo]:
         sql = (
@@ -222,6 +250,19 @@ class OracleDialect(DbDialect):
         import oracledb
 
         return oracledb.connect(dsn, tcp_connect_timeout=timeout_seconds)
+
+    def list_tables(self, conn: Any, db_schema: str | None) -> list[str]:
+        # user_tables is the connecting user's own schema; all_tables with an
+        # owner is another schema the user can see. Neither lists views.
+        if db_schema:
+            sql = "SELECT table_name FROM all_tables WHERE owner = :owner ORDER BY table_name"
+            params = {"owner": db_schema.upper()}
+        else:
+            sql = "SELECT table_name FROM user_tables ORDER BY table_name"
+            params = {}
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        return [r[0] for r in cur.fetchall()]
 
     def introspect_columns(self, conn: Any, table: str, db_schema: str | None) -> list[ColumnInfo]:
         if db_schema:

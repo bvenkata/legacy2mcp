@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`legacy2mcp init --db-dialect`** (#11): a starter `type: db` config
+  straight from a live Postgres, SQL Server or Oracle database. It reads
+  the schema's base tables and columns from the system catalog (a new
+  `list_tables()` on each dialect), with the DSN taken from the
+  environment variable named by `--db-dsn-env` and never written. Every
+  table is select-only with writes off; `--db-tables` picks tables, and a
+  schema with more than `--db-max-tables` (25) tables needs that list.
+
 ## [0.6.0] - not yet released (push tag `v0.6.0` to publish)
 
 ### Added
