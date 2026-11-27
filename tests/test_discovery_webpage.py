@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from legacy2mcp.discovery.contract import ContractError
-from legacy2mcp.discovery.webpage import contract_from_webpage
+from legacy2mcp.discovery.webpage import contract_from_html_file, contract_from_webpage
 
 
 class _FakeResponse:
@@ -285,3 +287,95 @@ def test_form_and_content_pages_mix_without_name_collisions(monkeypatch):
     assert len(names) == len(set(names))
     assert any(op.path == "/search" for op in contract.operations)
     assert any(op.path == "/contact" for op in contract.operations)
+
+
+# ---------------------------------------------------------------- a saved HTML file (--html-file)
+
+SAVED_PAGE = Path(__file__).parent / "fixtures" / "webpage" / "saved_page.html"
+
+
+def _no_network(*args, **kwargs):
+    raise AssertionError("contract_from_html_file must not make a request")
+
+
+def test_html_file_turns_each_form_into_an_operation_without_fetching(monkeypatch):
+    monkeypatch.setattr("requests.get", _no_network)
+
+    contract = contract_from_html_file(SAVED_PAGE)
+
+    assert contract.source_label == str(SAVED_PAGE)
+    ops = {op.name: op for op in contract.operations}
+    assert list(ops) == ["search_orders", "add_note", "cancel_order"]
+    assert ops["search_orders"].method == "GET"
+    assert {f.name: f.location for f in ops["search_orders"].fields} == {"customer": "query", "status": "query"}
+    assert next(f for f in ops["search_orders"].fields if f.name == "status").enum == ["closed", "open"]
+    assert ops["add_note"].side_effect == "write"
+    assert {f.name for f in ops["add_note"].fields} == {"csrf_token", "note"}
+    assert ops["search_orders"].description == f"Discovered from a <form> in {SAVED_PAGE}."
+    for op in contract.operations:
+        assert op.confidence == "low"
+        assert op.needs_review is True
+
+
+def test_html_file_relative_action_resolves_against_root_not_the_file(tmp_path):
+    page = tmp_path / "saved" / "login.html"
+    page.parent.mkdir()
+    page.write_text('<form action="orders/search"><input name="q"></form>', encoding="utf-8")
+
+    op = contract_from_html_file(page).operations[0]
+
+    assert op.path == "/orders/search"
+    assert "file:" not in op.path
+    assert str(tmp_path) not in op.path and "saved" not in op.path
+    assert any("relative" in note and "'/'" in note for note in op.notes)
+
+
+def test_html_file_form_without_action_gets_a_placeholder_path_and_a_note():
+    ops = {op.name: op for op in contract_from_html_file(SAVED_PAGE).operations}
+
+    assert ops["add_note"].path == "/"
+    assert any("no action" in note and "placeholder" in note for note in ops["add_note"].notes)
+
+
+def test_html_file_root_relative_action_keeps_its_path_without_a_path_note():
+    ops = {op.name: op for op in contract_from_html_file(SAVED_PAGE).operations}
+
+    assert ops["cancel_order"].path == "/orders/{orderId}/cancel"
+    assert not any("relative" in note or "placeholder" in note for note in ops["cancel_order"].notes)
+
+
+def test_html_file_absolute_action_names_the_host_to_use(tmp_path):
+    page = tmp_path / "page.html"
+    page.write_text('<form action="https://legacy.example.com/find"><input name="q"></form>', encoding="utf-8")
+
+    op = contract_from_html_file(page).operations[0]
+
+    assert op.path == "/find"
+    assert any("legacy.example.com" in note for note in op.notes)
+
+
+def test_html_file_page_without_a_form_becomes_a_read_tool_with_a_path_note(tmp_path):
+    page = tmp_path / "about.html"
+    page.write_text(
+        "<html><head><title>About us</title></head><body><p>We have sold widgets since 1987.</p></body></html>",
+        encoding="utf-8",
+    )
+
+    op = contract_from_html_file(page).operations[0]
+
+    assert (op.name, op.method, op.path, op.side_effect) == ("get_home", "GET", "/", "read")
+    assert op.description == "About us"
+    assert any("saved HTML file" in note for note in op.notes)
+
+
+def test_html_file_that_does_not_exist_raises_contract_error(tmp_path):
+    with pytest.raises(ContractError, match="Could not read HTML file"):
+        contract_from_html_file(tmp_path / "missing.html")
+
+
+def test_html_file_with_nothing_usable_raises_contract_error(tmp_path):
+    page = tmp_path / "empty.html"
+    page.write_text("<html><body></body></html>", encoding="utf-8")
+
+    with pytest.raises(ContractError, match="no <form> elements"):
+        contract_from_html_file(page)

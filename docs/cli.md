@@ -42,6 +42,8 @@ Choice [1-4]:
 
 Each also works non-interactively via a flag -- `--wsdl-url`, `--rest-url`,
 `--webpage-url`, `--github-url`, or `--local-path` -- for scripting or CI.
+`--html-file` (flag only) does what `--webpage-url` does for one saved
+page -- see [`--html-file`](#a-saved-html-page---html-file) below.
 Only the GitHub/source-code path can use an LLM, and only to refine what
 static analysis already found (ambiguous parameter types, read-vs-write
 classification) -- never a dump of your repo. It needs no extra
@@ -110,7 +112,8 @@ legacy2mcp discover --queue-config queues.yaml --out contract.yaml
 
 A website *can* go through `discover --webpage-url` too (see below) if you
 want to review the contract before anything gets built -- `init
---webpage-url` runs the identical crawl, it just doesn't pause there.
+--webpage-url` runs the identical crawl, it just doesn't pause there. The
+same goes for a saved page: `discover --html-file` or `init --html-file`.
 
 Each writes a **Legacy Interface Contract** (`contract.yaml`): every
 operation's inputs, outputs, enums, error codes, whether it reads or
@@ -177,6 +180,10 @@ A few things worth knowing:
   other `discover` source, `base_url` fills in automatically (it's the
   host just fetched), so the test-chat page opens right away. Full crawl
   mechanics: [docs/security.md](security.md).
+- **`--html-file`** runs the same form and content extraction on one saved
+  HTML page, for a page `--webpage-url` can't reach: one behind a login,
+  saved with the browser's "Save As" or captured by another tool. See
+  [below](#a-saved-html-page---html-file).
 - **Stored procedures and queue descriptions are documented, not runnable
   yet.** `--stored-procs` and `--queue-config` still produce real contract
   entries -- there's no adapter to actually *call* either today (see
@@ -195,6 +202,37 @@ A few things worth knowing:
   contract is embedded in the page (in a `<script type="application/json">`
   tag), not just summarized for reading.
 
+### A saved HTML page (`--html-file`)
+
+```bash
+legacy2mcp discover --html-file saved-page.html --out contract.yaml
+legacy2mcp init --html-file saved-page.html --out config.yaml
+```
+
+`--html-file` reads one saved page and runs the same extraction as
+`--webpage-url`: each `<form>` becomes an operation, or a page with no form
+but real text becomes a read-only "get this page" tool. It is in the same
+mutually exclusive source group as `--webpage-url` on both commands.
+Nothing is fetched and no link is followed. `--max-pages`/`--max-depth`
+only bound the `--webpage-url` crawl, so passing either with `--html-file`
+is an error.
+
+A saved file doesn't record the URL it was served from, so:
+
+- `base_url` stays `REPLACE_ME_BASE_URL` for you to fill in. A form whose
+  `action` is an absolute URL gets a note naming that host.
+- A relative `action` (`orders/search`) resolves against `/`, never against
+  a `file://` URL or the file's local path, and the operation gets a note
+  to confirm the real path. A form with no `action` (it posts back to the
+  page itself) gets the placeholder path `/` and a note. A root-relative
+  `action` (`/orders/search`) keeps its path.
+- Every operation is `confidence: low` / `needs_review: true`, the same as
+  `--webpage-url`.
+
+Only the page's static HTML is read: if client-side JavaScript built a
+form after the page loaded, save the page from the browser's DOM (for
+example, devtools' "Copy outerHTML") rather than "View Source".
+
 ## Common commands
 
 ```bash
@@ -209,6 +247,9 @@ legacy2mcp init --wsdl-url "https://service.example.com/Legacy?wsdl" --out confi
 
 # Generate a config from a website with no API docs at all -- crawls it
 legacy2mcp init --webpage-url "https://your-legacy-app.example.com" --out config.yaml
+
+# The same for one page saved from the browser (e.g. behind a login) -- nothing is fetched
+legacy2mcp init --html-file saved-page.html --out config.yaml
 
 # Generate a config by statically scanning a GitHub repo (no AI, no API key)
 legacy2mcp init --github-url https://github.com/you/your-api --scan-only --out config.yaml

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`--html-file` on `discover` and `init`** (#7): the `--webpage-url`
+  form and content extraction, run on one saved HTML page (for example, a
+  page behind a login) instead of a live URL. Nothing is fetched or
+  crawled. Relative form actions resolve against `/` with a note, and
+  `base_url` stays `REPLACE_ME_BASE_URL`. Passing `--max-pages` or
+  `--max-depth` with it is an error.
+
 ## [0.6.0] - not yet released (push tag `v0.6.0` to publish)
 
 ### Added
