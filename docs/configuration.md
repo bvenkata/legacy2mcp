@@ -124,7 +124,11 @@ A production-shaped template lives at
 | Key | Default | Meaning |
 |---|---|---|
 | `server.name` | `legacy2mcp` | MCP server name reported to clients |
-| `server.transport` | `stdio` | only `stdio` is implemented so far |
+| `server.transport` | `stdio` | `stdio`, or `http` for Streamable HTTP (see [HTTP transport](#http-transport)) |
+| `server.host` | `127.0.0.1` | `http` only: the address to listen on; any non-loopback address needs `server.token_env` |
+| `server.port` | `8000` | `http` only |
+| `server.path` | `/mcp` | `http` only: the MCP endpoint's path |
+| `server.token_env` | — | `http` only: the environment variable holding the bearer token callers must send |
 | `adapters[].id` | — | prefix for this adapter's tool names |
 | `adapters[].type` | — | `soap`, `db`, or `rest` (implemented); `queue` is on the roadmap |
 
@@ -175,3 +179,30 @@ A production-shaped template lives at
 |---|---|---|
 | `security.audit.enabled` | `true` | write the audit log |
 | `security.audit.path` | `./legacy2mcp-audit.log` | audit log location |
+
+## HTTP transport
+
+`legacy2mcp run` speaks MCP over stdio by default, the transport a client
+uses when it launches the server itself. For a client that connects over
+HTTP instead (a hosted agent, or anything that can't start a subprocess),
+set `server.transport: http`:
+
+```yaml
+server:
+  name: orders
+  transport: http
+  port: 8765
+  token_env: LEGACY2MCP_HTTP_TOKEN # optional on localhost, required beyond it
+```
+
+```bash
+export LEGACY2MCP_HTTP_TOKEN="$(openssl rand -hex 32)"
+legacy2mcp run --config config.yaml   # Serving MCP over HTTP at http://127.0.0.1:8765/mcp
+```
+
+The server speaks the MCP SDK's Streamable HTTP transport at
+`http://<host>:<port><path>`, with the same tools, validation, audit log
+and writes-off defaults as over stdio. A client sends
+`Authorization: Bearer <token>` on every request; without it, or with
+another token, the answer is `401`. See
+[docs/security.md](security.md#the-http-transport) for what is checked.
