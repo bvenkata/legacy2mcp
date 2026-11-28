@@ -150,3 +150,34 @@ def test_oracle_groups_procedure_rows_by_object_name():
     assert params == {"owner": "MYSCHEMA"}
     assert procs[0].name == "UPDATE_ORDER_STATUS"
     assert len(procs[0].params) == 2
+
+
+def test_postgres_lists_base_tables_of_public_by_default():
+    conn = FakeProcConnection([("customers",), ("orders",)])
+
+    assert PostgresDialect().list_tables(conn, None) == ["customers", "orders"]
+    sql, params = conn.cur.calls[0]
+    assert "information_schema.tables" in sql and "table_type = 'BASE TABLE'" in sql
+    assert params == {"schema": "public"}
+    PostgresDialect().list_tables(conn, "sales")
+    assert conn.cur.calls[1][1] == {"schema": "sales"}
+
+
+def test_sqlserver_lists_base_tables_of_dbo_by_default():
+    conn = FakeProcConnection([("Customers",)])
+
+    assert SqlServerDialect().list_tables(conn, None) == ["Customers"]
+    sql, params = conn.cur.calls[0]
+    assert "table_type = 'BASE TABLE'" in sql
+    assert params == ("dbo",)
+
+
+def test_oracle_lists_its_own_tables_or_another_owners():
+    conn = FakeProcConnection([("CUSTOMERS",)])
+
+    assert OracleDialect().list_tables(conn, None) == ["CUSTOMERS"]
+    assert "FROM user_tables" in conn.cur.calls[0][0]
+    OracleDialect().list_tables(conn, "sales")
+    sql, params = conn.cur.calls[1]
+    assert "FROM all_tables WHERE owner = :owner" in sql
+    assert params == {"owner": "SALES"}

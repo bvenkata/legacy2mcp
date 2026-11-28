@@ -78,6 +78,10 @@ class DbFinding:
     dialect: str | None
     tables: list[DbTableFinding] = field(default_factory=list)
     needs_review: bool = False
+    # Set when the tables came from a live database (`init --db-dialect`): the
+    # environment variable that holds its DSN, and the schema that was read.
+    dsn_env: str | None = None
+    db_schema: str | None = None
 
 
 @dataclass

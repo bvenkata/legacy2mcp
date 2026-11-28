@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   crawled. Relative form actions resolve against `/` with a note, and
   `base_url` stays `REPLACE_ME_BASE_URL`. Passing `--max-pages` or
   `--max-depth` with it is an error.
+- **`legacy2mcp init --db-dialect`** (#11): a starter `type: db` config
+  straight from a live Postgres, SQL Server or Oracle database. It reads
+  the schema's base tables and columns from the system catalog (a new
+  `list_tables()` on each dialect), with the DSN taken from the
+  environment variable named by `--db-dsn-env` and never written. Every
+  table is select-only with writes off; `--db-tables` picks tables, and a
+  schema with more than `--db-max-tables` (25) tables needs that list.
 
 ## [0.6.0] - 2026-11-28
 
