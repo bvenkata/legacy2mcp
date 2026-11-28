@@ -126,6 +126,15 @@ Inspector's own `--cli` mode, e.g. `... --cli uvx legacy2mcp run --config ... --
 tools/list` (note: pass `--method` and any `--tool-name`/`--tool-arg` *after* the target
 command, not before, or the Inspector's own argument parser swallows them).
 
+## Over HTTP
+
+A client that connects to a URL instead of starting a command can use the
+HTTP transport: set `server.transport: http` (and `server.token_env`) in
+the config, start `legacy2mcp run --config config.yaml`, and point the
+client at `http://127.0.0.1:8000/mcp` with the header
+`Authorization: Bearer <token>`. See
+[docs/configuration.md](configuration.md#http-transport).
+
 ## Secrets
 
 Config files reference environment variable **names** (`password_env`, `token_env`, `dsn_env`),

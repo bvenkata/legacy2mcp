@@ -12,8 +12,10 @@
   excluded unless `allow_write_operations: true` is set explicitly on
   that adapter. `include_operations` / `exclude_operations` allowlists
   on top of that.
-- `stdio` transport only (the transport Claude Desktop and most MCP
-  clients spawn servers over).
+- `stdio` transport (the transport Claude Desktop and most MCP clients
+  spawn servers over), and Streamable HTTP (`server.transport: http`) for
+  clients that connect over HTTP: localhost by default, a bearer token
+  required beyond it.
 - Basic auth support for the WSDL endpoint (`auth.type: basic`).
 - CLI: `legacy2mcp run --config ...` and `legacy2mcp inspect --config ...`
   (dry-run tool discovery, no server started -- useful in CI to catch
@@ -32,8 +34,8 @@
   best-exercised dialect; SQL Server (`pyodbc`) and Oracle
   (`oracledb`) share the same adapter and safety model but have less
   real-world mileage -- see `docs/security.md`.
-- **HTTP/SSE transport**, for MCP clients that talk HTTP instead of
-  spawning a stdio subprocess. (planned, not implemented)
+- **OAuth for the HTTP transport**, for per-caller identity instead of
+  one shared bearer token. (planned, not implemented)
 - Fine-grained authorization: map an identity's role or attributes to
   an allowed tool-name pattern (`select_*`, `get_*`, etc.). (planned)
 - OAuth2 auth for SOAP endpoints (basic auth only today). (planned)

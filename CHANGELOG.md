@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   environment variable named by `--db-dsn-env` and never written. Every
   table is select-only with writes off; `--db-tables` picks tables, and a
   schema with more than `--db-max-tables` (25) tables needs that list.
+- **`legacy2mcp run` over HTTP** (#12): `server.transport: http` serves
+  the same tools over the MCP SDK's Streamable HTTP transport, at
+  `server.host` / `server.port` / `server.path` (default
+  `127.0.0.1:8000/mcp`). `server.token_env` names the environment variable
+  holding a bearer token every request must send; a non-loopback host
+  without it is a config error. On localhost the SDK's DNS-rebinding
+  protection is on. `server.host` now defaults to `127.0.0.1`.
 
 ## [0.6.0] - 2026-11-28
 

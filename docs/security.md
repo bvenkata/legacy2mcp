@@ -166,13 +166,38 @@ load -- only what's in the page's static HTML.
 5. **SOAP faults don't leak raw stack traces to the caller.** They're
    caught and re-raised as a plain error message.
 
+## The HTTP transport
+
+Over stdio the only caller is the local process that started the server.
+Over HTTP (`server.transport: http`) anything that can reach the port can
+call the tools, so:
+
+- **It listens on `127.0.0.1` by default.** On a loopback host the MCP
+  SDK's DNS-rebinding protection is on: a request whose `Host` or
+  `Origin` isn't local is refused (`421`), so a web page in the user's
+  browser can't reach the server through a rebound domain name.
+- **Beyond localhost, a bearer token is required.** A config with
+  `transport: http`, a non-loopback `host` (such as `0.0.0.0`) and no
+  `server.token_env` fails to load, and `run` refuses to start if the
+  variable `token_env` names is unset. The token is read from that
+  variable only, never written to the config. Every HTTP request must
+  carry `Authorization: Bearer <token>`, compared in constant time;
+  anything else gets `401`.
+- **On localhost the token is optional**, the same trust as a stdio
+  caller: `run` warns that any process on the machine can call the
+  tools. Set `token_env` there too if other users share the machine.
+- **One token is one caller.** The audit log records HTTP calls exactly
+  as stdio calls, with no per-caller identity. Serve it over TLS (a
+  reverse proxy) when the token crosses a network.
+
 ## What this does NOT do (yet)
 
-- **No authentication or authorization on the MCP server itself.**
-  Anything that can spawn/connect to the server can call any exposed
-  tool. If you need per-caller identity and role-based tool access,
-  that's still [planned](roadmap.md) and not implemented --
-  don't expose the server to untrusted callers.
+- **No per-caller authentication or authorization on the MCP server
+  itself.** Over stdio, anything that can spawn the server can call any
+  exposed tool; over HTTP, anything with the one shared bearer token can
+  (see [the HTTP transport](#the-http-transport)). If you need per-caller
+  identity and role-based tool access, that's still [planned](roadmap.md)
+  and not implemented -- don't expose the server to untrusted callers.
 - **The write-operation filter is a name heuristic, not semantic
   analysis.** A WSDL operation named `ProcessRecord` that actually
   deletes data would not be caught by the `_looks_like_write()` check.

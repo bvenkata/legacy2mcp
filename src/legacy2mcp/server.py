@@ -29,6 +29,7 @@ from legacy2mcp.adapters.rest_adapter import RestAdapter
 from legacy2mcp.adapters.soap_adapter import SoapAdapter
 from legacy2mcp.capabilities import build_describe_capabilities_entry
 from legacy2mcp.config import AdapterConfig, Legacy2McpConfig
+from legacy2mcp.http_auth import BearerTokenMiddleware
 from legacy2mcp.security.audit import AuditLogger
 from legacy2mcp.security.validation import ValidationError, validate_arguments
 
@@ -169,6 +170,32 @@ class Legacy2McpApp:
     def close(self) -> None:
         for adapter in self._adapters.values():
             adapter.close()
+
+    def http_app(self) -> Any:
+        """The ASGI app `run_http()` serves: the MCP SDK's Streamable HTTP app
+        over this same Server (so the same tools, validation and audit log as
+        stdio), behind the bearer-token check when server.token_env is set.
+        On a loopback host the SDK also turns on DNS-rebinding protection: the
+        Host and Origin headers must be local."""
+        server_config = self.config.server
+        app = self.mcp_server.streamable_http_app(
+            streamable_http_path=server_config.path, host=server_config.host
+        )
+        token = server_config.http_token()
+        return BearerTokenMiddleware(app, token) if token else app
+
+    async def run_http(self) -> None:
+        import uvicorn
+
+        server_config = self.config.server
+        uvicorn_config = uvicorn.Config(
+            self.http_app(),
+            host=server_config.host,
+            port=server_config.port,
+            log_level="warning",
+            lifespan="on",
+        )
+        await uvicorn.Server(uvicorn_config).serve()
 
     async def run_stdio(self) -> None:
         async with stdio_server() as (read_stream, write_stream):

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
 class ConfigError(Exception):
@@ -269,8 +269,38 @@ class SecurityConfig(BaseModel):
 class ServerConfig(BaseModel):
     name: str = "legacy2mcp"
     transport: Literal["stdio", "http"] = "stdio"
-    host: str = "0.0.0.0"
+    # The HTTP transport's address. Localhost by default: listening beyond the
+    # local machine is a choice, and needs token_env (see _http_needs_a_token).
+    host: str = "127.0.0.1"
     port: int = 8000
+    path: str = "/mcp"
+    # The environment variable holding the bearer token HTTP callers must send.
+    # Only its name is in the config, never the token.
+    token_env: str | None = None
+
+    @model_validator(mode="after")
+    def _http_needs_a_token(self) -> "ServerConfig":
+        from legacy2mcp.http_auth import is_loopback
+
+        if self.transport == "http" and not is_loopback(self.host) and not self.token_env:
+            raise ValueError(
+                f"server.host '{self.host}' is reachable from other machines: set server.token_env to the "
+                f"environment variable holding a bearer token, or use host 127.0.0.1"
+            )
+        if not self.path.startswith("/"):
+            raise ValueError(f"server.path must start with '/': '{self.path}'")
+        return self
+
+    def http_token(self) -> str | None:
+        """The bearer token from token_env; None when no token_env is set."""
+        if not self.token_env:
+            return None
+        token = os.environ.get(self.token_env, "").strip()
+        if not token:
+            raise ConfigError(
+                f"Environment variable '{self.token_env}' is not set (server.token_env: the HTTP bearer token)."
+            )
+        return token
 
 
 class Legacy2McpConfig(BaseModel):

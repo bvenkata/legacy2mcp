@@ -52,18 +52,31 @@ def _cmd_run(args: argparse.Namespace) -> None:
     config = _load_config_or_exit(args.config)
     app = Legacy2McpApp(config)
 
-    if config.server.transport != "stdio":
-        print(
-            f"Transport '{config.server.transport}' is not implemented yet in this "
-            f"version of legacy2mcp; only 'stdio' is supported. See docs/roadmap.md.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
     try:
-        asyncio.run(app.run_stdio())
+        if config.server.transport == "http":
+            _run_http(app, config)
+        else:
+            asyncio.run(app.run_stdio())
     finally:
         app.close()
+
+
+def _run_http(app: Legacy2McpApp, config) -> None:
+    server = config.server
+    try:
+        token = server.http_token()
+    except ConfigError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    url = f"http://{'[' + server.host + ']' if ':' in server.host else server.host}:{server.port}{server.path}"
+    print(f"Serving MCP over HTTP at {url}", file=sys.stderr)
+    if token is None:
+        print(
+            "warning: no server.token_env is set, so any process on this machine can call these tools. "
+            "Set server.token_env to require a bearer token.",
+            file=sys.stderr,
+        )
+    asyncio.run(app.run_http())
 
 
 def _cmd_inspect(args: argparse.Namespace) -> None:
