@@ -23,8 +23,8 @@
     "flows": 3,
     "risk": {
       "read_only": 2,
-      "low_risk_write": 1,
-      "high_risk": 0
+      "low_risk_write": 0,
+      "high_risk": 1
     }
   },
   "scan": {
@@ -38,7 +38,7 @@
     {
       "path": "src/main/java/com/shop/Application.java",
       "language": "java",
-      "name": "src/main/java/com/shop/Application",
+      "name": "com.shop.Application",
       "lines": 11,
       "imports": {
         "SpringApplication": "org.springframework.boot.SpringApplication",
@@ -60,14 +60,14 @@
           ],
           "decorators": [],
           "calls": [
-            "SpringApplication.run"
+            "org.springframework.boot.SpringApplication.SpringApplication.run"
           ],
           "side_effects": [],
           "docstring": "",
           "is_async": false,
           "http_methods": [],
           "call_sites": {
-            "SpringApplication.run": 9
+            "org.springframework.boot.SpringApplication.SpringApplication.run": 9
           },
           "method_branches": []
         }
@@ -88,11 +88,10 @@
     {
       "path": "src/main/java/com/shop/controller/OrderController.java",
       "language": "java",
-      "name": "src/main/java/com/shop/controller/OrderController",
+      "name": "com.shop.controller.OrderController",
       "lines": 39,
       "imports": {
         "List": "java.util.List",
-        "annotation": "org.springframework.web.bind.annotation",
         "ResponseEntity": "org.springframework.http.ResponseEntity",
         "PaymentService": "com.shop.service.PaymentService",
         "OrderRepository": "com.shop.repository.OrderRepository"
@@ -115,7 +114,7 @@
             "@GetMapping"
           ],
           "calls": [
-            "orderRepository.findAll"
+            "com.shop.repository.OrderRepository.OrderRepository.findAll"
           ],
           "side_effects": [
             {
@@ -123,7 +122,7 @@
               "op": "read",
               "call": "orderRepository.findAll",
               "line": 23,
-              "detail": "orderRepository",
+              "detail": "OrderRepository",
               "verb": "findAll"
             }
           ],
@@ -133,7 +132,7 @@
             "GET"
           ],
           "call_sites": {
-            "orderRepository.findAll": 23
+            "com.shop.repository.OrderRepository.OrderRepository.findAll": 23
           },
           "method_branches": []
         },
@@ -153,11 +152,11 @@
             "@GetMapping(\"/{id}\")"
           ],
           "calls": [
-            "ResponseEntity.notFound",
             "ResponseEntity.notFound().build",
-            "orderRepository.findById",
+            "com.shop.repository.OrderRepository.OrderRepository.findById",
             "orderRepository.findById(orderId)\n                .map(ResponseEntity::ok).orElse",
-            "orderRepository.findById(orderId).map"
+            "orderRepository.findById(orderId).map",
+            "org.springframework.http.ResponseEntity.ResponseEntity.notFound"
           ],
           "side_effects": [
             {
@@ -165,7 +164,7 @@
               "op": "read",
               "call": "orderRepository.findById",
               "line": 28,
-              "detail": "orderRepository",
+              "detail": "OrderRepository",
               "verb": "findById"
             }
           ],
@@ -177,9 +176,9 @@
           "call_sites": {
             "orderRepository.findById(orderId)\n                .map(ResponseEntity::ok).orElse": 28,
             "orderRepository.findById(orderId).map": 28,
-            "orderRepository.findById": 28,
+            "com.shop.repository.OrderRepository.OrderRepository.findById": 28,
             "ResponseEntity.notFound().build": 30,
-            "ResponseEntity.notFound": 30
+            "org.springframework.http.ResponseEntity.ResponseEntity.notFound": 30
           },
           "method_branches": []
         },
@@ -199,8 +198,8 @@
             "@PostMapping"
           ],
           "calls": [
-            "orderRepository.save",
-            "paymentService.chargeCard"
+            "com.shop.repository.OrderRepository.OrderRepository.save",
+            "com.shop.service.PaymentService.PaymentService.chargeCard"
           ],
           "side_effects": [
             {
@@ -208,7 +207,7 @@
               "op": "write",
               "call": "orderRepository.save",
               "line": 35,
-              "detail": "orderRepository",
+              "detail": "OrderRepository",
               "verb": "save"
             }
           ],
@@ -218,8 +217,8 @@
             "POST"
           ],
           "call_sites": {
-            "orderRepository.save": 35,
-            "paymentService.chargeCard": 36
+            "com.shop.repository.OrderRepository.OrderRepository.save": 35,
+            "com.shop.service.PaymentService.PaymentService.chargeCard": 36
           },
           "method_branches": []
         }
@@ -242,7 +241,7 @@
     {
       "path": "src/main/java/com/shop/repository/OrderRepository.java",
       "language": "java",
-      "name": "src/main/java/com/shop/repository/OrderRepository",
+      "name": "com.shop.repository.OrderRepository",
       "lines": 21,
       "imports": {
         "List": "java.util.List",
@@ -258,14 +257,14 @@
           "params": [],
           "decorators": [],
           "calls": [
-            "List.of"
+            "java.util.List.List.of"
           ],
           "side_effects": [],
           "docstring": "",
           "is_async": false,
           "http_methods": [],
           "call_sites": {
-            "List.of": 11
+            "java.util.List.List.of": 11
           },
           "method_branches": []
         },
@@ -283,14 +282,14 @@
           ],
           "decorators": [],
           "calls": [
-            "Optional.empty"
+            "java.util.Optional.Optional.empty"
           ],
           "side_effects": [],
           "docstring": "",
           "is_async": false,
           "http_methods": [],
           "call_sites": {
-            "Optional.empty": 15
+            "java.util.Optional.Optional.empty": 15
           },
           "method_branches": []
         },
@@ -334,7 +333,7 @@
     {
       "path": "src/main/java/com/shop/service/PaymentService.java",
       "language": "java",
-      "name": "src/main/java/com/shop/service/PaymentService",
+      "name": "com.shop.service.PaymentService",
       "lines": 20,
       "imports": {
         "Service": "org.springframework.stereotype.Service",
@@ -357,8 +356,8 @@
           ],
           "decorators": [],
           "calls": [
-            "Charge.create",
-            "restTemplate.postForObject"
+            "com.stripe.model.Charge.Charge.create",
+            "org.springframework.web.client.RestTemplate.RestTemplate.postForObject"
           ],
           "side_effects": [
             {
@@ -382,8 +381,8 @@
           "is_async": false,
           "http_methods": [],
           "call_sites": {
-            "restTemplate.postForObject": 17,
-            "Charge.create": 18
+            "org.springframework.web.client.RestTemplate.RestTemplate.postForObject": 17,
+            "com.stripe.model.Charge.Charge.create": 18
           },
           "method_branches": []
         }
@@ -468,13 +467,53 @@
     }
   ],
   "graph": {
-    "call_edges": [],
-    "module_edges": [],
+    "call_edges": [
+      {
+        "source": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
+        "target": "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.findById",
+        "kind": "call",
+        "line": 28
+      },
+      {
+        "source": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
+        "target": "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.findAll",
+        "kind": "call",
+        "line": 23
+      },
+      {
+        "source": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+        "target": "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.save",
+        "kind": "call",
+        "line": 35
+      },
+      {
+        "source": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+        "target": "src/main/java/com/shop/service/PaymentService.java::PaymentService.chargeCard",
+        "kind": "call",
+        "line": 36
+      }
+    ],
+    "module_edges": [
+      {
+        "source": "src/main/java/com/shop/controller/OrderController.java",
+        "target": "src/main/java/com/shop/repository/OrderRepository.java",
+        "names": [
+          "OrderRepository"
+        ]
+      },
+      {
+        "source": "src/main/java/com/shop/controller/OrderController.java",
+        "target": "src/main/java/com/shop/service/PaymentService.java",
+        "names": [
+          "PaymentService"
+        ]
+      }
+    ],
     "resources": [
       {
-        "id": "db:orderRepository",
+        "id": "db:OrderRepository",
         "kind": "db",
-        "label": "orderRepository"
+        "label": "OrderRepository"
       },
       {
         "id": "http:payment.example.com",
@@ -490,17 +529,17 @@
     "data_edges": [
       {
         "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
-        "resource": "db:orderRepository",
+        "resource": "db:OrderRepository",
         "op": "read"
       },
       {
         "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
-        "resource": "db:orderRepository",
+        "resource": "db:OrderRepository",
         "op": "read"
       },
       {
         "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
-        "resource": "db:orderRepository",
+        "resource": "db:OrderRepository",
         "op": "write"
       },
       {
@@ -515,8 +554,8 @@
       }
     ],
     "stats": {
-      "internal_calls": 0,
-      "unresolved_calls": 13,
+      "internal_calls": 4,
+      "unresolved_calls": 9,
       "external_packages": [
         "com",
         "java",
@@ -554,19 +593,32 @@
           "kind": "effect",
           "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
           "line": 23,
-          "label": "reads orderRepository",
+          "label": "reads OrderRepository",
           "effect_kind": "db",
           "op": "read",
-          "resource": "db:orderRepository",
+          "resource": "db:OrderRepository",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 1,
+          "kind": "call",
+          "function": "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.findAll",
+          "line": 23,
+          "label": "calls OrderRepository.findAll",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
           "risk": "read_only"
         }
       ],
       "functions": [
-        "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders"
+        "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
+        "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.findAll"
       ],
       "resources": [
         {
-          "resource": "db:orderRepository",
+          "resource": "db:OrderRepository",
           "op": "read"
         }
       ],
@@ -607,28 +659,96 @@
           "kind": "effect",
           "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
           "line": 35,
-          "label": "writes orderRepository",
+          "label": "writes OrderRepository",
           "effect_kind": "db",
           "op": "write",
-          "resource": "db:orderRepository",
+          "resource": "db:OrderRepository",
           "risk": "low_risk_write"
+        },
+        {
+          "order": 3,
+          "depth": 1,
+          "kind": "call",
+          "function": "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.save",
+          "line": 35,
+          "label": "calls OrderRepository.save",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 4,
+          "depth": 1,
+          "kind": "call",
+          "function": "src/main/java/com/shop/service/PaymentService.java::PaymentService.chargeCard",
+          "line": 36,
+          "label": "calls PaymentService.chargeCard",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 5,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/main/java/com/shop/service/PaymentService.java::PaymentService.chargeCard",
+          "line": 17,
+          "label": "sends to payment.example.com",
+          "effect_kind": "http_out",
+          "op": "write",
+          "resource": "http:payment.example.com",
+          "risk": "high_risk"
+        },
+        {
+          "order": 6,
+          "depth": 1,
+          "kind": "effect",
+          "function": "src/main/java/com/shop/service/PaymentService.java::PaymentService.chargeCard",
+          "line": 18,
+          "label": "charges/changes via Charge",
+          "effect_kind": "payment",
+          "op": "write",
+          "resource": "payment:Charge",
+          "risk": "high_risk"
         }
       ],
       "functions": [
-        "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder"
+        "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+        "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.save",
+        "src/main/java/com/shop/service/PaymentService.java::PaymentService.chargeCard"
       ],
       "resources": [
         {
-          "resource": "db:orderRepository",
+          "resource": "db:OrderRepository",
+          "op": "write"
+        },
+        {
+          "resource": "http:payment.example.com",
+          "op": "write"
+        },
+        {
+          "resource": "payment:Charge",
           "op": "write"
         }
       ],
-      "risk": "low_risk_write",
+      "risk": "high_risk",
       "reasons": [
         {
           "level": "low_risk_write",
-          "text": "writes orderRepository",
+          "text": "writes OrderRepository",
           "where": "src/main/java/com/shop/controller/OrderController.java:35"
+        },
+        {
+          "level": "high_risk",
+          "text": "sends data to an external service (payment.example.com)",
+          "where": "src/main/java/com/shop/service/PaymentService.java:17"
+        },
+        {
+          "level": "high_risk",
+          "text": "moves money through Charge (Charge.create)",
+          "where": "src/main/java/com/shop/service/PaymentService.java:18"
         },
         {
           "level": "info",
@@ -671,19 +791,32 @@
           "kind": "effect",
           "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
           "line": 28,
-          "label": "reads orderRepository",
+          "label": "reads OrderRepository",
           "effect_kind": "db",
           "op": "read",
-          "resource": "db:orderRepository",
+          "resource": "db:OrderRepository",
+          "risk": "read_only"
+        },
+        {
+          "order": 3,
+          "depth": 1,
+          "kind": "call",
+          "function": "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.findById",
+          "line": 28,
+          "label": "calls OrderRepository.findById",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
           "risk": "read_only"
         }
       ],
       "functions": [
-        "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder"
+        "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
+        "src/main/java/com/shop/repository/OrderRepository.java::OrderRepository.findById"
       ],
       "resources": [
         {
-          "resource": "db:orderRepository",
+          "resource": "db:OrderRepository",
           "op": "read"
         }
       ],
@@ -700,7 +833,7 @@
     {
       "name": "list_orders",
       "flow_id": "get-api-orders",
-      "description": "GET /api/orders. Reads orderRepository.",
+      "description": "GET /api/orders. Reads OrderRepository.",
       "risk": "read_only",
       "safe": true,
       "include": true,
@@ -726,8 +859,8 @@
     {
       "name": "create_orders",
       "flow_id": "post-api-orders",
-      "description": "POST /api/orders. Changes orderRepository.",
-      "risk": "low_risk_write",
+      "description": "POST /api/orders. Changes Charge, OrderRepository, payment.example.com.",
+      "risk": "high_risk",
       "safe": false,
       "include": false,
       "exposable": true,
@@ -754,7 +887,7 @@
     {
       "name": "get_orders_by_id",
       "flow_id": "get-api-orders-id",
-      "description": "GET /api/orders/{id}. Reads orderRepository.",
+      "description": "GET /api/orders/{id}. Reads OrderRepository.",
       "risk": "read_only",
       "safe": true,
       "include": true,
@@ -806,15 +939,15 @@
           "get-api-orders-id",
           "post-api-orders"
         ],
-        "risk": "low_risk_write"
+        "risk": "high_risk"
       }
     ],
     "approvals": [
       {
         "flow_id": "post-api-orders",
         "agent": "orders-agent",
-        "level": "policy",
-        "reason": "writes orderRepository"
+        "level": "human",
+        "reason": "sends data to an external service (payment.example.com)"
       }
     ],
     "notes": ""
@@ -860,13 +993,11 @@
       {
         "id": "phase-2",
         "name": "Phase 2: Low-risk writes with approval",
-        "summary": "Add 1 low-risk write tool(s) with `allow_write_operations: true`, each behind a policy approval and rate limits.",
+        "summary": "No low-risk write tools were proposed; use this phase to put approvals and auth in place for phase 3.",
         "effort": "S",
-        "effort_days": 3,
-        "risk": "low_risk_write",
-        "tool_flows": [
-          "post-api-orders"
-        ],
+        "effort_days": 2,
+        "risk": "read_only",
+        "tool_flows": [],
         "prerequisites": [
           "Decide the approval policy (who approves, which writes are auto-approved)",
           "Add authentication to 1 write flow(s) that showed none",
@@ -880,11 +1011,13 @@
       {
         "id": "phase-3",
         "name": "Phase 3: Agent orchestration",
-        "summary": "Run a coordinator with 1 specialist agent(s) over the phase 1-2 tools and add 1 multimodal intake path(s).",
+        "summary": "Run a coordinator with 1 specialist agent(s); add 1 high-risk tool(s) (moves money through Charge; sends data to an external service) behind human approval on every call, and 1 multimodal intake path(s).",
         "effort": "M",
-        "effort_days": 8,
-        "risk": "low_risk_write",
-        "tool_flows": [],
+        "effort_days": 10,
+        "risk": "high_risk",
+        "tool_flows": [
+          "post-api-orders"
+        ],
         "prerequisites": [
           "Human-approval UI or chat step wired to the coordinator",
           "Spending/deletion limits agreed with the business owner",

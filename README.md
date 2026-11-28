@@ -168,6 +168,8 @@ See a [sample report from a real open-source app](docs/sample-report/).
 - **Python:** Flask, FastAPI, Django, click/typer, Celery, APScheduler
 - **JavaScript / TypeScript:** Express, Next.js API routes, commander,
   node-cron, BullMQ, amqplib, kafkajs
+- **Java:** Spring Boot (`@RestController`, `@Controller`, `@RequestMapping`),
+  Java Servlets (`@WebServlet`, `WEB-INF/web.xml`), JAX-RS (`@Path`)
 
 Full list, AI enrichment (optional, bring your own key) and every flag:
 [analyze guide](docs/analyze.md).

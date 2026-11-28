@@ -49,7 +49,7 @@ def test_java_package_imports_and_classes():
         """,
     )
     assert result.module.path == "src/main/java/com/example/OrderService.java"
-    assert result.module.name == "src/main/java/com/example/OrderService"
+    assert result.module.name == "com.example.OrderService"
     assert result.module.imports == {
         "List": "java.util.List",
         "Optional": "java.util.Optional",
@@ -212,9 +212,9 @@ def test_side_effects_db_and_sql():
     effects = _effects(result, "OrderDao.executeWork")
     assert ("db", "read", "orders") in effects
     assert ("db", "write", "audit_log") in effects
-    assert ("db", "read", "repo") in effects
-    assert ("db", "write", "repo") in effects
-    assert ("db", "write", "em") in effects
+    assert ("db", "read", "OrderRepository") in effects
+    assert ("db", "write", "OrderRepository") in effects
+    assert ("db", "write", "EntityManager") in effects
 
 
 def test_side_effects_http_email_payment_file():
@@ -304,7 +304,159 @@ def test_analyze_spring_shop_fixture():
     assert "GET /api/orders/{id}" in route_names
     assert "POST /api/orders" in route_names
 
-    flow_entry_names = {f.entry_name for f in analysis.flows}
-    assert "GET /api/orders" in flow_entry_names
-    assert "POST /api/orders" in flow_entry_names
+    assert analysis.graph.stats["internal_calls"] > 0
+
+    post_flow = next(f for f in analysis.flows if f.entry_name == "POST /api/orders")
+    assert post_flow.risk == "high_risk"
+    assert any("PaymentService.chargeCard" in step.function for step in post_flow.steps)
+
+
+def test_request_mapping_without_method_emits_any():
+    result = _analyze(
+        "src/main/java/com/example/LegacyController.java",
+        """
+        package com.example;
+
+        import org.springframework.web.bind.annotation.*;
+
+        @RestController
+        public class LegacyController {
+            @RequestMapping("/legacy/action")
+            public String handleAction() {
+                return "ok";
+            }
+        }
+        """,
+    )
+    assert len(result.entry_points) == 1
+    ep = result.entry_points[0]
+    assert ep.method == "ANY"
+    assert ep.name == "ANY /legacy/action"
+
+
+def test_class_level_security_annotations_propagate():
+    result = _analyze(
+        "src/main/java/com/example/AdminController.java",
+        """
+        package com.example;
+
+        import org.springframework.web.bind.annotation.*;
+        import org.springframework.security.access.prepost.PreAuthorize;
+
+        @RestController
+        @PreAuthorize("hasRole('ADMIN')")
+        public class AdminController {
+            @GetMapping("/admin/users")
+            public void listUsers() {}
+
+            @PostMapping("/admin/users")
+            @Secured("ROLE_SUPERUSER")
+            public void createUser() {}
+        }
+        """,
+    )
+    by_name = {ep.name: ep for ep in result.entry_points}
+    assert "spring_security.PreAuthorize" in by_name["GET /admin/users"].middleware
+    assert "spring_security.PreAuthorize" in by_name["POST /admin/users"].middleware
+    assert "spring_security.Secured" in by_name["POST /admin/users"].middleware
+
+
+def test_no_misfires_on_httpsession_client_and_customer_service():
+    result = _analyze(
+        "src/main/java/com/example/SafeServlet.java",
+        """
+        package com.example;
+
+        import javax.servlet.http.HttpSession;
+        import com.example.OrderClient;
+        import com.example.CustomerService;
+
+        public class SafeServlet {
+            private OrderClient client;
+            private CustomerService customerService;
+
+            public void handle(HttpSession session) {
+                Object user = session.getAttribute("user");
+                client.get("123");
+                customerService.create("acc");
+            }
+        }
+        """,
+    )
+    assert _effects(result, "SafeServlet.handle") == []
+
+
+def test_same_class_bare_and_this_calls_resolve():
+    from legacy2mcp.analysis.graph.resolve import Resolver
+
+    result = _analyze(
+        "src/main/java/com/example/HelperService.java",
+        """
+        package com.example;
+
+        public class HelperService {
+            public void entry() {
+                validate();
+                this.audit();
+            }
+
+            private void validate() {}
+            private void audit() {}
+        }
+        """,
+    )
+    resolver = Resolver([result.module])
+    entry_fn = _func(result, "HelperService.entry")
+    resolved = {
+        resolver.function(c, caller_module=result.module, caller_qualname=entry_fn.qualname)
+        for c in entry_fn.calls
+    }
+    assert "src/main/java/com/example/HelperService.java::HelperService.validate" in resolved
+    assert "src/main/java/com/example/HelperService.java::HelperService.audit" in resolved
+
+
+def test_servlet_web_xml_and_unmapped_placeholder(tmp_path):
+    web_xml = tmp_path / "src" / "main" / "webapp" / "WEB-INF" / "web.xml"
+    web_xml.parent.mkdir(parents=True)
+    web_xml.write_text(
+        """<web-app>
+            <servlet>
+                <servlet-name>ReportServlet</servlet-name>
+                <servlet-class>com.example.ReportServlet</servlet-class>
+            </servlet>
+            <servlet-mapping>
+                <servlet-name>ReportServlet</servlet-name>
+                <url-pattern>/reports/export</url-pattern>
+            </servlet-mapping>
+        </web-app>""",
+        encoding="utf-8",
+    )
+    mapped_path = tmp_path / "src" / "main" / "java" / "com" / "example" / "ReportServlet.java"
+    mapped_path.parent.mkdir(parents=True)
+    code = """
+    package com.example;
+    import javax.servlet.http.HttpServlet;
+    public class ReportServlet extends HttpServlet {
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) {}
+    }
+    """
+    analyzer = java.JavaAnalyzer()
+    mapped_res = analyzer.analyze(
+        SourceFile(path=mapped_path, rel="src/main/java/com/example/ReportServlet.java", language="java"),
+        textwrap.dedent(code),
+    )
+    assert [ep.name for ep in mapped_res.entry_points] == ["GET /reports/export"]
+
+    unmapped_res = _analyze(
+        "src/main/java/com/example/OrphanServlet.java",
+        """
+        package com.example;
+        import javax.servlet.http.HttpServlet;
+        public class OrphanServlet extends HttpServlet {
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) {}
+        }
+        """,
+    )
+    assert [ep.path for ep in unmapped_res.entry_points] == ["/<unmapped:OrphanServlet>"]
+
 

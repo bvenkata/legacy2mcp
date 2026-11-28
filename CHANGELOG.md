@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`legacy2mcp analyze` reads Java** via `tree-sitter-java`. It detects
+  Spring Boot (`@RestController`, `@RequestMapping`, `@GetMapping`/...,
+  `@PreAuthorize`/`@Secured`, `@Async`), Java Servlets (`@WebServlet` and
+  `WEB-INF/web.xml` mappings), and JAX-RS (`@Path`, `@GET`/`@POST`/...)
+  entry points, resolves typed receiver calls across classes, and classifies
+  Spring Data JPA, `JdbcTemplate`, `EntityManager`, raw SQL,
+  `RestTemplate`/`WebClient`, `JavaMailSender`, Stripe/PayPal,
+  Kafka/JMS/RabbitMQ, `Files`, and `PasswordEncoder` side effects.
+
 ## [0.6.0] - not yet released (push tag `v0.6.0` to publish)
 
 ### Added

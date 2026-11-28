@@ -3,13 +3,14 @@ Java analyzer for `legacy2mcp analyze`, built on tree-sitter. Nothing from the
 scanned repo is executed or compiled.
 
 Per file it extracts package declarations, imports, classes (interfaces, superclasses),
-methods, calls and side effects (db, outbound HTTP, email, payment, queue, file, auth),
-and entry points:
+methods, typed receiver calls and side effects (db, outbound HTTP, email, payment,
+queue, file, auth), and entry points:
 
 - Spring Boot: `@RestController`, `@Controller`, `@RequestMapping`, `@GetMapping`,
   `@PostMapping`, `@PutMapping`, `@DeleteMapping`, `@PatchMapping`.
 - Java Servlets: classes extending `HttpServlet` (or annotated `@WebServlet`) with
-  `doGet`, `doPost`, `doPut`, `doDelete` methods, extracting query/body parameters
+  `doGet`, `doPost`, `doPut`, `doDelete` methods, resolving `WEB-INF/web.xml`
+  mappings when `@WebServlet` is absent, and extracting query/body parameters
   from `req.getParameter(...)` calls.
 - JAX-RS: `@Path` at class/method level with `@GET`, `@POST`, `@PUT`, `@DELETE`,
   `@PATCH`, and `@PathParam`, `@QueryParam`, `@FormParam`.
@@ -18,6 +19,8 @@ and entry points:
 from __future__ import annotations
 
 import re
+import xml.etree.ElementTree as ET
+from pathlib import Path
 from typing import Any
 
 from legacy2mcp.analysis.analyzers.base import FileResult
@@ -76,29 +79,53 @@ _SPRING_AUTH_ANNOTATIONS = {
     "PreAuthorize", "PostAuthorize", "Secured", "RolesAllowed",
 }
 
+_DB_TYPES = {
+    "JdbcTemplate", "NamedParameterJdbcTemplate", "EntityManager",
+    "Connection", "Statement", "PreparedStatement", "CallableStatement",
+    "DataSource", "MongoTemplate", "Session",
+}
 _DB_READ_METHODS = {
     "query", "queryForObject", "queryForList", "queryForRowSet", "queryForMap",
     "find", "findById", "findAll", "findOne", "findAllById", "count", "existsById",
-    "createQuery", "createNativeQuery", "getById", "getBy", "getOne",
+    "createQuery", "createNativeQuery", "getById", "getBy", "getOne", "executeQuery",
 }
-
 _DB_WRITE_METHODS = {
     "update", "batchUpdate", "execute", "save", "saveAll", "saveAndFlush",
     "delete", "deleteById", "deleteAll", "deleteAllById", "remove", "persist",
     "merge", "flush", "executeUpdate",
 }
 
-_HTTP_CLIENT_RECEIVERS = re.compile(r"(restTemplate|webClient|httpClient|client|http)", re.I)
-_DB_RECEIVER_RE = re.compile(
-    r"(repo|repository|dao|mapper|jdbctemplate|entitymanager|\bem\b|session|db|database|conn|connection|datasource)",
-    re.I,
+_HTTP_CLIENT_TYPES = {
+    "RestTemplate", "AsyncRestTemplate", "RestClient", "WebClient",
+    "HttpClient", "HttpURLConnection", "HttpsURLConnection",
+    "OkHttpClient", "CloseableHttpClient",
+}
+
+_EMAIL_TYPES = {
+    "JavaMailSender", "JavaMailSenderImpl", "MailSender",
+    "MimeMessageHelper", "SimpleMailMessage", "SendGrid",
+    "SesClient", "AmazonSimpleEmailService",
+}
+
+_QUEUE_TYPES = {
+    "KafkaTemplate", "JmsTemplate", "RabbitTemplate",
+    "AmqpTemplate", "SqsTemplate", "MessageProducer",
+}
+
+_PAYMENT_FQN_PREFIXES = (
+    "com.stripe.", "com.paypal.", "com.braintreegateway.",
+    "com.squareup.", "com.razorpay.", "com.adyen.",
 )
-_PAYMENT_RECEIVER_RE = re.compile(
-    r"(stripe|paypal|braintree|square|razorpay|adyen|payment|charge|customer|refund|paymentintent)",
-    re.I,
-)
-_EMAIL_RECEIVER_RE = re.compile(r"(mail|email|mailer|ses|sendgrid)", re.I)
-_QUEUE_RECEIVER_RE = re.compile(r"(jms|kafka|rabbit|queue|producer|publisher|topic|amqp)", re.I)
+_PAYMENT_STATIC_CLASSES = {"Stripe", "PayPal", "BraintreeGateway"}
+
+_AUTH_TYPES = {
+    "PasswordEncoder", "BCryptPasswordEncoder",
+    "Argon2PasswordEncoder", "PBKDF2PasswordEncoder",
+}
+
+_FILE_TYPES = {
+    "Files", "FileOutputStream", "FileWriter", "BufferedWriter", "PrintWriter",
+}
 
 
 def available() -> bool:
@@ -124,12 +151,6 @@ def _child_of_type(node: Any, type_name: str) -> Any | None:
         if c.type == type_name:
             return c
     return None
-
-
-def _children_of_type(node: Any, type_name: str) -> list[Any]:
-    if node is None:
-        return []
-    return [c for c in node.children if c.type == type_name]
 
 
 def _string_value(node: Any) -> str | None:
@@ -228,6 +249,94 @@ def join_route(prefix: str, route: str) -> str:
     return joined or "/"
 
 
+def _base_type_name(type_text: str) -> str:
+    """Strip generic arguments and array brackets from a Java type."""
+    if not type_text:
+        return ""
+    return type_text.split("<", 1)[0].rstrip("[]").strip()
+
+
+def _extract_type_node(node: Any) -> str:
+    for c in node.children:
+        if c.type.endswith("_type") or c.type in ("type_identifier", "generic_type", "scoped_type_identifier"):
+            return _text(c)
+    return ""
+
+
+def _resolve_type_fqn(
+    type_name: str,
+    module_imports: dict[str, str],
+    wildcard_imports: list[str],
+    package_name: str,
+) -> str:
+    base = _base_type_name(type_name)
+    if not base:
+        return ""
+    if "." in base:
+        return base
+    if base in module_imports:
+        return module_imports[base]
+    # Check wildcard imports if any (e.g. com.stripe.model.*)
+    if package_name:
+        return f"{package_name}.{base}"
+    return base
+
+
+def _servlet_paths_from_web_xml(source_path: Path, class_name: str, package_name: str) -> list[str]:
+    """Look for WEB-INF/web.xml near the source file and extract <url-pattern> for this servlet."""
+    fqn = f"{package_name}.{class_name}" if package_name else class_name
+    candidates: list[Path] = []
+    for parent in list(source_path.parents)[:6]:
+        for sub in ("WEB-INF/web.xml", "src/main/webapp/WEB-INF/web.xml", "WebContent/WEB-INF/web.xml"):
+            p = parent / sub
+            if p.is_file():
+                candidates.append(p)
+        if (parent / "pom.xml").is_file() or (parent / "build.gradle").is_file() or (parent / ".git").exists():
+            break
+
+    for web_xml in candidates:
+        try:
+            tree = ET.parse(web_xml)
+            root = tree.getroot()
+        except (ET.ParseError, OSError):
+            continue
+
+        def tag(el: ET.Element) -> str:
+            return el.tag.split("}", 1)[-1]
+
+        servlet_names: set[str] = set()
+        for el in root:
+            if tag(el) == "servlet":
+                s_name = ""
+                s_cls = ""
+                for child in el:
+                    if tag(child) == "servlet-name":
+                        s_name = (child.text or "").strip()
+                    elif tag(child) == "servlet-class":
+                        s_cls = (child.text or "").strip()
+                if s_name and (s_cls == fqn or s_cls == class_name or s_cls.endswith(f".{class_name}")):
+                    servlet_names.add(s_name)
+
+        if not servlet_names:
+            continue
+
+        patterns: list[str] = []
+        for el in root:
+            if tag(el) == "servlet-mapping":
+                m_name = ""
+                m_pat = ""
+                for child in el:
+                    if tag(child) == "servlet-name":
+                        m_name = (child.text or "").strip()
+                    elif tag(child) == "url-pattern":
+                        m_pat = (child.text or "").strip()
+                if m_name in servlet_names and m_pat:
+                    patterns.append(m_pat)
+        if patterns:
+            return patterns
+    return []
+
+
 class JavaAnalyzer:
     languages = ("java",)
 
@@ -238,11 +347,11 @@ class JavaAnalyzer:
 
     def analyze(self, source: SourceFile, text: str) -> FileResult:
         rel = source.rel
-        mod_name = rel[:-5] if rel.endswith(".java") else rel
+        fallback_name = rel[:-5] if rel.endswith(".java") else rel
         module = Module(
             path=rel,
             language="java",
-            name=mod_name,
+            name=fallback_name,
             lines=text.count("\n") + (0 if text.endswith("\n") or not text else 1),
         )
         result = FileResult(module=module)
@@ -252,14 +361,29 @@ class JavaAnalyzer:
         if root.has_error:
             module.parse_error = "tree-sitter reported syntax errors; parsed partially"
 
-        # Pass 1: imports
+        # Pass 1: package and imports
+        package_name = ""
+        wildcard_imports: list[str] = []
         for child in root.named_children:
-            if child.type == "import_declaration":
+            if child.type == "package_declaration":
+                for gc in child.named_children:
+                    if gc.type in ("scoped_identifier", "identifier"):
+                        package_name = _text(gc)
+            elif child.type == "import_declaration":
+                has_asterisk = any(gc.type == "asterisk" for gc in child.named_children)
                 for gc in child.named_children:
                     if gc.type in ("scoped_identifier", "identifier"):
                         full_import = _text(gc)
-                        short_name = full_import.split(".")[-1]
-                        module.imports[short_name] = full_import
+                        if has_asterisk:
+                            wildcard_imports.append(full_import)
+                        else:
+                            short_name = full_import.split(".")[-1]
+                            module.imports[short_name] = full_import
+
+        # Set Module.name to <package>.<public_class> (or first class) so Resolver.split() matches FQN calls
+        primary_class = self._find_primary_class_name(root)
+        if primary_class:
+            module.name = f"{package_name}.{primary_class}" if package_name else primary_class
 
         # Pass 2: classes and interfaces
         classes: list[Class] = []
@@ -277,6 +401,8 @@ class JavaAnalyzer:
                 self._analyze_class(
                     child,
                     source=source,
+                    package_name=package_name,
+                    wildcard_imports=wildcard_imports,
                     docstring=docstring,
                     classes=classes,
                     functions=functions,
@@ -292,10 +418,28 @@ class JavaAnalyzer:
         result.frameworks = frameworks
         return result
 
+    @staticmethod
+    def _find_primary_class_name(root: Any) -> str:
+        first_name = ""
+        for child in root.named_children:
+            if child.type in ("class_declaration", "interface_declaration"):
+                name_node = _child_of_type(child, "identifier")
+                cname = _text(name_node) if name_node else ""
+                if not cname:
+                    continue
+                if not first_name:
+                    first_name = cname
+                mods = _child_of_type(child, "modifiers")
+                if mods is not None and "public" in _text(mods).split():
+                    return cname
+        return first_name
+
     def _analyze_class(
         self,
         class_node: Any,
         source: SourceFile,
+        package_name: str,
+        wildcard_imports: list[str],
         docstring: str,
         classes: list[Class],
         functions: list[Function],
@@ -307,6 +451,8 @@ class JavaAnalyzer:
         class_name = _text(name_node) if name_node else ""
         if not class_name:
             return
+
+        own_fqn = f"{package_name}.{class_name}" if package_name else class_name
 
         bases: list[str] = []
         superclass_node = _child_of_type(class_node, "superclass")
@@ -323,7 +469,6 @@ class JavaAnalyzer:
                 if c.type in ("type_identifier", "generic_type"):
                     bases.append(_text(c))
 
-        # Modifiers / Annotations on the class
         class_annotations: dict[str, tuple[dict[str, Any], list[str]]] = {}
         modifiers_node = _child_of_type(class_node, "modifiers")
         if modifiers_node is not None:
@@ -343,7 +488,10 @@ class JavaAnalyzer:
         if is_jaxrs:
             frameworks.add("jax-rs")
 
-        # Class-level route prefix
+        class_middleware = [
+            f"spring_security.{ann}" for ann in class_annotations if ann in _SPRING_AUTH_ANNOTATIONS
+        ]
+
         class_prefix = ""
         if "RequestMapping" in class_annotations:
             kwargs, args = class_annotations["RequestMapping"]
@@ -357,7 +505,6 @@ class JavaAnalyzer:
             path_val = kwargs.get("value") or (args[0] if args else "")
             class_prefix = str(path_val or "")
 
-        # WebServlet paths
         servlet_paths: list[str] = []
         if "WebServlet" in class_annotations:
             kwargs, args = class_annotations["WebServlet"]
@@ -366,9 +513,33 @@ class JavaAnalyzer:
                 servlet_paths.extend(patterns)
             elif patterns:
                 servlet_paths.append(str(patterns))
+        elif is_servlet:
+            servlet_paths.extend(_servlet_paths_from_web_xml(source.path, class_name, package_name))
+
+        # Collect class-level field & constructor parameter types: var_name -> type_text
+        class_var_types: dict[str, str] = {}
+        body_node = _child_of_type(class_node, "class_body")
+        if body_node is not None:
+            for member in body_node.named_children:
+                if member.type == "field_declaration":
+                    ftype = _extract_type_node(member)
+                    if ftype:
+                        for child in member.named_children:
+                            if child.type == "variable_declarator":
+                                vname = _child_of_type(child, "identifier")
+                                if vname is not None:
+                                    class_var_types[_text(vname)] = ftype
+                elif member.type == "constructor_declaration":
+                    cparams = _child_of_type(member, "formal_parameters")
+                    if cparams is not None:
+                        for pchild in cparams.named_children:
+                            if pchild.type == "formal_parameter":
+                                ptype = _extract_type_node(pchild)
+                                pname = _child_of_type(pchild, "identifier")
+                                if ptype and pname is not None:
+                                    class_var_types[_text(pname)] = ptype
 
         class_methods: list[str] = []
-        body_node = _child_of_type(class_node, "class_body")
         if body_node is not None:
             prev_body_child = None
             for member in body_node.named_children:
@@ -384,7 +555,12 @@ class JavaAnalyzer:
                         member,
                         source=source,
                         class_name=class_name,
+                        own_fqn=own_fqn,
+                        package_name=package_name,
+                        wildcard_imports=wildcard_imports,
                         class_prefix=class_prefix,
+                        class_middleware=class_middleware,
+                        class_var_types=class_var_types,
                         servlet_paths=servlet_paths,
                         is_servlet=is_servlet,
                         docstring=method_doc,
@@ -410,7 +586,12 @@ class JavaAnalyzer:
         method_node: Any,
         source: SourceFile,
         class_name: str,
+        own_fqn: str,
+        package_name: str,
+        wildcard_imports: list[str],
         class_prefix: str,
+        class_middleware: list[str],
+        class_var_types: dict[str, str],
         servlet_paths: list[str],
         is_servlet: bool,
         docstring: str,
@@ -431,7 +612,7 @@ class JavaAnalyzer:
         method_annotations: dict[str, tuple[dict[str, Any], list[str]]] = {}
         decorators: list[str] = []
         is_async = False
-        middleware: list[str] = []
+        middleware: list[str] = list(class_middleware)
 
         modifiers_node = _child_of_type(method_node, "modifiers")
         if modifiers_node is not None:
@@ -443,8 +624,11 @@ class JavaAnalyzer:
                     if ann_name == "Async":
                         is_async = True
                     if ann_name in _SPRING_AUTH_ANNOTATIONS:
-                        middleware.append(f"spring_security.{ann_name}")
+                        mw = f"spring_security.{ann_name}"
+                        if mw not in middleware:
+                            middleware.append(mw)
 
+        var_types: dict[str, str] = dict(class_var_types)
         params: list[Param] = []
         params_node = _child_of_type(method_node, "formal_parameters")
         if params_node is not None:
@@ -452,11 +636,10 @@ class JavaAnalyzer:
                 if param_child.type == "formal_parameter":
                     param_name_node = _child_of_type(param_child, "identifier")
                     param_name = _text(param_name_node)
-                    type_node = next(
-                        (c for c in param_child.children if c.type.endswith("_type") or c.type in ("type_identifier", "generic_type")),
-                        None,
-                    )
-                    param_type = _text(type_node) if type_node else None
+                    param_type = _extract_type_node(param_child) or None
+                    if param_name and param_type:
+                        var_types[param_name] = param_type
+
                     location = None
                     param_mods = _child_of_type(param_child, "modifiers")
                     param_ann_name = None
@@ -486,8 +669,14 @@ class JavaAnalyzer:
 
         body_node = _child_of_type(method_node, "block")
         if body_node is not None:
+            self._collect_local_var_types(body_node, var_types)
             self._walk_body(
                 body_node,
+                class_name=class_name,
+                own_fqn=own_fqn,
+                package_name=package_name,
+                wildcard_imports=wildcard_imports,
+                var_types=var_types,
                 calls=calls,
                 call_sites=call_sites,
                 side_effects=side_effects,
@@ -528,8 +717,10 @@ class JavaAnalyzer:
             elif ann_name == "RequestMapping":
                 frameworks.add("spring")
                 route_sub = ann_kwargs.get("path") or ann_kwargs.get("value") or (ann_args[0] if ann_args else "")
+                if isinstance(route_sub, list):
+                    route_sub = route_sub[0] if route_sub else ""
                 method_spec = ann_kwargs.get("method")
-                req_methods = ["GET"]
+                req_methods = ["ANY"]
                 if method_spec:
                     m = re.findall(r"RequestMethod\.([A-Z]+)", str(method_spec))
                     if m:
@@ -583,7 +774,7 @@ class JavaAnalyzer:
             frameworks.add("servlet")
             s_verb = _SERVLET_METHODS[method_name]
             http_methods.append(s_verb)
-            paths_to_expose = servlet_paths if servlet_paths else ["/servlet"]
+            paths_to_expose = servlet_paths if servlet_paths else [f"/<unmapped:{class_name}>"]
             for sp in paths_to_expose:
                 entry_points.append(
                     EntryPoint(
@@ -616,9 +807,36 @@ class JavaAnalyzer:
             )
         )
 
+    def _collect_local_var_types(self, node: Any, var_types: dict[str, str]) -> None:
+        """Scan method body for local variable declarations to populate var_types."""
+        stack = [node]
+        while stack:
+            curr = stack.pop()
+            if curr.type == "local_variable_declaration":
+                vtype = _extract_type_node(curr)
+                for child in curr.named_children:
+                    if child.type == "variable_declarator":
+                        vname = _child_of_type(child, "identifier")
+                        if vname is None:
+                            continue
+                        resolved_type = vtype
+                        if resolved_type == "var":
+                            creation = _child_of_type(child, "object_creation_expression")
+                            if creation is not None:
+                                resolved_type = _extract_type_node(creation)
+                        if resolved_type and resolved_type != "var":
+                            var_types[_text(vname)] = resolved_type
+            for child in reversed(curr.named_children):
+                stack.append(child)
+
     def _walk_body(
         self,
         node: Any,
+        class_name: str,
+        own_fqn: str,
+        package_name: str,
+        wildcard_imports: list[str],
+        var_types: dict[str, str],
         calls: list[str],
         call_sites: dict[str, int],
         side_effects: list[SideEffect],
@@ -631,6 +849,11 @@ class JavaAnalyzer:
             if curr.type == "method_invocation":
                 self._handle_invocation(
                     curr,
+                    class_name=class_name,
+                    own_fqn=own_fqn,
+                    package_name=package_name,
+                    wildcard_imports=wildcard_imports,
+                    var_types=var_types,
                     calls=calls,
                     call_sites=call_sites,
                     side_effects=side_effects,
@@ -643,6 +866,11 @@ class JavaAnalyzer:
     def _handle_invocation(
         self,
         inv_node: Any,
+        class_name: str,
+        own_fqn: str,
+        package_name: str,
+        wildcard_imports: list[str],
+        var_types: dict[str, str],
         calls: list[str],
         call_sites: dict[str, int],
         side_effects: list[SideEffect],
@@ -656,22 +884,56 @@ class JavaAnalyzer:
 
         obj_node = inv_node.child_by_field_name("object")
         obj_text = _text(obj_node) if obj_node else ""
-        full_call = f"{obj_text}.{method_name}" if obj_text else method_name
         line = _line(inv_node)
 
-        calls.append(full_call)
-        if full_call not in call_sites:
-            call_sites[full_call] = line
+        # Determine receiver type and resolved call target for Resolver
+        receiver_type = ""
+        receiver_fqn = ""
+        if not obj_text:
+            # Bare same-class call: qualify so Resolver resolves it to this class's method
+            resolved_call = f"{own_fqn}.{class_name}.{method_name}"
+        elif obj_text == "this":
+            receiver_type = class_name
+            receiver_fqn = own_fqn
+            resolved_call = f"this.{method_name}"
+        elif obj_text in var_types:
+            raw_type = var_types[obj_text]
+            receiver_type = _base_type_name(raw_type).split(".")[-1]
+            receiver_fqn = _resolve_type_fqn(raw_type, module_imports, wildcard_imports, package_name)
+            resolved_call = f"{receiver_fqn}.{receiver_type}.{method_name}"
+        elif obj_text in module_imports:
+            # Static call on imported class, e.g. Charge.create(...) or Helper.run(...)
+            receiver_type = obj_text
+            receiver_fqn = module_imports[obj_text]
+            resolved_call = f"{receiver_fqn}.{receiver_type}.{method_name}"
+        else:
+            resolved_call = f"{obj_text}.{method_name}"
+
+        calls.append(resolved_call)
+        if resolved_call not in call_sites:
+            call_sites[resolved_call] = line
 
         # Servlet getParameter
-        if method_name in ("getParameter", "getParameterValues") and obj_text in ("req", "request"):
+        if method_name in ("getParameter", "getParameterValues") and (
+            obj_text in ("req", "request") or receiver_type in ("HttpServletRequest", "ServletRequest")
+        ):
             args_node = _child_of_type(inv_node, "argument_list")
             if args_node is not None and args_node.named_children:
                 param_arg = _string_value(args_node.named_children[0])
                 if param_arg:
                     servlet_query_params.append(param_arg)
 
-        effect = self._classify_call(inv_node, method_name, obj_text, full_call, line, module_imports)
+        display_call = f"{obj_text}.{method_name}" if obj_text else f"{class_name}.{method_name}"
+        effect = self._classify_call(
+            inv_node,
+            method_name=method_name,
+            obj_text=obj_text,
+            receiver_type=receiver_type,
+            receiver_fqn=receiver_fqn,
+            display_call=display_call,
+            line=line,
+            wildcard_imports=wildcard_imports,
+        )
         if effect is not None:
             side_effects.append(effect)
 
@@ -680,9 +942,11 @@ class JavaAnalyzer:
         inv_node: Any,
         method_name: str,
         obj_text: str,
-        full_call: str,
+        receiver_type: str,
+        receiver_fqn: str,
+        display_call: str,
         line: int,
-        module_imports: dict[str, str],
+        wildcard_imports: list[str],
     ) -> SideEffect | None:
         args_node = _child_of_type(inv_node, "argument_list")
         first_arg = None
@@ -697,39 +961,47 @@ class JavaAnalyzer:
                 return SideEffect(
                     kind="db",
                     op=op,
-                    call=full_call,
+                    call=display_call,
                     line=line,
                     detail=detail,
                     verb=verb,
                 )
 
-        if _DB_RECEIVER_RE.search(obj_text):
+        is_http_session = receiver_type in ("HttpSession", "Session") and "servlet" in receiver_fqn
+        is_db_type = (
+            not is_http_session
+            and (
+                receiver_type in _DB_TYPES
+                or receiver_type.endswith(("Repository", "Repo", "Dao", "Mapper"))
+            )
+        )
+        if is_db_type:
             if method_name in _DB_READ_METHODS or method_name.startswith(("find", "get", "count")):
                 return SideEffect(
                     kind="db",
                     op="read",
-                    call=full_call,
+                    call=display_call,
                     line=line,
-                    detail=obj_text,
+                    detail=receiver_type or obj_text,
                     verb=method_name,
                 )
             if method_name in _DB_WRITE_METHODS or method_name.startswith(("save", "update", "delete", "remove", "insert")):
                 return SideEffect(
                     kind="db",
                     op="write",
-                    call=full_call,
+                    call=display_call,
                     line=line,
-                    detail=obj_text,
+                    detail=receiver_type or obj_text,
                     verb=method_name,
                 )
 
-        # 2. Outbound HTTP calls
-        if _HTTP_CLIENT_RECEIVERS.search(obj_text) or "HttpClient" in full_call:
+        # 2. Outbound HTTP calls (strictly by HTTP client type)
+        if receiver_type in _HTTP_CLIENT_TYPES:
             if method_name in ("getForObject", "getForEntity", "get"):
                 return SideEffect(
                     kind="http_out",
                     op="read",
-                    call=full_call,
+                    call=display_call,
                     line=line,
                     detail=first_arg or "",
                     verb="GET",
@@ -739,82 +1011,89 @@ class JavaAnalyzer:
                 return SideEffect(
                     kind="http_out",
                     op="write",
-                    call=full_call,
+                    call=display_call,
                     line=line,
                     detail=first_arg or "",
                     verb=verb,
                 )
-            if method_name == "exchange":
+            if method_name in ("exchange", "send"):
                 return SideEffect(
                     kind="http_out",
                     op="unknown",
-                    call=full_call,
+                    call=display_call,
                     line=line,
                     detail=first_arg or "",
-                    verb="exchange",
+                    verb=method_name,
                 )
 
-        # 3. Email
-        if _EMAIL_RECEIVER_RE.search(obj_text) or "mail" in method_name.lower():
+        # 3. Email (by mail sender type or Transport.send)
+        if receiver_type in _EMAIL_TYPES or (obj_text == "Transport" and method_name == "send"):
             if method_name in ("send", "sendMail", "sendEmail"):
                 return SideEffect(
                     kind="email",
                     op="write",
-                    call=full_call,
+                    call=display_call,
                     line=line,
                     verb="send",
                 )
 
-        # 4. Payment
-        is_payment_import = module_imports.get(obj_text, "").startswith(("com.stripe", "com.paypal"))
-        if is_payment_import or _PAYMENT_RECEIVER_RE.search(obj_text) or _PAYMENT_RECEIVER_RE.search(full_call):
+        # 4. Payment (strictly by payment SDK FQN / wildcard / static class)
+        is_payment_sdk = (
+            receiver_fqn.startswith(_PAYMENT_FQN_PREFIXES)
+            or obj_text in _PAYMENT_STATIC_CLASSES
+            or (
+                obj_text in ("Charge", "PaymentIntent", "Refund", "Payment")
+                and any(w.startswith(p.rstrip(".")) for w in wildcard_imports for p in _PAYMENT_FQN_PREFIXES)
+            )
+        )
+        if is_payment_sdk:
             if method_name in ("create", "refund", "capture", "authorize", "execute"):
                 return SideEffect(
                     kind="payment",
                     op="write",
-                    call=full_call,
+                    call=display_call,
                     line=line,
-                    detail=obj_text,
+                    detail=receiver_type or obj_text,
                     verb=method_name,
                 )
             if method_name in ("retrieve", "get", "list", "search"):
                 return SideEffect(
                     kind="payment",
                     op="read",
-                    call=full_call,
+                    call=display_call,
                     line=line,
-                    detail=obj_text,
+                    detail=receiver_type or obj_text,
                     verb=method_name,
                 )
 
         # 5. Message Queues (JMS, Kafka, RabbitMQ)
-        if _QUEUE_RECEIVER_RE.search(obj_text):
+        if receiver_type in _QUEUE_TYPES:
             if method_name in ("send", "convertAndSend", "publish"):
                 return SideEffect(
                     kind="queue",
                     op="write",
-                    call=full_call,
+                    call=display_call,
                     line=line,
-                    detail=first_arg or obj_text,
+                    detail=first_arg or receiver_type or obj_text,
                     verb=method_name,
                 )
 
         # 6. File writes
-        if "Files." in full_call or obj_text in ("FileOutputStream", "FileWriter"):
+        if obj_text == "Files" or receiver_type in _FILE_TYPES:
             if method_name in ("write", "delete", "deleteIfExists", "copy", "move", "createFile", "createDirectory"):
                 return SideEffect(
                     kind="file",
                     op="write",
-                    call=full_call,
+                    call=display_call,
                     line=line,
                     verb=method_name,
                 )
 
         # 7. Auth writes/reads
-        if "passwordEncoder" in obj_text or "bcrypt" in obj_text.lower():
-            if method_name in ("encode", "hash"):
-                return SideEffect(kind="auth", op="write", call=full_call, line=line, verb="hash")
+        if receiver_type in _AUTH_TYPES or obj_text == "SecurityContextHolder":
+            if method_name in ("encode", "hash", "setAuthentication"):
+                return SideEffect(kind="auth", op="write", call=display_call, line=line, verb=method_name)
             if method_name in ("matches", "verify"):
-                return SideEffect(kind="auth", op="read", call=full_call, line=line, verb="verify")
+                return SideEffect(kind="auth", op="read", call=display_call, line=line, verb=method_name)
 
         return None

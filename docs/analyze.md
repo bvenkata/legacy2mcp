@@ -1,6 +1,6 @@
 # `legacy2mcp analyze`, `report` and `generate`
 
-Point legacy2mcp at a local Python or JavaScript/TypeScript codebase and it
+Point legacy2mcp at a local Python, JavaScript/TypeScript, or Java codebase and it
 tells you what the code does, which business flows exist, how risky each one
 is, which MCP tools to build and in what order. It can then generate the MCP
 server for the flows you approve.
@@ -19,12 +19,12 @@ A sample report generated from a public open-source app is in
 
 ## What it finds
 
-| | Python (stdlib `ast`) | JavaScript / TypeScript (tree-sitter) |
-|---|---|---|
-| HTTP routes | Flask (incl. blueprints), FastAPI (incl. `APIRouter`), Django URLconfs (`include()`, class-based views) | Express (`app.get`, `router.route().get()`, `app.use()` mounts), Next.js pages router and app router |
-| Other entry points | click / typer commands, Django management commands, Celery tasks, APScheduler and `schedule` jobs, pika consumers | commander commands, node-cron / node-schedule jobs, BullMQ workers, amqplib and kafkajs consumers |
-| Side effects | SQLAlchemy, Django ORM, raw SQL (table names), PyMongo, `requests`/`httpx`/`aiohttp`, Stripe/Braintree, `smtplib`/Django mail/SendGrid, Celery/RQ queues, file writes, auth (`login_user`, `set_password`, JWT) | Prisma, Mongoose/Sequelize/TypeORM, raw SQL, `fetch`/axios, Stripe, nodemailer/Resend/SendGrid, BullMQ/amqplib/SQS, `fs` writes, jwt/bcrypt |
-| Inputs | signature params, `request.args`/`request.form`/`request.GET`/`request.POST` | `req.body`/`req.query`/`req.params`, destructuring, `await request.json()`, `searchParams.get()` |
+| | Python (stdlib `ast`) | JavaScript / TypeScript (tree-sitter) | Java (tree-sitter) |
+|---|---|---|---|
+| HTTP routes | Flask (incl. blueprints), FastAPI (incl. `APIRouter`), Django URLconfs (`include()`, class-based views) | Express (`app.get`, `router.route().get()`, `app.use()` mounts), Next.js pages router and app router | Spring Boot (`@RestController`, `@RequestMapping`, `@GetMapping`/..., `@PreAuthorize`/`@Secured`), Java Servlets (`@WebServlet`, `WEB-INF/web.xml`), JAX-RS (`@Path`, `@GET`/`@POST`/...) |
+| Other entry points | click / typer commands, Django management commands, Celery tasks, APScheduler and `schedule` jobs, pika consumers | commander commands, node-cron / node-schedule jobs, BullMQ workers, amqplib and kafkajs consumers | `@Async` Spring background methods |
+| Side effects | SQLAlchemy, Django ORM, raw SQL (table names), PyMongo, `requests`/`httpx`/`aiohttp`, Stripe/Braintree, `smtplib`/Django mail/SendGrid, Celery/RQ queues, file writes, auth (`login_user`, `set_password`, JWT) | Prisma, Mongoose/Sequelize/TypeORM, raw SQL, `fetch`/axios, Stripe, nodemailer/Resend/SendGrid, BullMQ/amqplib/SQS, `fs` writes, jwt/bcrypt | Spring Data JPA, `JdbcTemplate`, `EntityManager`, raw SQL, `RestTemplate`/`WebClient`/`HttpClient`, Stripe/PayPal, `JavaMailSender`, `KafkaTemplate`/`JmsTemplate`/`RabbitTemplate`, `Files` writes, `PasswordEncoder` |
+| Inputs | signature params, `request.args`/`request.form`/`request.GET`/`request.POST` | `req.body`/`req.query`/`req.params`, destructuring, `await request.json()`, `searchParams.get()` | `@PathVariable`/`@PathParam`, `@RequestParam`/`@QueryParam`, `@RequestBody`, `@FormParam`, `req.getParameter()` |
 
 Handlers that branch on the HTTP method (`if request.method == "POST"`,
 `form.validate_on_submit()`, `switch (req.method)`) are traced per method,
