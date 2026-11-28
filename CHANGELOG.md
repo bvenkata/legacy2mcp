@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `--html-file`: operation descriptions name the saved file without its directory (`Discovered from a <form> in page.html.`), so a local path such as `/Users/<name>/Downloads/page.html` no longer ends up in `config.yaml`. `source_label` still records the path as given. Follow-up to #46.
+
 ## [0.6.1] - 2026-11-28
 
 ### Added
