@@ -8,7 +8,7 @@ authors:
 repository-code: "https://github.com/OWASP/legacy2mcp"
 url: "https://owasp.org/projects/legacy2mcp"
 license: Apache-2.0
-version: 0.6.0
+version: 0.6.1
 keywords:
   - mcp
   - model-context-protocol
