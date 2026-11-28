@@ -87,20 +87,33 @@ def _db_config(db: DbFinding) -> tuple[dict, list[str]]:
             "postgres/mssql/oracle driver import, so the dialect defaulted to 'postgres'."
         )
 
-    todos.append(
-        "Set the LEGACY_DB_DSN environment variable to your real connection string "
-        "before running `legacy2mcp run` (dsn_env just names the variable, never the value)."
-    )
+    dsn_env = db.dsn_env or "LEGACY_DB_DSN"
+    if db.dsn_env:
+        todos.append(
+            f"Keep the {dsn_env} environment variable set when running `legacy2mcp run` "
+            f"(dsn_env just names the variable, never the value)."
+        )
+        todos.append(
+            "Review this table list -- every table of the schema was read from the live "
+            "database; delete any table an agent shouldn't see. Reading a table is not a "
+            "decision that it's safe to expose."
+        )
+    else:
+        todos.append(
+            "Set the LEGACY_DB_DSN environment variable to your real connection string "
+            "before running `legacy2mcp run` (dsn_env just names the variable, never the value)."
+        )
 
     tables = []
     for table in db.tables:
-        tables.append(
-            {
-                "name": table.table,
-                "operations": ["select"],
-                "columns": table.columns,
-            }
-        )
+        entry = {
+            "name": table.table,
+            "operations": ["select"],
+            "columns": table.columns,
+        }
+        if db.db_schema:
+            entry["schema"] = db.db_schema
+        tables.append(entry)
         todos.append(
             f"Review columns for table '{table.table}' (from '{table.file}') -- "
             f"drop any that shouldn't be exposed to an agent (PII, internal flags, ...)."
@@ -114,7 +127,7 @@ def _db_config(db: DbFinding) -> tuple[dict, list[str]]:
                 "type": "db",
                 "config": {
                     "dialect": dialect,
-                    "dsn_env": "LEGACY_DB_DSN",
+                    "dsn_env": dsn_env,
                     "allow_write_operations": False,
                     "tables": tables,
                 },

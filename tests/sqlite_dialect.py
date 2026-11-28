@@ -25,6 +25,12 @@ class SqliteTestDialect(DbDialect):
         conn = sqlite3.connect(dsn, timeout=timeout_seconds)
         return conn
 
+    def list_tables(self, conn: Any, db_schema: str | None) -> list[str]:
+        cur = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        )
+        return [r[0] for r in cur.fetchall()]
+
     def introspect_columns(self, conn: Any, table: str, db_schema: str | None) -> list[ColumnInfo]:
         cur = conn.execute(f"PRAGMA table_info({self.quote_ident(table)})")
         rows = cur.fetchall()

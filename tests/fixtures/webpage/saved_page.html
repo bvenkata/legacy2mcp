@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><title>Orders - Legacy Admin</title></head>
+<body>
+  <h1>Orders</h1>
+  <!-- A relative action: resolved against the URL the page was served from, which a saved file doesn't record. -->
+  <form id="search_orders" action="orders/search" method="GET">
+    <input name="customer">
+    <select name="status">
+      <option value="open">Open</option>
+      <option value="closed">Closed</option>
+    </select>
+    <input type="submit" value="Search">
+  </form>
+  <!-- No action: submits to the page's own URL. -->
+  <form id="add_note" method="POST">
+    <input type="hidden" name="csrf_token" value="abc123">
+    <textarea name="note" required></textarea>
+  </form>
+  <!-- A root-relative action: the path is known, only the host isn't. -->
+  <form id="cancel_order" action="/orders/42/cancel" method="POST">
+    <input name="reason">
+  </form>
+</body>
+</html>

@@ -40,8 +40,15 @@ Choice [1-4]:
 | **Website** | Crawls same-site pages starting there (`--max-pages`/`--max-depth` bound it, default 25/2) the same way `legacy2mcp discover --webpage-url` does, then goes straight to a config instead of stopping at a `contract.yaml`. Every operation still lands at `confidence: low` / `needs_review: true` in the generated TODOs -- going through `init` skips a file, not the review. | No |
 | **GitHub repo / local path** | Clones (or reads) the repo and statically scans its Python source (AST only, never executed) for a `zeep.Client(...)` call, a SQLAlchemy/Flask-SQLAlchemy model, or Flask/FastAPI routes -- picking `soap`/`db`/`rest` accordingly. | Optional |
 
+A live database has a flag of its own (no menu entry): `--db-dialect`
+(`postgres`, `mssql` or `oracle`) with `--db-dsn-env`, the environment
+variable that holds the DSN -- see
+[A live database](#a-live-database---db-dialect) below.
+
 Each also works non-interactively via a flag -- `--wsdl-url`, `--rest-url`,
 `--webpage-url`, `--github-url`, or `--local-path` -- for scripting or CI.
+`--html-file` (flag only) does what `--webpage-url` does for one saved
+page -- see [`--html-file`](#a-saved-html-page---html-file) below.
 Only the GitHub/source-code path can use an LLM, and only to refine what
 static analysis already found (ambiguous parameter types, read-vs-write
 classification) -- never a dump of your repo. It needs no extra
@@ -110,7 +117,8 @@ legacy2mcp discover --queue-config queues.yaml --out contract.yaml
 
 A website *can* go through `discover --webpage-url` too (see below) if you
 want to review the contract before anything gets built -- `init
---webpage-url` runs the identical crawl, it just doesn't pause there.
+--webpage-url` runs the identical crawl, it just doesn't pause there. The
+same goes for a saved page: `discover --html-file` or `init --html-file`.
 
 Each writes a **Legacy Interface Contract** (`contract.yaml`): every
 operation's inputs, outputs, enums, error codes, whether it reads or
@@ -177,6 +185,10 @@ A few things worth knowing:
   other `discover` source, `base_url` fills in automatically (it's the
   host just fetched), so the test-chat page opens right away. Full crawl
   mechanics: [docs/security.md](security.md).
+- **`--html-file`** runs the same form and content extraction on one saved
+  HTML page, for a page `--webpage-url` can't reach: one behind a login,
+  saved with the browser's "Save As" or captured by another tool. See
+  [below](#a-saved-html-page---html-file).
 - **Stored procedures and queue descriptions are documented, not runnable
   yet.** `--stored-procs` and `--queue-config` still produce real contract
   entries -- there's no adapter to actually *call* either today (see
@@ -195,6 +207,68 @@ A few things worth knowing:
   contract is embedded in the page (in a `<script type="application/json">`
   tag), not just summarized for reading.
 
+### A saved HTML page (`--html-file`)
+
+```bash
+legacy2mcp discover --html-file saved-page.html --out contract.yaml
+legacy2mcp init --html-file saved-page.html --out config.yaml
+```
+
+`--html-file` reads one saved page and runs the same extraction as
+`--webpage-url`: each `<form>` becomes an operation, or a page with no form
+but real text becomes a read-only "get this page" tool. It is in the same
+mutually exclusive source group as `--webpage-url` on both commands.
+Nothing is fetched and no link is followed. `--max-pages`/`--max-depth`
+only bound the `--webpage-url` crawl, so passing either with `--html-file`
+is an error.
+
+A saved file doesn't record the URL it was served from, so:
+
+- `base_url` stays `REPLACE_ME_BASE_URL` for you to fill in. A form whose
+  `action` is an absolute URL gets a note naming that host.
+- A relative `action` (`orders/search`) resolves against `/`, never against
+  a `file://` URL or the file's local path, and the operation gets a note
+  to confirm the real path. A form with no `action` (it posts back to the
+  page itself) gets the placeholder path `/` and a note. A root-relative
+  `action` (`/orders/search`) keeps its path.
+- Every operation is `confidence: low` / `needs_review: true`, the same as
+  `--webpage-url`.
+
+Only the page's static HTML is read: if client-side JavaScript built a
+form after the page loaded, save the page from the browser's DOM (for
+example, devtools' "Copy outerHTML") rather than "View Source".
+
+### A live database (`--db-dialect`)
+
+```bash
+export LEGACY_DB_DSN="postgresql://reader@db.internal/legacy"
+legacy2mcp init --db-dialect postgres --db-dsn-env LEGACY_DB_DSN --db-schema sales --out config.yaml
+```
+
+`init --db-dialect` reads the schema's base tables and their columns from
+the database's system catalog (`information_schema.tables` on Postgres and
+SQL Server, `user_tables` / `all_tables` on Oracle) and writes a starter
+`type: db` config: every table `operations: [select]`, with
+`allow_write_operations: false`. No row of any table is selected, and
+nothing is written to the database.
+
+- `--db-dsn-env` names the environment variable that holds the DSN. The
+  DSN is read from it once and never written: the config's `dsn_env` is
+  that variable's name, and a connection error names the variable, not the
+  DSN.
+- `--db-schema` picks the schema (Oracle: the owner); the default is
+  `public` on Postgres, `dbo` on SQL Server and your own schema on Oracle.
+  Each table in the config gets that `schema`.
+- `--db-tables a,b` takes only the tables named (matched without case);
+  a name that isn't a base table of the schema is an error. Views are
+  never listed.
+- Without `--db-tables`, a schema with more than `--db-max-tables` (25)
+  base tables is refused, with the first names, rather than exposing a
+  whole large schema to an agent by default.
+
+The config's TODOs ask you to review the table list and each table's
+columns: reading a table is not a decision that it's safe to expose.
+
 ## Common commands
 
 ```bash
@@ -209,6 +283,11 @@ legacy2mcp init --wsdl-url "https://service.example.com/Legacy?wsdl" --out confi
 
 # Generate a config from a website with no API docs at all -- crawls it
 legacy2mcp init --webpage-url "https://your-legacy-app.example.com" --out config.yaml
+
+# The same for one page saved from the browser (e.g. behind a login) -- nothing is fetched
+legacy2mcp init --html-file saved-page.html --out config.yaml
+# Generate a read-only config from a live database's tables (the DSN stays in the env var)
+legacy2mcp init --db-dialect postgres --db-dsn-env LEGACY_DB_DSN --db-schema sales --out config.yaml
 
 # Generate a config by statically scanning a GitHub repo (no AI, no API key)
 legacy2mcp init --github-url https://github.com/you/your-api --scan-only --out config.yaml

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from pathlib import Path
+
+import pytest
 
 import legacy2mcp.cli as cli_module
 from legacy2mcp.cli import _cmd_discover
+from legacy2mcp.discovery.contract import load_contract
 
 
 def _args(**overrides) -> argparse.Namespace:
@@ -13,6 +18,7 @@ def _args(**overrides) -> argparse.Namespace:
         openapi_file=None,
         queue_config=None,
         webpage_url=None,
+        html_file=None,
         stored_procs=False,
         db_dialect=None,
         db_dsn_env=None,
@@ -157,3 +163,73 @@ def test_discover_prints_a_client_connection_snippet(tmp_path, monkeypatch, caps
     err = capsys.readouterr().err
     assert "mcpServers" in err
     assert str(config_path.resolve()) in err
+
+
+SAVED_PAGE = Path(__file__).parent / "fixtures" / "webpage" / "saved_page.html"
+
+
+def test_discover_html_file_writes_a_contract_without_fetching(tmp_path, monkeypatch):
+    def no_network(*args, **kwargs):
+        raise AssertionError("--html-file must not make a request")
+
+    monkeypatch.setattr("requests.get", no_network)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    contract_path = tmp_path / "contract.yaml"
+    _cmd_discover(
+        _args(
+            html_file=str(SAVED_PAGE),
+            max_pages=None,
+            max_depth=None,
+            out=str(contract_path),
+            no_chat=True,
+            write_config=str(tmp_path / "config.yaml"),
+        )
+    )
+
+    contract = load_contract(str(contract_path))
+    assert contract.source_label == str(SAVED_PAGE)
+    assert [op.name for op in contract.operations] == ["search_orders", "add_note", "cancel_order"]
+    assert all(op.confidence == "low" and op.needs_review for op in contract.operations)
+
+
+@pytest.mark.parametrize("bound", [{"max_pages": 5}, {"max_depth": 1}])
+def test_discover_html_file_refuses_crawl_bounds(tmp_path, capsys, bound):
+    contract_path = tmp_path / "contract.yaml"
+    args = _args(html_file=str(SAVED_PAGE), max_pages=None, max_depth=None, out=str(contract_path), no_chat=True)
+    for key, value in bound.items():
+        setattr(args, key, value)
+
+    with pytest.raises(SystemExit) as excinfo:
+        _cmd_discover(args)
+
+    assert excinfo.value.code == 1
+    assert "--html-file reads a single saved page" in capsys.readouterr().err
+    assert not contract_path.exists()
+
+
+def test_discover_webpage_url_without_bounds_uses_the_crawl_defaults(tmp_path, monkeypatch):
+    calls = {}
+
+    def fake_contract_from_webpage(url, **bounds):
+        calls.update(bounds)
+        raise cli_module.ContractError("stop here")
+
+    monkeypatch.setattr(cli_module.webpage, "contract_from_webpage", fake_contract_from_webpage)
+
+    with pytest.raises(SystemExit):
+        _cmd_discover(_args(webpage_url="https://example.com/", max_pages=None, max_depth=None, no_chat=True))
+
+    assert calls == {}  # contract_from_webpage's own defaults (25 pages, depth 2) apply
+
+
+def test_discover_html_file_and_webpage_url_are_mutually_exclusive(monkeypatch, capsys):
+    monkeypatch.setattr(
+        sys, "argv", ["legacy2mcp", "discover", "--html-file", "page.html", "--webpage-url", "https://example.com/"]
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli_module.main()
+
+    assert excinfo.value.code == 2
+    assert "not allowed with argument" in capsys.readouterr().err
