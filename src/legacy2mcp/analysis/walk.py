@@ -28,6 +28,7 @@ LANGUAGE_BY_EXT = {
     ".cjs": "javascript",
     ".ts": "typescript",
     ".tsx": "typescript",
+    ".java": "java",
 }
 
 # Never application code, whatever the ignore files say.
@@ -35,7 +36,7 @@ DEFAULT_EXCLUDED_DIRS = {
     ".git", ".hg", ".svn", "node_modules", "venv", ".venv", "env", "__pycache__",
     "site-packages", "dist", "build", ".next", ".nuxt", ".tox", ".nox", ".mypy_cache",
     ".pytest_cache", ".ruff_cache", "coverage", ".idea", ".vscode", "vendor",
-    "bower_components", ".turbo", ".cache", "out",
+    "bower_components", ".turbo", ".cache", "out", "target", ".gradle",
 }
 TEST_DIRS = {"tests", "test", "__tests__", "spec", "e2e"}
 MIGRATION_DIRS = {"migrations", "alembic"}
