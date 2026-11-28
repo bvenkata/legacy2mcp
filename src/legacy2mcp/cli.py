@@ -267,6 +267,28 @@ def _cmd_report(args: argparse.Namespace) -> None:
     print(f"Wrote {write_report(analysis, out)}")
 
 
+def _crawl_bounds(args: argparse.Namespace) -> dict:
+    """--max-pages/--max-depth as keyword arguments for
+    webpage.contract_from_webpage(), leaving out the ones not passed so
+    its own defaults apply. They default to None on the command line so a
+    --html-file run can tell whether they were passed at all."""
+    bounds = {"max_pages": args.max_pages, "max_depth": args.max_depth}
+    return {k: v for k, v in bounds.items() if v is not None}
+
+
+def _reject_crawl_bounds_for_html_file(args: argparse.Namespace) -> None:
+    """--max-pages/--max-depth bound the --webpage-url crawl; a saved
+    file is one page with nothing to crawl, so passing them with
+    --html-file is a mistake worth saying out loud rather than ignoring."""
+    if _crawl_bounds(args):
+        print(
+            "error: --max-pages/--max-depth bound the --webpage-url crawl; --html-file reads a single "
+            "saved page and crawls nothing. Drop them, or use --webpage-url for a live site.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def _cmd_discover(args: argparse.Namespace) -> None:
     """Discover a legacy interface's real shape -- operations, inputs,
     enums, error codes, confidence -- into a human-reviewable contract.yaml,
@@ -288,10 +310,12 @@ def _cmd_discover(args: argparse.Namespace) -> None:
             contract = queue_contract.load_queue_contract(args.queue_config)
             source_label = args.queue_config
         elif args.webpage_url:
-            contract = webpage.contract_from_webpage(
-                args.webpage_url, max_pages=args.max_pages, max_depth=args.max_depth
-            )
+            contract = webpage.contract_from_webpage(args.webpage_url, **_crawl_bounds(args))
             source_label = args.webpage_url
+        elif args.html_file:
+            _reject_crawl_bounds_for_html_file(args)
+            contract = webpage.contract_from_html_file(args.html_file)
+            source_label = args.html_file
         elif args.stored_procs:
             if not args.db_dialect:
                 print("--stored-procs needs --db-dialect {postgres,mssql,oracle}.", file=sys.stderr)
@@ -305,7 +329,7 @@ def _cmd_discover(args: argparse.Namespace) -> None:
         else:
             print(
                 "Pass one of --postman-file, --openapi-file, --har-file, --queue-config, "
-                "--webpage-url, or --stored-procs (with --db-dialect and --db-dsn-env).",
+                "--webpage-url, --html-file, or --stored-procs (with --db-dialect and --db-dsn-env).",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -449,7 +473,7 @@ def _split_names(value: str | None) -> list[str] | None:
 
 
 def _resolve_source(args: argparse.Namespace, interactive: bool) -> tuple[str, str]:
-    """Return (kind, value): kind is "wsdl" / "rest" / "webpage" / "db" / "github_url" / "local_path" /
+    """Return (kind, value): kind is "wsdl" / "rest" / "webpage" / "html_file" / "db" / "github_url" / "local_path" /
     "from_contract"."""
     if args.wsdl_url:
         return "wsdl", args.wsdl_url
@@ -457,6 +481,8 @@ def _resolve_source(args: argparse.Namespace, interactive: bool) -> tuple[str, s
         return "rest", args.rest_url
     if args.webpage_url:
         return "webpage", args.webpage_url
+    if args.html_file:
+        return "html_file", args.html_file
     if args.db_dialect:
         return "db", args.db_dialect
     if args.github_url:
@@ -468,7 +494,7 @@ def _resolve_source(args: argparse.Namespace, interactive: bool) -> tuple[str, s
 
     if not interactive:
         print(
-            "Pass one of --wsdl-url, --rest-url, --webpage-url, --db-dialect, --github-url, "
+            "Pass one of --wsdl-url, --rest-url, --webpage-url, --html-file, --db-dialect, --github-url, "
             "--local-path, or --from-contract.",
             file=sys.stderr,
         )
@@ -669,7 +695,13 @@ def _cmd_init(args: argparse.Namespace) -> None:
 
         elif kind == "webpage":
             source_label = value
-            contract = webpage.contract_from_webpage(value, max_pages=args.max_pages, max_depth=args.max_depth)
+            contract = webpage.contract_from_webpage(value, **_crawl_bounds(args))
+            config, todos = classify.build_config_from_contract(contract)
+
+        elif kind == "html_file":
+            _reject_crawl_bounds_for_html_file(args)
+            source_label = value
+            contract = webpage.contract_from_html_file(value)
             config, todos = classify.build_config_from_contract(contract)
 
         elif kind == "db":
@@ -887,13 +919,22 @@ def main() -> None:
         ),
     )
     discover_source_group.add_argument(
+        "--html-file",
+        help=(
+            "A saved HTML page (one behind a login, or saved from the browser) -- the same form "
+            "and content extraction as --webpage-url, on this one file. Nothing is fetched and "
+            "nothing is crawled; base_url stays REPLACE_ME_BASE_URL, since a saved page doesn't "
+            "say where it was served from. Every operation flagged for review."
+        ),
+    )
+    discover_source_group.add_argument(
         "--stored-procs", action="store_true", help="Introspect a live database's stored-procedure/function catalog."
     )
     discover_parser.add_argument(
-        "--max-pages", type=int, default=25, help="Max pages to crawl for --webpage-url (default: 25)."
+        "--max-pages", type=int, default=None, help="Max pages to crawl for --webpage-url (default: 25)."
     )
     discover_parser.add_argument(
-        "--max-depth", type=int, default=2, help="Max link depth to follow for --webpage-url (default: 2)."
+        "--max-depth", type=int, default=None, help="Max link depth to follow for --webpage-url (default: 2)."
     )
     discover_parser.add_argument(
         "--db-dialect", choices=["postgres", "mssql", "oracle"], help="Required with --stored-procs."
@@ -1068,6 +1109,14 @@ def main() -> None:
         ),
     )
     source_group.add_argument(
+        "--html-file",
+        help=(
+            "A saved HTML page (one behind a login, or saved from the browser) -- the same "
+            "extraction as --webpage-url on this one file, nothing fetched or crawled. base_url "
+            "stays REPLACE_ME_BASE_URL for you to fill in."
+        ),
+    )
+    source_group.add_argument(
         "--db-dialect",
         choices=["postgres", "mssql", "oracle"],
         help=(
@@ -1083,10 +1132,10 @@ def main() -> None:
         help="A contract.yaml written by `legacy2mcp discover` -- turns its reviewed operations into a runnable config.",
     )
     init_parser.add_argument(
-        "--max-pages", type=int, default=25, help="Max pages to crawl for --webpage-url (default: 25)."
+        "--max-pages", type=int, default=None, help="Max pages to crawl for --webpage-url (default: 25)."
     )
     init_parser.add_argument(
-        "--max-depth", type=int, default=2, help="Max link depth to follow for --webpage-url (default: 2)."
+        "--max-depth", type=int, default=None, help="Max link depth to follow for --webpage-url (default: 2)."
     )
     init_parser.add_argument(
         "--db-dsn-env",

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sqlite3
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -29,6 +30,7 @@ def _args(**overrides) -> argparse.Namespace:
         wsdl_url=None,
         rest_url=None,
         webpage_url=None,
+        html_file=None,
         db_dialect=None,
         db_dsn_env=None,
         db_schema=None,
@@ -262,6 +264,53 @@ def test_init_from_contract_round_trip(tmp_path, monkeypatch):
     assert endpoint.confidence == "high"
     assert endpoint.error_codes == ["404"]
     assert endpoint.write is False
+
+
+SAVED_PAGE = Path(__file__).parent / "fixtures" / "webpage" / "saved_page.html"
+
+
+def test_init_from_html_file_leaves_base_url_for_the_user(tmp_path, monkeypatch):
+    def no_network(*args, **kwargs):
+        raise AssertionError("--html-file must not make a request")
+
+    monkeypatch.setattr("requests.get", no_network)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    out_path = tmp_path / "config.yaml"
+    _cmd_init(_args(html_file=str(SAVED_PAGE), max_pages=None, max_depth=None, out=str(out_path)))
+
+    reloaded = load_config(str(out_path))
+    settings = reloaded.adapters[0].config
+    assert reloaded.adapters[0].type == "rest"
+    # A saved file says nothing about where the page was served from: no
+    # file:// URL and no local path may stand in for the API's host.
+    assert settings["base_url"] == "REPLACE_ME_BASE_URL"
+    paths = sorted(endpoint["path"] for endpoint in settings["endpoints"])
+    assert paths == ["/", "/orders/search", "/orders/{orderId}/cancel"]
+    assert not any("file:" in p or str(SAVED_PAGE.parent) in p for p in paths)
+    assert "REPLACE_ME_BASE_URL" in out_path.read_text(encoding="utf-8")
+
+
+def test_init_from_html_file_refuses_crawl_bounds(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+    out_path = tmp_path / "config.yaml"
+
+    with pytest.raises(SystemExit) as excinfo:
+        _cmd_init(_args(html_file=str(SAVED_PAGE), max_pages=3, max_depth=None, out=str(out_path)))
+
+    assert excinfo.value.code == 1
+    assert "--max-pages/--max-depth" in capsys.readouterr().err
+    assert not out_path.exists()
+
+
+def test_init_html_file_shares_the_source_group(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["legacy2mcp", "init", "--html-file", "page.html", "--rest-url", "https://x/"])
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main()
+
+    assert excinfo.value.code == 2
+    assert "not allowed with argument" in capsys.readouterr().err
 
 
 def _legacy_db(tmp_path):
