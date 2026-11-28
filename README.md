@@ -185,7 +185,8 @@ See the [security model](docs/security.md).
 
 > [!TIP]
 > Already have a SOAP service, database, REST API or website instead of a
-> codebase? `legacy2mcp init` connects to it directly. See the
+> codebase? `legacy2mcp init` connects to it directly. A page behind a login
+> works too: save it from the browser and pass it as `--html-file`. See the
 > [CLI guide](docs/cli.md).
 
 ## Documentation

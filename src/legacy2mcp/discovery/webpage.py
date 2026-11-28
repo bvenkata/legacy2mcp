@@ -33,6 +33,13 @@ operations and called out per-operation: HTML forms normally submit
 non-GET requests as `application/x-www-form-urlencoded`, but
 adapters/rest_adapter.py always sends a JSON body -- that mismatch is
 flagged as a note for a human to check, not silently papered over.
+
+contract_from_html_file() runs the same extraction over one saved page (a
+page behind a login, saved from the browser) instead of fetching a URL.
+There is nothing to crawl and no URL the page was served from, so relative
+form actions resolve against "/" with a note to confirm the real path, and
+the contract's source_label is the file path -- never an http(s) URL, so
+classify.py leaves base_url as REPLACE_ME_BASE_URL rather than guessing.
 """
 
 from __future__ import annotations
@@ -40,6 +47,7 @@ from __future__ import annotations
 from collections import deque
 from datetime import datetime, timezone
 from html.parser import HTMLParser
+from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from legacy2mcp.discovery.contract import ContractError, ContractField, ContractOperation, LegacyInterfaceContract
@@ -74,6 +82,14 @@ _CONTENT_PAGE_NOTE = (
     "This operation returns the page's extracted text content, not a structured API response "
     "-- there's nothing to validate it against beyond that."
 )
+_SAVED_PAGE_PATH_NOTE = (
+    "This page was read from a saved HTML file, so the URL it was served from isn't known -- "
+    "its path is a placeholder ('/'). Set the real path before using this tool."
+)
+
+# A saved file has no URL: its forms and content resolve against the bare
+# root path, never against a file:// URL or the local file's own path.
+_SAVED_PAGE_URL = "/"
 
 
 class _PageParser(HTMLParser):
@@ -271,14 +287,35 @@ def _unique_name(base: str, used_names: set[str]) -> str:
     return name
 
 
-def _operation_from_form(form: dict, page_url: str, page_parts, used_names: set[str]) -> ContractOperation:
+def _operation_from_form(
+    form: dict, page_url: str, page_parts, used_names: set[str], saved_file: str | None = None
+) -> ContractOperation:
+    """`saved_file` is set when the page was read from a local file
+    (contract_from_html_file), whose own URL is unknown: `page_url` is then
+    the bare root path, and a relative or missing action gets a note
+    rather than a path that only looks real."""
     method = form["method"] if form["method"] in ("GET", "POST") else "GET"
     action = form.get("action")
     resolved = urljoin(page_url, action) if action else page_url
     action_parts = urlsplit(resolved)
 
     notes: list[str] = []
-    if action_parts.netloc and action_parts.netloc != page_parts.netloc:
+    if saved_file is not None and not action:
+        notes.append(
+            "The form has no action, so it submits to the URL the page was served from, which a "
+            "saved HTML file doesn't record -- the path '/' is a placeholder; set the real one."
+        )
+    elif saved_file is not None and not urlsplit(action).netloc and not action.startswith("/"):
+        notes.append(
+            f"The form action '{action}' is relative to the URL the page was served from, which a "
+            f"saved HTML file doesn't record -- it was resolved against '/'; confirm the real path."
+        )
+    if saved_file is not None and action_parts.netloc:
+        notes.append(
+            f"Form action points at '{action_parts.netloc}' -- set RestAdapterSettings.base_url to "
+            f"that host."
+        )
+    elif action_parts.netloc and action_parts.netloc != page_parts.netloc:
         notes.append(
             f"Form action resolves to a different host ('{action_parts.netloc}') than the page "
             f"itself ('{page_parts.netloc}') -- set RestAdapterSettings.base_url to the form's "
@@ -321,7 +358,7 @@ def _operation_from_form(form: dict, page_url: str, page_parts, used_names: set[
         source_kind="rest",
         method=method,
         path=templated_path,
-        description=f"Discovered from a <form> on {page_url}.",
+        description=f"Discovered from a <form> in {saved_file}." if saved_file else f"Discovered from a <form> on {page_url}.",
         side_effect="write" if (method != "GET" or looks_like_write(write_name_hint)) else "read",
         fields=fields,
         confidence="low",
@@ -335,25 +372,54 @@ def _page_operation_name(path: str) -> str:
     return f"get_{stripped.replace('/', '_')}" if stripped else "get_home"
 
 
-def _operation_from_page_content(page_url: str, page_parts, html: str, used_names: set[str]) -> ContractOperation | None:
+def _operation_from_page_content(
+    page_url: str, page_parts, html: str, used_names: set[str], saved_file: str | None = None
+) -> ContractOperation | None:
     text, title = extract_text_and_title(html)
     if len(text) < _MIN_CONTENT_CHARS:
         return None
 
     op_name = _unique_name(_page_operation_name(page_parts.path), used_names)
     preview = text if len(text) <= 160 else text[:160].rstrip() + "..."
+    notes = [_CONTENT_PAGE_NOTE, f"Content preview: {preview}"]
+    if saved_file is not None:
+        notes.insert(0, _SAVED_PAGE_PATH_NOTE)
     return ContractOperation(
         name=op_name,
         source_kind="rest",
         method="GET",
         path=page_parts.path or "/",
-        description=title or f"Page content discovered at {page_url}.",
+        description=title
+        or (f"Page content discovered in {saved_file}." if saved_file else f"Page content discovered at {page_url}."),
         side_effect="read",
         fields=[],
         confidence="low",
         needs_review=True,
-        notes=[_CONTENT_PAGE_NOTE, f"Content preview: {preview}"],
+        notes=notes,
     )
+
+
+def _operations_from_page(
+    page_url: str, html: str, parser: _PageParser, used_names: set[str], saved_file: str | None = None
+) -> list[ContractOperation]:
+    """One operation per `<form>` on the page, or one read-only content
+    operation if it has no form but enough text -- shared by the crawl and
+    the saved-file path, so both extract exactly the same way."""
+    page_parts = urlsplit(page_url)
+    operations: list[ContractOperation] = []
+
+    for form in parser.forms:
+        op = _operation_from_form(form, page_url, page_parts, used_names, saved_file=saved_file)
+        used_names.add(op.name)
+        operations.append(op)
+
+    if not parser.forms:
+        content_op = _operation_from_page_content(page_url, page_parts, html, used_names, saved_file=saved_file)
+        if content_op is not None:
+            used_names.add(content_op.name)
+            operations.append(content_op)
+
+    return operations
 
 
 def _normalize_host(netloc: str) -> str:
@@ -452,18 +518,7 @@ def contract_from_webpage(
     operations: list[ContractOperation] = []
 
     for page_url, (html, parser) in pages.items():
-        page_parts = urlsplit(page_url)
-
-        for form in parser.forms:
-            op = _operation_from_form(form, page_url, page_parts, used_names)
-            used_names.add(op.name)
-            operations.append(op)
-
-        if not parser.forms:
-            content_op = _operation_from_page_content(page_url, page_parts, html, used_names)
-            if content_op is not None:
-                used_names.add(content_op.name)
-                operations.append(content_op)
+        operations.extend(_operations_from_page(page_url, html, parser, used_names))
 
     if not operations:
         raise ContractError(
@@ -475,6 +530,41 @@ def contract_from_webpage(
 
     return LegacyInterfaceContract(
         source_label=url,
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        operations=operations,
+    )
+
+
+def contract_from_html_file(path: str | Path) -> LegacyInterfaceContract:
+    """Turn one saved HTML page (a page behind a login, "Save As" from the
+    browser, or captured by another tool) into a contract, with the same
+    form and content extraction contract_from_webpage() uses. Nothing is
+    fetched and no link is followed: a local file has no site to crawl.
+    The page's own URL isn't known, so paths resolve against "/" (with a
+    note on each operation where that matters), and source_label is the
+    file path, so `init` leaves base_url as REPLACE_ME_BASE_URL. Raises
+    ContractError if the file can't be read or parsed, or has no form and
+    not enough text for a content tool."""
+    file_label = str(path)
+    try:
+        html = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise ContractError(f"Could not read HTML file '{file_label}': {exc}.") from exc
+
+    parser = _parse_page(html)
+    if parser is None:
+        raise ContractError(f"Could not parse '{file_label}' as HTML.")
+
+    operations = _operations_from_page(_SAVED_PAGE_URL, html, parser, set(), saved_file=file_label)
+    if not operations:
+        raise ContractError(
+            f"'{file_label}' has no <form> elements and not enough static text content to be worth "
+            f"a tool. legacy2mcp only reads static HTML -- a page saved before client-side "
+            f"JavaScript built its forms won't have them."
+        )
+
+    return LegacyInterfaceContract(
+        source_label=file_label,
         generated_at=datetime.now(timezone.utc).isoformat(),
         operations=operations,
     )
