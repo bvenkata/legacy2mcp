@@ -19,10 +19,14 @@ def test_detects_languages_and_skips_non_source(tmp_path):
     _touch(tmp_path, "app.py")
     _touch(tmp_path, "web/index.ts")
     _touch(tmp_path, "web/util.mjs")
+    _touch(tmp_path, "src/Main.java")
     _touch(tmp_path, "README.md")
     result = walk(tmp_path)
     assert {(f.rel, f.language) for f in result.files} == {
-        ("app.py", "python"), ("web/index.ts", "typescript"), ("web/util.mjs", "javascript"),
+        ("app.py", "python"),
+        ("web/index.ts", "typescript"),
+        ("web/util.mjs", "javascript"),
+        ("src/Main.java", "java"),
     }
     assert result.excluded == {}
 

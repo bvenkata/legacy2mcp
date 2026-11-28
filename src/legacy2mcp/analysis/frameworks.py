@@ -14,6 +14,14 @@ from pathlib import Path
 
 PY_FRAMEWORKS = {"flask", "fastapi", "django", "celery"}
 JS_FRAMEWORKS = {"express": "express", "next": "nextjs"}
+JAVA_FRAMEWORKS = {
+    "spring-boot": "spring",
+    "spring-web": "spring",
+    "spring-webmvc": "spring",
+    "javax.servlet": "servlet",
+    "jakarta.servlet": "servlet",
+    "jersey": "jax-rs",
+}
 
 _REQ_NAME_RE = re.compile(r"^\s*([A-Za-z0-9_.\-]+)")
 
@@ -42,4 +50,16 @@ def from_manifests(root: Path) -> set[str]:
         for dep, fw in JS_FRAMEWORKS.items():
             if dep in deps:
                 found.add(fw)
+    pom_xml = root / "pom.xml"
+    if pom_xml.is_file():
+        text = pom_xml.read_text(encoding="utf-8", errors="ignore").lower()
+        for marker, fw in JAVA_FRAMEWORKS.items():
+            if marker in text:
+                found.add(fw)
+    for gradle in (root / "build.gradle", root / "build.gradle.kts"):
+        if gradle.is_file():
+            text = gradle.read_text(encoding="utf-8", errors="ignore").lower()
+            for marker, fw in JAVA_FRAMEWORKS.items():
+                if marker in text:
+                    found.add(fw)
     return found

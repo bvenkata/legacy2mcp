@@ -1,0 +1,900 @@
+{
+  "schema_version": "1",
+  "project": "spring_shop",
+  "summary": {
+    "files": 4,
+    "lines": 91,
+    "languages": {
+      "java": {
+        "files": 4,
+        "lines": 91
+      }
+    },
+    "frameworks": [
+      "spring"
+    ],
+    "entry_points": 3,
+    "functions": 8,
+    "side_effects": {
+      "db": 3,
+      "http_out": 1,
+      "payment": 1
+    },
+    "flows": 3,
+    "risk": {
+      "read_only": 2,
+      "low_risk_write": 1,
+      "high_risk": 0
+    }
+  },
+  "scan": {
+    "included_files": 4,
+    "excluded": {},
+    "ignore_files": [],
+    "exclude_patterns": [],
+    "notes": []
+  },
+  "modules": [
+    {
+      "path": "src/main/java/com/shop/Application.java",
+      "language": "java",
+      "name": "src/main/java/com/shop/Application",
+      "lines": 11,
+      "imports": {
+        "SpringApplication": "org.springframework.boot.SpringApplication",
+        "SpringBootApplication": "org.springframework.boot.autoconfigure.SpringBootApplication"
+      },
+      "exports": {},
+      "functions": [
+        {
+          "qualname": "Application.main",
+          "line": 8,
+          "end_line": 10,
+          "params": [
+            {
+              "name": "args",
+              "type": "String[]",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "SpringApplication.run"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [],
+          "call_sites": {
+            "SpringApplication.run": 9
+          },
+          "method_branches": []
+        }
+      ],
+      "classes": [
+        {
+          "name": "Application",
+          "line": 6,
+          "bases": [],
+          "methods": [
+            "Application.main"
+          ],
+          "docstring": ""
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "src/main/java/com/shop/controller/OrderController.java",
+      "language": "java",
+      "name": "src/main/java/com/shop/controller/OrderController",
+      "lines": 39,
+      "imports": {
+        "List": "java.util.List",
+        "annotation": "org.springframework.web.bind.annotation",
+        "ResponseEntity": "org.springframework.http.ResponseEntity",
+        "PaymentService": "com.shop.service.PaymentService",
+        "OrderRepository": "com.shop.repository.OrderRepository"
+      },
+      "exports": {},
+      "functions": [
+        {
+          "qualname": "OrderController.listOrders",
+          "line": 21,
+          "end_line": 24,
+          "params": [
+            {
+              "name": "status",
+              "type": "String",
+              "required": true,
+              "location": "query"
+            }
+          ],
+          "decorators": [
+            "@GetMapping"
+          ],
+          "calls": [
+            "orderRepository.findAll"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "orderRepository.findAll",
+              "line": 23,
+              "detail": "orderRepository",
+              "verb": "findAll"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [
+            "GET"
+          ],
+          "call_sites": {
+            "orderRepository.findAll": 23
+          },
+          "method_branches": []
+        },
+        {
+          "qualname": "OrderController.getOrder",
+          "line": 26,
+          "end_line": 31,
+          "params": [
+            {
+              "name": "id",
+              "type": "String",
+              "required": true,
+              "location": "path"
+            }
+          ],
+          "decorators": [
+            "@GetMapping(\"/{id}\")"
+          ],
+          "calls": [
+            "ResponseEntity.notFound",
+            "ResponseEntity.notFound().build",
+            "orderRepository.findById",
+            "orderRepository.findById(orderId)\n                .map(ResponseEntity::ok).orElse",
+            "orderRepository.findById(orderId).map"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "read",
+              "call": "orderRepository.findById",
+              "line": 28,
+              "detail": "orderRepository",
+              "verb": "findById"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [
+            "GET"
+          ],
+          "call_sites": {
+            "orderRepository.findById(orderId)\n                .map(ResponseEntity::ok).orElse": 28,
+            "orderRepository.findById(orderId).map": 28,
+            "orderRepository.findById": 28,
+            "ResponseEntity.notFound().build": 30,
+            "ResponseEntity.notFound": 30
+          },
+          "method_branches": []
+        },
+        {
+          "qualname": "OrderController.placeOrder",
+          "line": 33,
+          "end_line": 38,
+          "params": [
+            {
+              "name": "order",
+              "type": "Order",
+              "required": true,
+              "location": "body"
+            }
+          ],
+          "decorators": [
+            "@PostMapping"
+          ],
+          "calls": [
+            "orderRepository.save",
+            "paymentService.chargeCard"
+          ],
+          "side_effects": [
+            {
+              "kind": "db",
+              "op": "write",
+              "call": "orderRepository.save",
+              "line": 35,
+              "detail": "orderRepository",
+              "verb": "save"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [
+            "POST"
+          ],
+          "call_sites": {
+            "orderRepository.save": 35,
+            "paymentService.chargeCard": 36
+          },
+          "method_branches": []
+        }
+      ],
+      "classes": [
+        {
+          "name": "OrderController",
+          "line": 9,
+          "bases": [],
+          "methods": [
+            "OrderController.listOrders",
+            "OrderController.getOrder",
+            "OrderController.placeOrder"
+          ],
+          "docstring": ""
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "src/main/java/com/shop/repository/OrderRepository.java",
+      "language": "java",
+      "name": "src/main/java/com/shop/repository/OrderRepository",
+      "lines": 21,
+      "imports": {
+        "List": "java.util.List",
+        "Optional": "java.util.Optional",
+        "Repository": "org.springframework.stereotype.Repository"
+      },
+      "exports": {},
+      "functions": [
+        {
+          "qualname": "OrderRepository.findAll",
+          "line": 10,
+          "end_line": 12,
+          "params": [],
+          "decorators": [],
+          "calls": [
+            "List.of"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [],
+          "call_sites": {
+            "List.of": 11
+          },
+          "method_branches": []
+        },
+        {
+          "qualname": "OrderRepository.findById",
+          "line": 14,
+          "end_line": 16,
+          "params": [
+            {
+              "name": "id",
+              "type": "String",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "Optional.empty"
+          ],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [],
+          "call_sites": {
+            "Optional.empty": 15
+          },
+          "method_branches": []
+        },
+        {
+          "qualname": "OrderRepository.save",
+          "line": 18,
+          "end_line": 20,
+          "params": [
+            {
+              "name": "order",
+              "type": "Object",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [],
+          "side_effects": [],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [],
+          "call_sites": {},
+          "method_branches": []
+        }
+      ],
+      "classes": [
+        {
+          "name": "OrderRepository",
+          "line": 7,
+          "bases": [],
+          "methods": [
+            "OrderRepository.findAll",
+            "OrderRepository.findById",
+            "OrderRepository.save"
+          ],
+          "docstring": ""
+        }
+      ],
+      "parse_error": null
+    },
+    {
+      "path": "src/main/java/com/shop/service/PaymentService.java",
+      "language": "java",
+      "name": "src/main/java/com/shop/service/PaymentService",
+      "lines": 20,
+      "imports": {
+        "Service": "org.springframework.stereotype.Service",
+        "RestTemplate": "org.springframework.web.client.RestTemplate",
+        "Charge": "com.stripe.model.Charge"
+      },
+      "exports": {},
+      "functions": [
+        {
+          "qualname": "PaymentService.chargeCard",
+          "line": 16,
+          "end_line": 19,
+          "params": [
+            {
+              "name": "order",
+              "type": "Object",
+              "required": true,
+              "location": null
+            }
+          ],
+          "decorators": [],
+          "calls": [
+            "Charge.create",
+            "restTemplate.postForObject"
+          ],
+          "side_effects": [
+            {
+              "kind": "http_out",
+              "op": "write",
+              "call": "restTemplate.postForObject",
+              "line": 17,
+              "detail": "https://payment.example.com/charge",
+              "verb": "POST"
+            },
+            {
+              "kind": "payment",
+              "op": "write",
+              "call": "Charge.create",
+              "line": 18,
+              "detail": "Charge",
+              "verb": "create"
+            }
+          ],
+          "docstring": "",
+          "is_async": false,
+          "http_methods": [],
+          "call_sites": {
+            "restTemplate.postForObject": 17,
+            "Charge.create": 18
+          },
+          "method_branches": []
+        }
+      ],
+      "classes": [
+        {
+          "name": "PaymentService",
+          "line": 7,
+          "bases": [],
+          "methods": [
+            "PaymentService.chargeCard"
+          ],
+          "docstring": ""
+        }
+      ],
+      "parse_error": null
+    }
+  ],
+  "entry_points": [
+    {
+      "kind": "http_route",
+      "framework": "spring",
+      "handler": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
+      "file": "src/main/java/com/shop/controller/OrderController.java",
+      "line": 21,
+      "name": "GET /api/orders",
+      "method": "GET",
+      "path": "/api/orders",
+      "params": [
+        {
+          "name": "status",
+          "type": "String",
+          "required": true,
+          "location": "query"
+        }
+      ],
+      "middleware": [
+        "@GetMapping"
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "spring",
+      "handler": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+      "file": "src/main/java/com/shop/controller/OrderController.java",
+      "line": 33,
+      "name": "POST /api/orders",
+      "method": "POST",
+      "path": "/api/orders",
+      "params": [
+        {
+          "name": "order",
+          "type": "Order",
+          "required": true,
+          "location": "body"
+        }
+      ],
+      "middleware": [
+        "@PostMapping"
+      ]
+    },
+    {
+      "kind": "http_route",
+      "framework": "spring",
+      "handler": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
+      "file": "src/main/java/com/shop/controller/OrderController.java",
+      "line": 26,
+      "name": "GET /api/orders/{id}",
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "params": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "location": "path"
+        }
+      ],
+      "middleware": [
+        "@GetMapping(\"/{id}\")"
+      ]
+    }
+  ],
+  "graph": {
+    "call_edges": [],
+    "module_edges": [],
+    "resources": [
+      {
+        "id": "db:orderRepository",
+        "kind": "db",
+        "label": "orderRepository"
+      },
+      {
+        "id": "http:payment.example.com",
+        "kind": "http_out",
+        "label": "payment.example.com"
+      },
+      {
+        "id": "payment:Charge",
+        "kind": "payment",
+        "label": "Charge"
+      }
+    ],
+    "data_edges": [
+      {
+        "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
+        "resource": "db:orderRepository",
+        "op": "read"
+      },
+      {
+        "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
+        "resource": "db:orderRepository",
+        "op": "read"
+      },
+      {
+        "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+        "resource": "db:orderRepository",
+        "op": "write"
+      },
+      {
+        "function": "src/main/java/com/shop/service/PaymentService.java::PaymentService.chargeCard",
+        "resource": "http:payment.example.com",
+        "op": "write"
+      },
+      {
+        "function": "src/main/java/com/shop/service/PaymentService.java::PaymentService.chargeCard",
+        "resource": "payment:Charge",
+        "op": "write"
+      }
+    ],
+    "stats": {
+      "internal_calls": 0,
+      "unresolved_calls": 13,
+      "external_packages": [
+        "com",
+        "java",
+        "org"
+      ]
+    }
+  },
+  "flows": [
+    {
+      "id": "get-api-orders",
+      "name": "GET /api/orders",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/orders",
+      "handler": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
+      "framework": "spring",
+      "method": "GET",
+      "path": "/api/orders",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
+          "line": 21,
+          "label": "GET /api/orders -> OrderController.listOrders",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders",
+          "line": 23,
+          "label": "reads orderRepository",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:orderRepository",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "src/main/java/com/shop/controller/OrderController.java::OrderController.listOrders"
+      ],
+      "resources": [
+        {
+          "resource": "db:orderRepository",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [
+        "@GetMapping"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "post-api-orders",
+      "name": "POST /api/orders",
+      "entry_kind": "http_route",
+      "entry_name": "POST /api/orders",
+      "handler": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+      "framework": "spring",
+      "method": "POST",
+      "path": "/api/orders",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+          "line": 33,
+          "label": "POST /api/orders -> OrderController.placeOrder",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder",
+          "line": 35,
+          "label": "writes orderRepository",
+          "effect_kind": "db",
+          "op": "write",
+          "resource": "db:orderRepository",
+          "risk": "low_risk_write"
+        }
+      ],
+      "functions": [
+        "src/main/java/com/shop/controller/OrderController.java::OrderController.placeOrder"
+      ],
+      "resources": [
+        {
+          "resource": "db:orderRepository",
+          "op": "write"
+        }
+      ],
+      "risk": "low_risk_write",
+      "reasons": [
+        {
+          "level": "low_risk_write",
+          "text": "writes orderRepository",
+          "where": "src/main/java/com/shop/controller/OrderController.java:35"
+        },
+        {
+          "level": "info",
+          "text": "writes data but no authentication middleware or check was detected -- verify access control",
+          "where": "src/main/java/com/shop/controller/OrderController.java:33"
+        }
+      ],
+      "authenticated": false,
+      "middleware": [
+        "@PostMapping"
+      ],
+      "truncated": false
+    },
+    {
+      "id": "get-api-orders-id",
+      "name": "GET /api/orders/{id}",
+      "entry_kind": "http_route",
+      "entry_name": "GET /api/orders/{id}",
+      "handler": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
+      "framework": "spring",
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "description": "",
+      "steps": [
+        {
+          "order": 1,
+          "depth": 0,
+          "kind": "enter",
+          "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
+          "line": 26,
+          "label": "GET /api/orders/{id} -> OrderController.getOrder",
+          "effect_kind": null,
+          "op": null,
+          "resource": null,
+          "risk": "read_only"
+        },
+        {
+          "order": 2,
+          "depth": 0,
+          "kind": "effect",
+          "function": "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder",
+          "line": 28,
+          "label": "reads orderRepository",
+          "effect_kind": "db",
+          "op": "read",
+          "resource": "db:orderRepository",
+          "risk": "read_only"
+        }
+      ],
+      "functions": [
+        "src/main/java/com/shop/controller/OrderController.java::OrderController.getOrder"
+      ],
+      "resources": [
+        {
+          "resource": "db:orderRepository",
+          "op": "read"
+        }
+      ],
+      "risk": "read_only",
+      "reasons": [],
+      "authenticated": false,
+      "middleware": [
+        "@GetMapping(\"/{id}\")"
+      ],
+      "truncated": false
+    }
+  ],
+  "tools": [
+    {
+      "name": "list_orders",
+      "flow_id": "get-api-orders",
+      "description": "GET /api/orders. Reads orderRepository.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/orders",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "query-string parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    },
+    {
+      "name": "create_orders",
+      "flow_id": "post-api-orders",
+      "description": "POST /api/orders. Changes orderRepository.",
+      "risk": "low_risk_write",
+      "safe": false,
+      "include": false,
+      "exposable": true,
+      "method": "POST",
+      "path": "/api/orders",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "object",
+            "description": "Order (structure not inferred -- review); request body field"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "order"
+        ]
+      },
+      "notes": [
+        "no authentication detected on this write"
+      ],
+      "source": "rules"
+    },
+    {
+      "name": "get_orders_by_id",
+      "flow_id": "get-api-orders-id",
+      "description": "GET /api/orders/{id}. Reads orderRepository.",
+      "risk": "read_only",
+      "safe": true,
+      "include": true,
+      "exposable": true,
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "URL path parameter"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "notes": [],
+      "source": "rules"
+    }
+  ],
+  "orchestration": {
+    "coordinator": {
+      "id": "coordinator",
+      "name": "Coordinator",
+      "role": "coordinator",
+      "description": "Understands the user's goal, routes it to the right specialist, and gathers approvals before any write. It holds no tools itself, so every data change goes through an approval point.",
+      "domain": "",
+      "flows": [],
+      "tool_flows": [],
+      "risk": "read_only"
+    },
+    "agents": [
+      {
+        "id": "orders-agent",
+        "name": "Orders agent",
+        "role": "specialist",
+        "description": "Handles orders requests with 3 tools; 1 changes data and needs approval.",
+        "domain": "orders",
+        "flows": [
+          "get-api-orders",
+          "get-api-orders-id",
+          "post-api-orders"
+        ],
+        "tool_flows": [
+          "get-api-orders",
+          "get-api-orders-id",
+          "post-api-orders"
+        ],
+        "risk": "low_risk_write"
+      }
+    ],
+    "approvals": [
+      {
+        "flow_id": "post-api-orders",
+        "agent": "orders-agent",
+        "level": "policy",
+        "reason": "writes orderRepository"
+      }
+    ],
+    "notes": ""
+  },
+  "multimodal": [
+    {
+      "kind": "voice",
+      "title": "Voice self-service",
+      "description": "Expose the read-only lookups in these flows to a voice agent (phone or assistant), so callers can check status without waiting for staff. Keep writes behind confirmation.",
+      "flows": [
+        "get-api-orders",
+        "get-api-orders-id"
+      ],
+      "evidence": [
+        "GET /api/orders: order, status",
+        "GET /api/orders/{id}: order"
+      ],
+      "source": "rules"
+    }
+  ],
+  "roadmap": {
+    "phases": [
+      {
+        "id": "phase-1",
+        "name": "Phase 1: Read-only tools",
+        "summary": "Expose 2 read-only tool(s) through `legacy2mcp generate`. Agents can look things up but change nothing; every call is schema-validated and audit-logged.",
+        "effort": "S",
+        "effort_days": 3,
+        "risk": "read_only",
+        "tool_flows": [
+          "get-api-orders",
+          "get-api-orders-id"
+        ],
+        "prerequisites": [
+          "Review each tool's description and input schema in the report",
+          "Point the generated config at a staging base URL"
+        ],
+        "exit_criteria": [
+          "Agents answer real questions using only these tools",
+          "Audit log reviewed for a week with no surprises"
+        ]
+      },
+      {
+        "id": "phase-2",
+        "name": "Phase 2: Low-risk writes with approval",
+        "summary": "Add 1 low-risk write tool(s) with `allow_write_operations: true`, each behind a policy approval and rate limits.",
+        "effort": "S",
+        "effort_days": 3,
+        "risk": "low_risk_write",
+        "tool_flows": [
+          "post-api-orders"
+        ],
+        "prerequisites": [
+          "Decide the approval policy (who approves, which writes are auto-approved)",
+          "Add authentication to 1 write flow(s) that showed none",
+          "Write explicit body schemas for 1 tool(s) whose fields weren't inferred"
+        ],
+        "exit_criteria": [
+          "Every write is attributable to an approver in the audit log",
+          "Rollback path tested for each write tool"
+        ]
+      },
+      {
+        "id": "phase-3",
+        "name": "Phase 3: Agent orchestration",
+        "summary": "Run a coordinator with 1 specialist agent(s) over the phase 1-2 tools and add 1 multimodal intake path(s).",
+        "effort": "M",
+        "effort_days": 8,
+        "risk": "low_risk_write",
+        "tool_flows": [],
+        "prerequisites": [
+          "Human-approval UI or chat step wired to the coordinator",
+          "Spending/deletion limits agreed with the business owner",
+          "Incident runbook for a bad agent action"
+        ],
+        "exit_criteria": [
+          "High-risk calls happen only after a recorded human approval",
+          "End-to-end flows succeed on staging data"
+        ]
+      }
+    ]
+  }
+}
