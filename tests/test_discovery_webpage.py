@@ -351,7 +351,7 @@ def test_html_file_absolute_action_names_the_host_to_use(tmp_path):
     op = contract_from_html_file(page).operations[0]
 
     assert op.path == "/find"
-    assert any("legacy.example.com" in note for note in op.notes)
+    assert "Form action points at 'legacy.example.com' -- set RestAdapterSettings.base_url to that host." in op.notes
 
 
 def test_html_file_page_without_a_form_becomes_a_read_tool_with_a_path_note(tmp_path):
