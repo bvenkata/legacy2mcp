@@ -358,7 +358,9 @@ def _operation_from_form(
         source_kind="rest",
         method=method,
         path=templated_path,
-        description=f"Discovered from a <form> in {saved_file}." if saved_file else f"Discovered from a <form> on {page_url}.",
+        description=f"Discovered from a <form> in {_file_name(saved_file)}."
+        if saved_file
+        else f"Discovered from a <form> on {page_url}.",
         side_effect="write" if (method != "GET" or looks_like_write(write_name_hint)) else "read",
         fields=fields,
         confidence="low",
@@ -390,7 +392,7 @@ def _operation_from_page_content(
         method="GET",
         path=page_parts.path or "/",
         description=title
-        or (f"Page content discovered in {saved_file}." if saved_file else f"Page content discovered at {page_url}."),
+        or (f"Page content discovered in {_file_name(saved_file)}." if saved_file else f"Page content discovered at {page_url}."),
         side_effect="read",
         fields=[],
         confidence="low",
@@ -533,6 +535,13 @@ def contract_from_webpage(
         generated_at=datetime.now(timezone.utc).isoformat(),
         operations=operations,
     )
+
+
+def _file_name(saved_file: str) -> str:
+    """The file name alone, for text that ends up in config.yaml: a full local
+    path such as /Users/<name>/Downloads/page.html would put a home directory
+    into a config people commit."""
+    return Path(saved_file).name or saved_file
 
 
 def contract_from_html_file(path: str | Path) -> LegacyInterfaceContract:

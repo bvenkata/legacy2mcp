@@ -311,10 +311,36 @@ def test_html_file_turns_each_form_into_an_operation_without_fetching(monkeypatc
     assert next(f for f in ops["search_orders"].fields if f.name == "status").enum == ["closed", "open"]
     assert ops["add_note"].side_effect == "write"
     assert {f.name for f in ops["add_note"].fields} == {"csrf_token", "note"}
-    assert ops["search_orders"].description == f"Discovered from a <form> in {SAVED_PAGE}."
+    assert ops["search_orders"].description == "Discovered from a <form> in saved_page.html."
     for op in contract.operations:
         assert op.confidence == "low"
         assert op.needs_review is True
+
+
+def test_html_file_descriptions_name_the_file_not_its_directory(tmp_path):
+    folder = tmp_path / "home" / "someone" / "Downloads"
+    folder.mkdir(parents=True)
+    with_form = folder / "orders.html"
+    with_form.write_text(
+        '<html><body><form action="/orders" method="post"><input name="note"></form></body></html>',
+        encoding="utf-8",
+    )
+    without_form = folder / "notice.html"
+    without_form.write_text(
+        "<html><body><p>Orders placed after 5pm ship the next working day, including weekends.</p></body></html>",
+        encoding="utf-8",
+    )
+
+    form_contract = contract_from_html_file(with_form)
+    content_contract = contract_from_html_file(without_form)
+
+    assert form_contract.operations[0].description == "Discovered from a <form> in orders.html."
+    assert content_contract.operations[0].description == "Page content discovered in notice.html."
+    for op in form_contract.operations + content_contract.operations:
+        assert str(folder) not in op.description
+        assert all(str(folder) not in note for note in op.notes)
+    # source_label still records the full path, as given
+    assert form_contract.source_label == str(with_form)
 
 
 def test_html_file_relative_action_resolves_against_root_not_the_file(tmp_path):
