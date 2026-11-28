@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-28
+
 ### Added
 
 - **`--html-file` on `discover` and `init`** (#7): the `--webpage-url`

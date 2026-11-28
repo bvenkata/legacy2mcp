@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legacy2mcp"
-version = "0.6.0"
+version = "0.6.1"
 description = "OWASP legacy2mcp: understand any Python or JS/TS codebase and turn its business flows, SOAP/WSDL services, databases, and REST APIs into safe, typed, audit-logged MCP servers for AI agents."
 readme = "README.md"
 requires-python = ">=3.10"
